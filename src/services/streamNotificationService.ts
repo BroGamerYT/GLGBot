@@ -471,10 +471,17 @@ class StreamNotificationService {
           const last = st.lastNotified ? new Date(st.lastNotified).getTime() : 0;
           const inCooldown = now - last < ALERT_COOLDOWN_MS;
 
+          const linkedId = notif.linkedDiscordUserId;
           if (inCooldown) {
             console.log(`⏸️ [StreamNotification] ${name} ist wieder live - Alert übersprungen (letzter vor < 30 Min.).`);
             this.saveState();
+          } else if (linkedId && liveStreamService.wasRecentlyAnnounced(guild.id, linkedId)) {
+            // Das Live-System hat dieses Mitglied gerade schon angekündigt -> kein zweiter Post
+            console.log(`⏸️ [StreamNotification] ${name} wurde gerade schon angekündigt - Alert übersprungen.`);
+            st.lastNotified = new Date(now).toISOString();
+            this.saveState();
           } else {
+            if (linkedId) liveStreamService.markAnnounced(guild.id, linkedId);
             console.log(`🔴 [StreamNotification] ${name} ist jetzt LIVE auf ${platformLabel}!`);
             st.lastNotified = new Date(now).toISOString();
             this.saveState(); // VOR dem Senden speichern -> auch bei Absturz kein zweiter Alert
@@ -651,3 +658,7 @@ class StreamNotificationService {
 }
 
 export const streamNotificationService = new StreamNotificationService();
+
+// Verknüpfte Streamer kündigt nur der Stream-Alert an (siehe liveStreamService.isLinkedStreamer)
+liveStreamService.isLinkedStreamer = (guildId, userId) =>
+  streamNotificationService.getByGuild(guildId).some((n) => n.linkedDiscordUserId === userId);

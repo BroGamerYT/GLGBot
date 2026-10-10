@@ -78,6 +78,12 @@ class LiveStreamService {
     this.recentAnnouncements.set(`${guildId}:${userId}`, Date.now());
   }
 
+  /**
+   * Wird vom Stream-Alert-Dienst gesetzt: Ist das Mitglied mit einem Twitch-/YouTube-Kanal verknüpft,
+   * postet NUR der Stream-Alert (mit Vorschaubild) - das Live-System kündigt dann nicht zusätzlich an.
+   */
+  public isLinkedStreamer: (guildId: string, userId: string) => boolean = () => false;
+
   public wasRecentlyAnnounced(guildId: string, userId: string): boolean {
     const ts = this.recentAnnouncements.get(`${guildId}:${userId}`);
     if (!ts) return false;
@@ -500,7 +506,11 @@ class LiveStreamService {
       }
 
       // Ankündigung in den konfigurierten Ankündigungskanal senden (mit anpassbarem Rollen-Ping und Silent-Einstellung)
-      if (cfg.announcementChannelId && !this.wasRecentlyAnnounced(member.guild.id, member.id)) {
+      if (
+        cfg.announcementChannelId &&
+        !this.wasRecentlyAnnounced(member.guild.id, member.id) &&
+        !this.isLinkedStreamer(member.guild.id, member.id) // sonst doppelt: Stream-Alert + Live-Ankündigung
+      ) {
         const announceChannel = member.guild.channels.cache.get(cfg.announcementChannelId);
         if (announceChannel && announceChannel.isTextBased()) {
           const rolesCfgPath = path.join(DATA_DIR, "role_panel_config.json");
