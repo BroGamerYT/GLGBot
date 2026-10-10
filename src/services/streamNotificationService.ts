@@ -611,6 +611,7 @@ class StreamNotificationService {
       content: finalContent,
       embeds: [embed],
       flags: isSilent ? MessageFlags.SuppressNotifications : undefined,
+      allowedMentions: notif.pingRoleId ? { roles: [notif.pingRoleId] } : undefined,
     }).catch((e) => console.error("[StreamNotification] Konnte Alert nicht senden:", e));
   }
 

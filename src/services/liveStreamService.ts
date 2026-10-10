@@ -69,6 +69,17 @@ class LiveStreamService {
   private pendingCreates: Map<string, Promise<void>> = new Map();
   // Stream-Infos (Link, Titel, Spiel) für den nächsten Kanal, egal welches Event ihn erstellt
   private pendingData: Map<string, LiveData> = new Map();
+  private recentAnnouncements: Map<string, number> = new Map();
+
+  public markAnnounced(guildId: string, userId: string) {
+    this.recentAnnouncements.set(`${guildId}:${userId}`, Date.now());
+  }
+
+  public wasRecentlyAnnounced(guildId: string, userId: string): boolean {
+    const ts = this.recentAnnouncements.get(`${guildId}:${userId}`);
+    if (!ts) return false;
+    return Date.now() - ts < 15 * 60 * 1000;
+  }
 
   constructor() {
     this.ensureDataDir();
@@ -476,6 +487,33 @@ class LiveStreamService {
         entry.channelId = textChannel.id;
         entry.channelType = "text";
         console.log(`[LiveStream] Live-Textkanal erstellt für ${member.user.tag}`);
+      }
+
+      // Ankündigung in den konfigurierten Ankündigungskanal mit Rollen-Ping senden (ohne Silent, mit Sound!)
+      if (cfg.announcementChannelId && !this.wasRecentlyAnnounced(member.guild.id, member.id)) {
+        const announceChannel = member.guild.channels.cache.get(cfg.announcementChannelId);
+        if (announceChannel && announceChannel.isTextBased()) {
+          const rolesCfgPath = path.join(DATA_DIR, "role_panel_config.json");
+          let pingRoleId = "";
+          try {
+            if (fs.existsSync(rolesCfgPath)) {
+              const rolesData = JSON.parse(fs.readFileSync(rolesCfgPath, "utf-8"));
+              pingRoleId = rolesData[member.guild.id]?.streamAlertRoleId || "";
+            }
+          } catch {}
+
+          const pingText = pingRoleId ? `<@&${pingRoleId}> ` : "";
+          await (announceChannel as any)
+            .send({
+              content: `${pingText}📢 **${member.displayName}** ist jetzt live!`,
+              embeds: [embed],
+              allowedMentions: pingRoleId ? { roles: [pingRoleId] } : undefined,
+            })
+            .catch((e: any) => console.error("[LiveStream] Konnte Ankündigung nicht senden:", e));
+
+          this.markAnnounced(member.guild.id, member.id);
+          console.log(`[LiveStream] Stream-Alert in #${(announceChannel as any).name} gesendet mit Rollen-Ping.`);
+        }
       }
 
       this.saveActive();
