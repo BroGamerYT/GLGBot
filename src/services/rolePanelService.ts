@@ -11,6 +11,7 @@ import {
   ChannelType
 } from "discord.js";
 import { liveStreamService } from "./liveStreamService";
+import { prisonService } from "./prisonService";
 
 export interface RolePanelConfig {
   [guildId: string]: {
@@ -441,6 +442,12 @@ class RolePanelService {
     const guildId = interaction.guild.id;
     const cfg = this.config[guildId] || {};
     const member = await interaction.guild.members.fetch(interaction.user.id);
+
+    // Wer im Gefängnis sitzt, darf sich keine Rollen holen (sonst käme er über "Regeln akzeptieren" einfach raus)
+    if (prisonService.isImprisoned(guildId, member.id)) {
+      await interaction.reply({ content: "🔒 Du bist gerade im Gefängnis und kannst keine Rollen ändern.", ephemeral: true });
+      return;
+    }
 
     // 1. REGELN AKZEPTIEREN (Gast)
     if (interaction.customId === "role_btn_rules") {

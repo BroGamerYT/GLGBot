@@ -737,6 +737,7 @@ export class TranscriptService {
    * Liest ein Transkript (Text oder HTML)
    */
   public getTranscript(channelId: string, format: "text" | "html" = "text"): string | null {
+    if (!/^\d{15,25}$/.test(String(channelId))) return null; // verhindert Pfad-Tricks wie ../
     const ext = format === "html" ? ".html" : ".txt";
     const filePath = path.join(TRANSCRIPTS_DIR, `${channelId}${ext}`);
     if (fs.existsSync(filePath)) {

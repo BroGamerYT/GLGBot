@@ -13,6 +13,7 @@ import {
   ActivityType
 } from "discord.js";
 import { tempVoiceService } from "../services/tempVoiceService";
+import { renameSafely, RENAME_LIMIT_HINT } from "../utils/rename";
 
 export async function handleVoiceSelectMenu(interaction: StringSelectMenuInteraction) {
   const member = interaction.guild?.members.cache.get(interaction.user.id);
@@ -53,6 +54,7 @@ export async function handleVoiceSelectMenu(interaction: StringSelectMenuInterac
 
     tempVoiceService.setChannelOwner(voiceChannel.id, interaction.user.id);
     await voiceChannel.permissionOverwrites.edit(interaction.user.id, {
+      ViewChannel: true,
       ManageChannels: true,
       MoveMembers: true,
       Connect: true,
@@ -122,11 +124,11 @@ export async function handleVoiceSelectMenu(interaction: StringSelectMenuInterac
       return;
     }
 
-    const newName = `🔊・${game.name}`;
-    await voiceChannel.setName(newName);
-    await interaction.reply({
-      content: `🎮 Kanalname erfolgreich auf dein Spiel gesetzt: **${newName}**`,
-      ephemeral: true,
+    const newName = `🔊・${game.name}`.slice(0, 100);
+    await interaction.deferReply({ ephemeral: true });
+    const status = await renameSafely(voiceChannel, newName);
+    await interaction.editReply({
+      content: status === "done" ? `🎮 Kanalname erfolgreich auf dein Spiel gesetzt: **${newName}**` : RENAME_LIMIT_HINT,
     });
     return;
   }
@@ -150,10 +152,11 @@ export async function handleVoiceSelectMenu(interaction: StringSelectMenuInterac
           id: interaction.guild.roles.everyone.id,
           deny: [PermissionFlagsBits.ViewChannel],
         },
-        {
-          id: interaction.user.id,
-          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
-        },
+        // Alle, die gerade in der Lobby sind (inkl. Besitzer), dürfen lesen & schreiben
+        ...[...new Set([interaction.user.id, ...voiceChannel.members.keys()])].map((id) => ({
+          id,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+        })),
       ],
     });
 
@@ -215,13 +218,20 @@ export async function handleVoiceModalSubmit(interaction: ModalSubmitInteraction
     return;
   }
 
+  // Auch beim Absenden prüfen: Besitzer oder Admin (man könnte zwischen Öffnen und Absenden den Kanal wechseln)
+  const modalOwner = tempVoiceService.getChannelOwner(voiceChannel.id);
+  if (modalOwner !== interaction.user.id && !interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+    await interaction.reply({ content: "❌ Nur der Ersteller dieser Lobby kann die Einstellungen anpassen.", ephemeral: true });
+    return;
+  }
+
   if (interaction.customId === "modal_voice_name") {
     const rawName = interaction.fields.getTextInputValue("voice_name_input").trim();
     const formatted = `🔊・${rawName}`;
-    await voiceChannel.setName(formatted);
-    await interaction.reply({
-      content: `✅ Kanalname erfolgreich geändert zu: **${formatted}**`,
-      ephemeral: true,
+    await interaction.deferReply({ ephemeral: true });
+    const status = await renameSafely(voiceChannel, formatted);
+    await interaction.editReply({
+      content: status === "done" ? `✅ Kanalname erfolgreich geändert zu: **${formatted}**` : RENAME_LIMIT_HINT,
     });
     return;
   }

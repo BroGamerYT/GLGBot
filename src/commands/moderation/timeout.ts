@@ -5,6 +5,7 @@ import {
   EmbedBuilder,
 } from "discord.js";
 import { Command } from "../../types";
+import { checkModeration } from "../../utils/modChecks";
 import { moderationService } from "../../services/moderationService";
 
 const timeoutCommand: Command = {
@@ -52,6 +53,12 @@ const timeoutCommand: Command = {
     const member = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
     if (!member) {
       await interaction.reply({ content: "❌ Mitglied wurde auf diesem Server nicht gefunden.", ephemeral: true });
+      return;
+    }
+
+    const modProblem = await checkModeration(interaction, member);
+    if (modProblem) {
+      await interaction.reply({ content: `❌ ${modProblem}`, ephemeral: true });
       return;
     }
 

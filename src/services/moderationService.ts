@@ -3,6 +3,7 @@ import path from "path";
 import { Guild, User, GuildMember, EmbedBuilder, Client } from "discord.js";
 import { auditLogService } from "./auditLogService";
 import { statsService } from "./statsService";
+import { readJsonFile, writeJsonAtomic } from "../utils/jsonFile";
 
 export type ModAction = "WARN" | "TIMEOUT" | "KICK" | "BAN" | "UNBAN" | "PRISON" | "UNPRISON" | "BAD_NAME" | "BLACKLIST";
 
@@ -47,7 +48,7 @@ class ModerationService {
   private loadCases() {
     try {
       if (fs.existsSync(CASES_FILE)) {
-        this.cases = JSON.parse(fs.readFileSync(CASES_FILE, "utf-8"));
+        this.cases = readJsonFile(CASES_FILE, this.cases);
       }
     } catch (e) {
       console.error("[ModerationService] Fehler beim Laden der Mod-Cases:", e);
@@ -58,7 +59,7 @@ class ModerationService {
   private saveCases() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(CASES_FILE, JSON.stringify(this.cases, null, 2), "utf-8");
+      writeJsonAtomic(CASES_FILE, this.cases);
     } catch (e) {
       console.error("[ModerationService] Fehler beim Speichern der Mod-Cases:", e);
     }

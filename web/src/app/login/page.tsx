@@ -10,6 +10,7 @@ const ERRORS: Record<string, string> = {
   cancelled: "Die Anmeldung wurde abgebrochen.",
   config: "Das Dashboard ist nicht vollständig eingerichtet (CLIENT_ID, DISCORD_CLIENT_SECRET oder SESSION_SECRET fehlen in der .env).",
   config_error: "Der Bot konnte deine Rechte nicht prüfen (DISCORD_TOKEN / GUILD_ID prüfen).",
+  revoked: "Du wurdest automatisch abgemeldet, weil dir die Admin-Rechte auf dem Discord-Server entzogen wurden.",
 };
 
 export default function LoginPage({ searchParams }: { searchParams: { error?: string } }) {

@@ -5,16 +5,20 @@ import {
   EmbedBuilder,
 } from "discord.js";
 import { Command } from "../../types";
+import { checkModeration } from "../../utils/modChecks";
 import { prisonService } from "../../services/prisonService";
 
 const prisonCommand: Command = {
   data: new SlashCommandBuilder()
     .setName("prison")
+    // In deutschem Discord heißt der Befehl /knast (englische Clients sehen /prison)
+    .setNameLocalizations({ de: "knast" })
     .setDescription("Verwaltet das Gefängnis-System (Mitglieder inhaftieren & freilassen).")
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
     .addSubcommand((sub) =>
       sub
         .setName("lock")
+        .setNameLocalizations({ de: "einsperren" })
         .setDescription("Steckt ein Mitglied ins Gefängnis (-1.000 XP & Rollen-Entzug).")
         .addUserOption((opt) =>
           opt.setName("mitglied").setDescription("Das Mitglied, das inhaftiert werden soll.").setRequired(true)
@@ -26,13 +30,14 @@ const prisonCommand: Command = {
     .addSubcommand((sub) =>
       sub
         .setName("release")
+        .setNameLocalizations({ de: "freilassen" })
         .setDescription("Lässt ein Mitglied aus dem Gefängnis frei und stellt Rollen wieder her.")
         .addUserOption((opt) =>
           opt.setName("mitglied").setDescription("Das Mitglied, das entlassen werden soll.").setRequired(true)
         )
     )
     .addSubcommand((sub) =>
-      sub.setName("list").setDescription("Listet alle aktuell inhaftierten Mitglieder auf.")
+      sub.setName("list").setNameLocalizations({ de: "liste" }).setDescription("Listet alle aktuell inhaftierten Mitglieder auf.")
     ),
   execute: async (interaction: ChatInputCommandInteraction) => {
     if (!interaction.guild) {
@@ -62,6 +67,14 @@ const prisonCommand: Command = {
         return;
       }
 
+      const modProblem = await checkModeration(interaction, member);
+      if (modProblem) {
+        await interaction.reply({ content: `❌ ${modProblem}`, ephemeral: true });
+        return;
+      }
+
+      // Rollen ändern + Kanäle sperren dauert länger als Discords 3-Sekunden-Limit -> erst "denkt nach…" anzeigen
+      await interaction.deferReply();
       const result = await prisonService.imprison(
         interaction.guild,
         member,
@@ -75,7 +88,7 @@ const prisonCommand: Command = {
       );
 
       if (!result.ok) {
-        await interaction.reply({ content: `❌ Fehler: ${result.error}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ Fehler: ${result.error}` });
         return;
       }
 
@@ -91,7 +104,7 @@ const prisonCommand: Command = {
         )
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } else if (sub === "release") {
       const targetUser = interaction.options.getUser("mitglied", true);
       const member = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
@@ -101,6 +114,7 @@ const prisonCommand: Command = {
         return;
       }
 
+      await interaction.deferReply();
       const result = await prisonService.unprison(
         interaction.guild,
         member,
@@ -112,7 +126,7 @@ const prisonCommand: Command = {
       );
 
       if (!result.ok) {
-        await interaction.reply({ content: `❌ Fehler: ${result.error}`, ephemeral: true });
+        await interaction.editReply({ content: `❌ Fehler: ${result.error}` });
         return;
       }
 
@@ -122,7 +136,7 @@ const prisonCommand: Command = {
         .setDescription(`**${targetUser.tag || targetUser.username}** wurde entlassen und vorherige Rollen wiederhergestellt.`)
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } else if (sub === "list") {
       const prisoners = prisonService.getPrisonList(interaction.guild.id);
 

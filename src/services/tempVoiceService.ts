@@ -193,6 +193,7 @@ class TempVoiceService {
               // Berechtigungen für den Kanalersteller
               id: member.id,
               allow: [
+                PermissionFlagsBits.ViewChannel, // sonst sieht der Besitzer seinen Kanal nach "Verstecken" selbst nicht mehr
                 PermissionFlagsBits.ManageChannels,
                 PermissionFlagsBits.MoveMembers,
                 PermissionFlagsBits.MuteMembers,

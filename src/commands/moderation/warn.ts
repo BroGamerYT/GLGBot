@@ -5,6 +5,7 @@ import {
   EmbedBuilder,
 } from "discord.js";
 import { Command } from "../../types";
+import { checkModeration } from "../../utils/modChecks";
 import { moderationService } from "../../services/moderationService";
 
 const warnCommand: Command = {
@@ -40,6 +41,12 @@ const warnCommand: Command = {
 
     if (targetUser.bot) {
       await interaction.reply({ content: "❌ Bots können nicht verwarnt werden.", ephemeral: true });
+      return;
+    }
+
+    const modProblem = await checkModeration(interaction, await interaction.guild.members.fetch(targetUser.id).catch(() => null));
+    if (modProblem) {
+      await interaction.reply({ content: `❌ ${modProblem}`, ephemeral: true });
       return;
     }
 

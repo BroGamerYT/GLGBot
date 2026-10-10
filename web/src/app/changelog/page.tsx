@@ -42,10 +42,51 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.3.0",
-    date: "Oktober 2026",
+    version: "v2.4.0",
+    date: "10. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Sicherheits-Update, /knast, /level status & Treiber-News",
+    description:
+      "Großes Sicherheits- und Komfort-Update: mehrere Lücken im Dashboard geschlossen, automatischer Logout bei Rechte-Entzug, überarbeitetes Gefängnis-System, neuer Level-Status und getrennte Kanäle für Spiel- und Treiber-News.",
+    highlights: [
+      {
+        icon: Shield,
+        title: "Sicherheit & automatischer Logout",
+        description:
+          "Moderationsfälle sind nicht mehr öffentlich sichtbar, Admin-Rollen kann nur noch ein Administrator vergeben, Moderatoren können niemanden über sich bestrafen. Wer seine Admin-Rechte verliert, wird im Dashboard sofort abgemeldet.",
+      },
+      {
+        icon: Lock,
+        title: "/knast statt /prison",
+        description:
+          "Das Gefängnis heißt in deutschem Discord jetzt /knast einsperren | freilassen | liste, sperrt wirklich alle Kanäle, wirft Inhaftierte aus dem Voice und lässt sich nicht mehr über die Rollen-Buttons umgehen.",
+      },
+      {
+        icon: Trophy,
+        title: "/level status",
+        description:
+          "Zeigt dir privat dein Level, deinen Fortschritt und wie viele Nachrichten oder Voice-Minuten bis zum nächsten Level fehlen.",
+      },
+      {
+        icon: Newspaper,
+        title: "Treiber-News getrennt & Game-News-Details",
+        description:
+          "Eigene Rolle bn.treiber mit Kanal #treiber-news. Im Dashboard zeigt ein Klick auf eine Kachel, was enthalten ist und die letzten Beiträge, dazu ein Verlauf aller Änderungen.",
+      },
+      {
+        icon: CheckCircle2,
+        title: "Fehlerbehebungen",
+        description:
+          "Phishing-Filter sperrt keine echten Steam-Links mehr, XP & Daten sind gegen Abstürze beim Speichern geschützt, Voice-Lobbys lassen sich zuverlässig umbenennen und verstecken.",
+      },
+    ],
+  },
+  {
+    version: "v2.3.0",
+    date: "Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-indigo-300 border-discord-blurple/30",
     title: "Benutzerverwaltung, Gefängnis-System & Transparente XP-Aufschlüsselung",
     description:
       "Umfangreiches Verwaltungs- und Transparenz-Upgrade: Vollständige Benutzerverwaltung im Web, Gefängnis-System (/prison) mit Isolations-Rolle, automatischer Minus-Level XP-Abzug bei Regelverstößen, Support-Kategorie und transparente Aufschlüsselung aller gesammelten Erfahrungspunkte.",

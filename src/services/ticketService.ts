@@ -17,6 +17,7 @@ import {
 } from "discord.js";
 import { auditLogService } from "./auditLogService";
 import { transcriptService, TranscriptMetadata } from "./transcriptService";
+import { readJsonFile, writeJsonAtomic } from "../utils/jsonFile";
 
 export interface TicketConfig {
   categoryId?: string;
@@ -67,10 +68,10 @@ class TicketService {
   private loadData() {
     try {
       if (fs.existsSync(CONFIG_FILE)) {
-        this.config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
+        this.config = readJsonFile(CONFIG_FILE, this.config);
       }
       if (fs.existsSync(TICKETS_FILE)) {
-        this.tickets = JSON.parse(fs.readFileSync(TICKETS_FILE, "utf-8"));
+        this.tickets = readJsonFile(TICKETS_FILE, this.tickets);
       }
     } catch (e) {
       console.error("[TicketService] Fehler beim Laden der Ticket-Daten:", e);
@@ -80,8 +81,8 @@ class TicketService {
   private saveData() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(CONFIG_FILE, JSON.stringify(this.config, null, 2), "utf-8");
-      fs.writeFileSync(TICKETS_FILE, JSON.stringify(this.tickets, null, 2), "utf-8");
+      writeJsonAtomic(CONFIG_FILE, this.config);
+      writeJsonAtomic(TICKETS_FILE, this.tickets);
     } catch (e) {
       console.error("[TicketService] Fehler beim Speichern der Ticket-Daten:", e);
     }

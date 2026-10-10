@@ -85,6 +85,8 @@ export interface BackupMeta {
 }
 
 const BACKUPS_DIR = path.join(__dirname, "../../data/backups");
+// Nur echte Backup-IDs erlauben (verhindert z. B. "../role_panel_config" -> fremde Dateien lesen/löschen)
+const isValidBackupId = (id: string) => /^backup_\d+_[a-f0-9]+$/.test(String(id));
 
 class BackupService {
   private autoBackupInterval: NodeJS.Timeout | null = null;
@@ -257,6 +259,7 @@ class BackupService {
    * Lädt ein spezifisches Backup
    */
   public getBackup(backupId: string): GuildBackup | null {
+    if (!isValidBackupId(backupId)) return null;
     const full = path.join(BACKUPS_DIR, `${backupId}.json`);
     if (!fs.existsSync(full)) return null;
     try {
@@ -270,6 +273,7 @@ class BackupService {
    * Löscht ein Backup
    */
   public deleteBackup(backupId: string): boolean {
+    if (!isValidBackupId(backupId)) return false;
     const full = path.join(BACKUPS_DIR, `${backupId}.json`);
     if (fs.existsSync(full)) {
       fs.unlinkSync(full);
@@ -297,6 +301,7 @@ class BackupService {
   }> {
     const backup = this.getBackup(backupId);
     if (!backup) throw new Error(`Backup "${backupId}" nicht gefunden.`);
+    if (backup.guildId !== guild.id) throw new Error("Dieses Backup gehört zu einem anderen Server.");
 
     const result = {
       rolesCreated: 0,

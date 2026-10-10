@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { Guild, User, Client, ChannelType } from "discord.js";
+import { readJsonFile, writeJsonAtomic } from "../utils/jsonFile";
 
 export interface TalkPartnerEntry {
   tag: string;
@@ -104,10 +105,10 @@ class StatsService {
   private loadData() {
     try {
       if (fs.existsSync(STATS_FILE)) {
-        this.stats = JSON.parse(fs.readFileSync(STATS_FILE, "utf-8"));
+        this.stats = readJsonFile(STATS_FILE, this.stats);
       }
       if (fs.existsSync(CONFIG_FILE)) {
-        this.config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
+        this.config = readJsonFile(CONFIG_FILE, this.config);
       }
     } catch (e) {
       console.error("[StatsService] Fehler beim Laden der Statistikdaten:", e);
@@ -120,8 +121,8 @@ class StatsService {
       this.saveTimeout = null;
       try {
         this.ensureDataDir();
-        fs.writeFileSync(STATS_FILE, JSON.stringify(this.stats, null, 2), "utf-8");
-        fs.writeFileSync(CONFIG_FILE, JSON.stringify(this.config, null, 2), "utf-8");
+        writeJsonAtomic(STATS_FILE, this.stats);
+        writeJsonAtomic(CONFIG_FILE, this.config);
       } catch (e) {
         console.error("[StatsService] Fehler beim Speichern der Statistiken:", e);
       }

@@ -78,6 +78,9 @@ async function proxy(req: NextRequest, { params }: { params: { path: string[] } 
         "Content-Type": "application/json",
         "x-bot-token": token,
         "x-dashboard-user": encodeURIComponent(session?.name || "Dashboard-User"),
+        // Für Rechteprüfungen im Bot: wer ist eingeloggt? (leer = öffentlicher Besucher ohne Login)
+        "x-dashboard-user-id": session?.uid || "",
+        "x-dashboard-auth": session ? "1" : "0",
       },
       body: req.method === "GET" ? undefined : await req.text(),
       cache: "no-store",

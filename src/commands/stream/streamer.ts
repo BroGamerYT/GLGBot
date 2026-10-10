@@ -315,7 +315,11 @@ const streamerCommand: Command = {
         .setFooter({ text: "GLGBot Live-Streamer Suite | https://glgbot.brogameryt.de/live" })
         .setTimestamp();
 
-      for (const notif of list) {
+      // Discord erlaubt max. 25 Felder pro Embed
+      if (list.length > 25) {
+        embed.setDescription(`Hier sind die ersten 25 von **${list.length}** Streamern - alle siehst du im Web-Dashboard unter „Live-Streamer“.`);
+      }
+      for (const notif of list.slice(0, 25)) {
         const isYt = notif.platform === "youtube";
         const status = notif.isLive ? `🔴 **LIVE (${isYt ? "YT" : "Twitch"})**` : `⚪ Offline (${isYt ? "YT" : "Twitch"})`;
         const ping = notif.pingRoleId ? `<@&${notif.pingRoleId}>` : "Kein Ping";

@@ -13,6 +13,8 @@ async function bootstrap() {
   }
 
   const client = new BotClient();
+  client.on("error", (e) => console.error("⚠️ Discord-Client-Fehler:", e));
+  client.on("shardError", (e) => console.error("⚠️ Verbindungsfehler zum Discord-Gateway:", e));
 
   try {
     console.log("📦 Lade Befehle und Events...");
@@ -26,5 +28,13 @@ async function bootstrap() {
     process.exit(1);
   }
 }
+
+// Unerwartete Fehler loggen statt den ganzen Bot abstürzen zu lassen
+process.on("unhandledRejection", (reason) => {
+  console.error("⚠️ Unbehandelter Promise-Fehler:", reason);
+});
+process.on("uncaughtException", (error) => {
+  console.error("⚠️ Unbehandelter Fehler:", error);
+});
 
 bootstrap();

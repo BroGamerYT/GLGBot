@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
+import { ACCESS_RECHECK_SECONDS, SESSION_COOKIE, createSessionToken, isSecureUrl, verifySessionToken } from "@/lib/auth";
+import { checkDashboardAccess } from "@/lib/permissions";
 
 /**
  * Schützt das gesamte Dashboard: Seiten UND API-Routen.
@@ -39,7 +40,35 @@ export async function middleware(req: NextRequest) {
   }
 
   const session = await verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);
-  if (session) return NextResponse.next();
+  if (session) {
+    const now = Math.floor(Date.now() / 1000);
+    if (session.chk && now - session.chk < ACCESS_RECHECK_SECONDS) return NextResponse.next();
+
+    // Rechte erneut bei Discord prüfen: Admin entzogen / Server verlassen -> sofort ausloggen
+    const access = await checkDashboardAccess(session.uid).catch(() => ({ allowed: false as const, reason: "config_error" as const }));
+    if (!access.allowed && access.reason !== "config_error") {
+      const base = process.env.DASHBOARD_URL?.replace(/\/+$/, "") || req.nextUrl.origin;
+      const res = isApi
+        ? NextResponse.json({ error: "Deine Dashboard-Rechte wurden entzogen." }, { status: 401 })
+        : NextResponse.redirect(new URL("/login?error=revoked", base));
+      res.cookies.delete({ name: SESSION_COOKIE, path: "/" });
+      console.warn(`[Auth] ${session.name} (${session.uid}) automatisch ausgeloggt: ${access.reason}`);
+      return res;
+    }
+
+    const res = NextResponse.next();
+    // Bei Discord-Störungen (config_error) nicht aussperren - in einer Minute erneut prüfen
+    const token = await createSessionToken({ uid: session.uid, name: session.name, avatar: session.avatar, exp: session.exp });
+    const base = process.env.DASHBOARD_URL || req.nextUrl.origin;
+    res.cookies.set(SESSION_COOKIE, token, {
+      httpOnly: true,
+      secure: isSecureUrl(base),
+      sameSite: "lax",
+      path: "/",
+      maxAge: Math.max(0, session.exp - now),
+    });
+    return res;
+  }
 
   if (isApi) {
     return NextResponse.json({ error: "Nicht eingeloggt." }, { status: 401 });

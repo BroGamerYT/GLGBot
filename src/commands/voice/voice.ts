@@ -6,6 +6,7 @@ import {
   GuildMember
 } from "discord.js";
 import { Command } from "../../types";
+import { renameSafely, RENAME_LIMIT_HINT } from "../../utils/rename";
 import { tempVoiceService } from "../../services/tempVoiceService";
 
 const voiceCommand: Command = {
@@ -148,6 +149,7 @@ const voiceCommand: Command = {
 
       tempVoiceService.setChannelOwner(voiceChannel.id, interaction.user.id);
       await voiceChannel.permissionOverwrites.edit(interaction.user.id, {
+        ViewChannel: true,
         ManageChannels: true,
         MoveMembers: true,
         Connect: true,
@@ -222,10 +224,10 @@ const voiceCommand: Command = {
     if (subcommand === "name") {
       const newName = interaction.options.getString("titel", true);
       const formatted = `🔊・${newName}`;
-      await voiceChannel.setName(formatted);
-      await interaction.reply({
-        content: `✅ Kanalname erfolgreich geändert zu: **${formatted}**`,
-        ephemeral: true,
+      await interaction.deferReply({ ephemeral: true });
+      const status = await renameSafely(voiceChannel, formatted);
+      await interaction.editReply({
+        content: status === "done" ? `✅ Kanalname erfolgreich geändert zu: **${formatted}**` : RENAME_LIMIT_HINT,
       });
       return;
     }
@@ -297,6 +299,7 @@ const voiceCommand: Command = {
 
       tempVoiceService.setChannelOwner(voiceChannel.id, targetUser.id);
       await voiceChannel.permissionOverwrites.edit(targetUser.id, {
+        ViewChannel: true,
         ManageChannels: true,
         MoveMembers: true,
         Connect: true,

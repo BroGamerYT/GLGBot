@@ -12,19 +12,19 @@ Alle Server-Funktionen können sowohl **im Discord-Chat via Slash-Befehle** als 
 | :--- | :--- | :--- | :--- |
 | **Server-Übersicht** | `/` | 🔒 Admin | Live-Zähler für Mitglieder, Kanäle, Rollen und Schnellaktionen. |
 | **Benutzerverwaltung** | `/users` | 🔒 Admin | Mitgliederliste mit Nickname-Änderung, Rollen-Zuweisung, XP-Korrektur und Admin-Notizen. |
-| **Moderation & Knast** | `/moderation` | 🔒 Admin | Warns, Timeouts, Kicks, Bans, Gefängnis-System (`/prison`), Bad-Name-Filter und Schimpfwort-Blacklist. |
+| **Moderation & Knast** | `/moderation` | 🔒 Admin | Warns, Timeouts, Kicks, Bans, Gefängnis-System (`/knast`), Bad-Name-Filter und Schimpfwort-Blacklist. |
 | **Support-Tickets** | `/tickets` | 🔒 Admin | Live-Chat mit 2s Polling, Transkripte mit Embeds/Avataren und Support-Kategorie-Setup. |
 | **Level & Talk-Rangliste** | `/stats` | 🌍 Öffentlich | Top Levels (bis Stufe 25), Voice-Zeiten, Talk-Duos, XP-Regelwerk und Nutzer-Aufschlüsselung. |
 | **VoiceMaster Lobbies** | `/voice` | 🔒 Admin | Join-to-Create Konfiguration, Master-Kanal & interaktives Steuerungs-Panel. |
 | **Live-Streamer Manager** | `/live` | 🔒 Admin | Automatische Twitch-/YouTube-Erkennung, Stream-Alerts und temporäre Kanäle. |
-| **Rollen & Verifikation** | `/roles` | 🔒 Admin | Regel-Akzeptanz (`@Gast`), Stream-Pings (`bn.live`) und Free-Games Alerts (`bn.free`). |
+| **Rollen & Verifikation** | `/roles` | 🔒 Admin | Regel-Akzeptanz (`@Gast`) und Benachrichtigungs-Rollen `bn.live`, `bn.free`, `bn.gamenews`, `bn.treiber`. |
 | **Gratis-Spiele** | `/free-games` | 🔒 Admin | Scan nach 100% kostenlosen Vollversionen (Epic Games, Steam, GOG) mit Deep-Links. |
-| **Game-News & Feeds** | `/news` | 🔒 Admin | Automatische Patchnotes für Games sowie NVIDIA/AMD Grafik- und Chipsatz-Treiber. |
+| **Game-News & Treiber** | `/news` | 🔒 Admin | Patchnotes & Updates für Spiele (`#game-news`) und getrennt davon neue NVIDIA-/AMD-/Intel-Treiber (`#treiber-news`), eigene Steam-Spiele per Link. |
 | **Audit-Logs** | `/logs` | 🔒 Admin | Stille Protokollierung von Server-Aktionen (`SuppressNotifications`). |
 | **Server-Backups** | `/backups` | 🔒 Admin | 1-Klick JSON-Snapshots aller Rollen, Kanäle und Einstellungen mit Wiederherstellung. |
-| **Server-Regeln** | `/rules` | 🔒 Admin | Regel-Editor mit Vorschau und 1-Klick Discord-Veröffentlichung. |
-| **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 31 Slash-Befehle mit Beschreibungen. |
-| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.3.0. |
+| **Server-Regeln** | `/rules` | 🔒 Admin | Regel-Editor mit Vorschau, 1-Klick-Veröffentlichung und Regel-Sperre (Server erst nach Bestätigung sichtbar). |
+| **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 32 Slash-Befehle mit Beschreibungen. |
+| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.4.0. |
 
 ---
 
@@ -52,11 +52,13 @@ Alle Server-Funktionen können sowohl **im Discord-Chat via Slash-Befehle** als 
   * Nickname direkt im Web anpassen oder zurücksetzen.
   * XP-Punkte manuell korrigieren (Hinzufügen, Abziehen oder Festlegen).
   * Persistente Admin-Notizen zu jedem Nutzer hinterlegen.
-* **Gefängnis-System (`/prison` & `/moderation`):**
-  * Isoliert auffällige Nutzer mit einer speziellen Gefängnis-Rolle (`Imprisoned`).
-  * Alle bisherigen Rollen werden sicher zwischengespeichert und entzogen.
-  * Zugriff nur noch auf den privaten `#knast-zelle` Kanal.
-  * Bei Freilassung (`unprison`) werden alle ursprünglichen Rollen wiederhergestellt.
+* **Gefängnis-System (`/knast` & `/moderation`):**
+  * `/knast einsperren` isoliert ein Mitglied mit der Rolle `🔒・Gefängnis` (englisches Discord: `/prison lock`).
+  * Alle bisherigen Rollen werden gespeichert und entzogen, das Mitglied fliegt aus dem Voice.
+  * Alle Kategorien und Kanäle werden für die Gefängnis-Rolle gesperrt - sichtbar bleibt nur `#🔒・gefängnis`.
+  * Inhaftierte können sich weder über „Regeln akzeptieren“ noch über die Rollen-Buttons Rollen zurückholen.
+  * `/knast freilassen` stellt alle ursprünglichen Rollen wieder her, `/knast liste` zeigt alle Inhaftierten.
+* **Rangprüfung:** Moderatoren können nur Mitglieder bestrafen, die **unter** ihrer höchsten Rolle stehen - weder sich selbst noch den Owner. Das gilt für Slash-Befehle und das Dashboard.
 * **Automatischer Minus-Level & XP-Abzug:**
   * Jeder Regelverstoß (Warnung, Timeout, Gefängnis, Kick, Ban) zieht dem Nutzer automatisch konfigurierte XP ab (`-250 XP`, `-500 XP`, `-1.000 XP`) und kann zu einem Stufenabstieg führen.
 * **Bad-Name Filter & Schimpfwort-Blacklist:**
@@ -87,11 +89,15 @@ Alle Server-Funktionen können sowohl **im Discord-Chat via Slash-Befehle** als 
   * Erstellt einen temporären Sprachkanal `🔴・[Name] ist live` mit Stream-Link im Kanalstatus.
   * Postet ein violettes Twitch-Embed in den Ankündigungskanal.
   * Automatisches Cleanup beim Beenden des Streams.
+* **Temporäre Live-Rolle:** Die Live-Rolle und der Kanal bleiben, solange **eine** Quelle „live“ meldet (Discord-Status, Twitch/YouTube-Poller, `/twitch-live` oder manuell vergebene Rolle) - und verschwinden, wenn keine mehr live ist.
+* **Nur ein Alert pro Stream:** Kurze Abbrüche oder Neustarts lösen keinen zweiten Alert aus (offline erst nach 5 Min., höchstens ein Alert pro 30 Min.).
 
 ### 6. 🎮 Gratis-Spiele (Epic Games, Steam & GOG)
 * **Automatischer Background-Scheduler:** Prüft alle 30 Minuten nach neuen 100% kostenlosen Vollversionen.
 * Postet stylische Embeds mit Cover-Art, Store-Link und Ablaufdatum in den `#free-games` Kanal mit Rollen-Ping für `@bn.free`.
-* Deep-Links für direkte Installation über den jeweiligen Game-Launcher.
+* Buttons **„In Steam öffnen“ / „Im Epic Launcher öffnen“** starten direkt die App (über die Weiterleitung `/go/…` im Dashboard).
+* Mehrere Spiele kommen gesammelt in einer Nachricht - nur ein Ping, weitere Nachrichten lautlos.
+* Key-Verlosungen auf Drittseiten (Alienware Arena, IndieGala …) sind standardmäßig ausgeblendet.
 
 ### 7. 🛡️ Silent Audit-Logs & Server-Backups
 * **Stille Benachrichtigungen:** Protokolliert Rollen-, Berechtigungs- und Kanaländerungen im Log-Kanal mit `SuppressNotifications` (keine störenden Audio-Pings).
@@ -99,10 +105,44 @@ Alle Server-Funktionen können sowohl **im Discord-Chat via Slash-Befehle** als 
 
 ---
 
-## 💻 Vollständige Befehlsübersicht (31 Slash-Befehle)
+## 💻 Vollständige Befehlsübersicht (32 Slash-Befehle)
 
 | Befehl | Beschreibung | Berechtigung |
 |---|---|---|
+| `/help` | Übersicht aller Befehle mit Link zum Dashboard. | Alle |
+| `/ping` | Zeigt die Latenz des Bots. | Alle |
+| `/rank [mitglied]` | Rangkarte mit Level, XP, Fortschritt und XP-Herkunft. | Alle |
+| `/level status [oeffentlich]` | Eigener Level-Status: wie viele XP / Nachrichten / Voice-Minuten bis zum nächsten Level fehlen (nur für dich sichtbar). | Alle |
+| `/leaderboard` | Top-Ranglisten für Level, Voice-Zeit und Talk-Duos. | Alle |
+| `/voice-stats` | Eigene Voice-Zeit und Top-Gesprächspartner. | Alle |
+| `/top-voice` | Rangliste der meisten Sprachzeit. | Alle |
+| `/suggest neu \| status` | Vorschlag mit Abstimmungs-Buttons einreichen bzw. Status setzen. | Alle / Server verwalten |
+| `/free-games list` | Aktuell kostenlose Spiele (nur für dich sichtbar). | Alle |
+| `/free-games post \| einstellungen` | Sofort posten bzw. Stores an/aus. | Server verwalten |
+| `/twitch-live start \| stop` | Sich selbst als live melden bzw. beenden. | Alle |
+| `/voice lock \| unlock \| hide \| unhide \| name \| limit \| bitrate \| permit \| reject \| transfer \| claim` | Eigene Lobby steuern. | Lobby-Besitzer |
+| `/warn <mitglied> <grund>` | Verwarnung mit XP-Abzug. | Mitglieder moderieren |
+| `/timeout <mitglied> <dauer> <grund>` | Timeout mit XP-Abzug. | Mitglieder moderieren |
+| `/knast einsperren \| freilassen \| liste` | Gefängnis-System (englisches Discord: `/prison lock \| release \| list`). | Mitglieder moderieren |
+| `/kick <mitglied> [grund]` | Kick mit XP-Abzug. | Mitglieder kicken |
+| `/ban <mitglied> [grund] [tage]` | Bann mit Nachrichten-Bereinigung. | Mitglieder bannen |
+| `/unban <user_id>` | Bann aufheben. | Mitglieder bannen |
+| `/case view \| user \| delete` | Moderationsfälle ansehen oder löschen. | Mitglieder moderieren |
+| `/clear <anzahl> [mitglied]` | Bis zu 100 Nachrichten löschen. | Nachrichten verwalten |
+| `/sticky set \| remove` | Hinweis als letzte Nachricht im Kanal fixieren. | Nachrichten verwalten |
+| `/dm <nachricht> [empfaenger]` | Private Nachricht im Namen des Servers. | Nachrichten verwalten |
+| `/setup-voice set \| status \| disable` | Join-to-Create einrichten. | Kanäle verwalten |
+| `/voice-panel` / `/interface` | Voice-Steuerungs-Panel posten. | Kanäle verwalten |
+| `/setup-live set \| status \| disable` | Live-Rolle, Kategorie und Kanal-Art einrichten. | Kanäle verwalten |
+| `/streamer add \| edit \| remove \| list \| check` | Twitch-/YouTube-Alerts verwalten. | Kanäle verwalten |
+| `/setup-roles set \| panel \| auto \| status` | Rollen & Rollen-Panel einrichten (`auto` legt alle Rollen und Kanäle an). | Rollen verwalten |
+| `/setup-rules post \| lock \| unlock` | Regeln posten, Regel-Sperre an/aus. | Administrator |
+| `/setup-tickets` | Ticket-Panel posten. | Administrator |
+| `/setup-logs` | Audit-Log-Kanal einrichten. | Administrator |
+| `/logs list \| search` | Audit-Log durchsuchen. | Audit-Log anzeigen |
+| `/backup create \| list \| restore \| export \| delete` | Server-Backups verwalten. | Administrator |
+
+---|---|---|
 | `/ping` | Zeigt aktuelle WebSocket- und Roundtrip-Latenz an. | Alle |
 | `/help` | Öffnet das interaktive Hilfe-Embed mit Links zu Web-Dashboard & Support. | Alle |
 | `/rank [user]` | Zeigt die persönliche Rangkarte mit XP, Level, Fortschritt und XP-Herkunft. | Alle |
@@ -136,6 +176,18 @@ Alle Server-Funktionen können sowohl **im Discord-Chat via Slash-Befehle** als 
 | `/free-games post` | Sendet aktuelle Gratis-Spiele sofort in den Ankündigungskanal. | Nachrichten verwalten |
 
 ---
+
+### 8. 📜 Regeln & Freischaltung
+* `/setup-rules post` (oder Dashboard „Regeln“) legt `#📜・regeln` und `#🔔・berechtigungen` an und postet die Regeln mit animiertem Banner und Button **„Regeln akzeptieren“**.
+* **Regel-Sperre** (`/setup-rules lock`): Neue Mitglieder sehen nur `#regeln`, bis sie akzeptieren. Bestehende Mitglieder bekommen beim Einschalten automatisch die Gast-Rolle.
+* Unterstützt das Discord-Regel-Screening: Wer das Regel-Pop-up beim Beitreten bestätigt, bekommt die Gast-Rolle automatisch.
+* Regeltexte im Dashboard bearbeitbar, Platzhalter `{server}`, `{@Name}`, `{permissions}`.
+
+### 9. 📰 Game-News & 🖥️ Treiber-News
+* **Getrennte Kanäle & Rollen:** `#📰・game-news` (Rolle `bn.gamenews`) für Spiel-Updates und `#🖥️・treiber-news` (Rolle `bn.treiber`) für Treiber - jeder sieht nur, was er abonniert hat.
+* **Quellen:** Steam-Ankündigungen & Patchnotes jedes Steam-Spiels (Vorschläge wie GTA V, CS2, Rust … oder eigenes Spiel per Link/App-ID), Minecraft-Versionen, NVIDIA GeForce, AMD Radeon, AMD Ryzen Chipsatz, Intel Arc (AMD/Intel als Beta).
+* Detailansicht im Dashboard mit „Was ist enthalten?“ und den letzten Beiträgen; Verlauf aller Änderungen; angepinnte Übersicht im Kanal.
+* Prüfung alle 15 Minuten, beim Hinzufügen wird nichts Altes gepostet.
 
 ## 🏗️ Architektur & 24/7 Hosting
 
@@ -199,3 +251,7 @@ cd web && npm run dev
 
 * **Öffentliche Seiten:** `/hilfe`, `/changelog` und `/stats` sind ohne Login für alle Server-Mitglieder direkt zugänglich.
 * **Geschützte Admin-Bereiche:** Anmeldung erfolgt über Discord OAuth2. Zugriff haben Server-Owner, Mitglieder mit *Administrator* oder *Server verwalten*, sowie alle in `DASHBOARD_ROLE_IDS` bzw. `DASHBOARD_USER_IDS` hinterlegten Accounts.
+* **Automatischer Logout:** Die Rechte werden jede Minute bei Discord neu geprüft. Wird der Admin-Zugang entzogen oder der Server verlassen, ist man beim nächsten Klick abgemeldet.
+* **Öffentliche Statistik:** Ohne Login sind nur Level und XP sichtbar - Moderationsfälle und Gesprächspartner nur für eingeloggte Admins.
+* **Rechte im Dashboard:** Rollen mit Admin- oder Verwaltungsrechten dürfen nur Administratoren vergeben; Rollen, Spitznamen und Strafen nur für Mitglieder unterhalb der eigenen Rolle.
+* **Bot-Schnittstelle:** Das Dashboard spricht mit dem Bot über `127.0.0.1:3101`, geschützt mit `SESSION_SECRET` (bzw. `INTERNAL_API_TOKEN`).

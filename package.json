@@ -1,6 +1,6 @@
 {
   "name": "ultimate-discord-bot",
-  "version": "1.0.0",
+  "version": "2.4.0",
   "description": "Modularer Discord-Bot in TypeScript mit Event/Command-Handler, Audio & Dashboard-Anbindung",
   "main": "dist/index.js",
   "type": "commonjs",

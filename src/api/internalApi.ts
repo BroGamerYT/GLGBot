@@ -2,7 +2,7 @@ import http from "http";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
-import { Client, EmbedBuilder } from "discord.js";
+import { Client, PermissionFlagsBits, EmbedBuilder } from "discord.js";
 import { freeGamesService } from "../services/freeGamesService";
 import { rulesService } from "../services/rulesService";
 import { rolePanelService } from "../services/rolePanelService";
@@ -86,6 +86,17 @@ export function startInternalApi(client: Client) {
     const route = `${req.method} ${(req.url || "").split("?")[0]}`;
     // Wer im Dashboard eingeloggt ist (für den Verlauf)
     const by = decodeURIComponent(String(req.headers["x-dashboard-user"] || "")).slice(0, 64) || undefined;
+    const isLoggedIn = req.headers["x-dashboard-auth"] === "1";
+    const actorId = String(req.headers["x-dashboard-user-id"] || "");
+    /** Eingeloggtes Dashboard-Mitglied (für Rangprüfungen). */
+    const getActor = async () => (actorId ? await guild.members.fetch(actorId).catch(() => null) : null);
+    /** Owner & Administratoren dürfen alles, alle anderen nur Mitglieder bzw. Rollen UNTER ihrer höchsten Rolle. */
+    const outranks = async (targetPosition: number) => {
+      const actor = await getActor();
+      if (!actor) return false;
+      if (actor.id === guild.ownerId || actor.permissions.has(PermissionFlagsBits.Administrator)) return true;
+      return actor.roles.highest.position > targetPosition;
+    };
     const refreshNewsHeader = () =>
       Promise.all([rulesService.postChannelHeaders(guild, "game-news"), rulesService.postChannelHeaders(guild, "driver-news")]).catch((e) =>
         console.error("[BotAPI] News Kopf-Nachricht:", e)
@@ -392,7 +403,7 @@ export function startInternalApi(client: Client) {
           const qs = (req.url || "").split("?")[1] || "";
           const params = new URLSearchParams(qs);
           const channelId = params.get("channelId");
-          if (!channelId) return send(res, 400, { error: "Keine channelId angegeben." });
+          if (!channelId || !/^\d{15,25}$/.test(channelId)) return send(res, 400, { error: "Ungültige channelId." });
 
           const textTranscript = await ticketService.getTranscript(channelId, guild, "text");
           const htmlTranscript = await ticketService.getTranscript(channelId, guild, "html");
@@ -406,7 +417,7 @@ export function startInternalApi(client: Client) {
           const qs = (req.url || "").split("?")[1] || "";
           const params = new URLSearchParams(qs);
           const channelId = params.get("channelId");
-          if (!channelId) return send(res, 400, { error: "Keine channelId angegeben." });
+          if (!channelId || !/^\d{15,25}$/.test(channelId)) return send(res, 400, { error: "Ungültige channelId." });
 
           const ch = guild.channels.cache.get(channelId);
           if (!ch || !ch.isTextBased()) {
@@ -436,7 +447,7 @@ export function startInternalApi(client: Client) {
         case "POST /tickets/close": {
           const body = await readBody(req);
           const channelId = String(body.channelId || "").trim();
-          if (!channelId) return send(res, 400, { error: "Keine channelId angegeben." });
+          if (!channelId || !/^\d{15,25}$/.test(channelId)) return send(res, 400, { error: "Ungültige channelId." });
 
           const ok = await ticketService.closeTicketFromWeb(guild, channelId, by || "Web-Dashboard", client);
           if (!ok) return send(res, 400, { error: "Kanal konnte nicht geschlossen werden (evtl. bereits gelöscht)." });
@@ -472,7 +483,7 @@ export function startInternalApi(client: Client) {
             topVoice,
             topDuos,
             config,
-            textChannels,
+            textChannels: isLoggedIn ? textChannels : [],
             memberCount: guild.memberCount,
           });
         }
@@ -482,9 +493,12 @@ export function startInternalApi(client: Client) {
           const userId = params.get("userId");
           if (!userId) return send(res, 400, { error: "Keine userId angegeben." });
 
+          if (!/^\d{15,25}$/.test(userId)) return send(res, 400, { error: "Ungültige userId." });
+
           const profile = statsService.getUserProfile(guild.id, userId);
-          const partners = statsService.getTopTalkPartners(guild.id, userId, 10);
-          const cases = moderationService.getCases(guild.id, userId);
+          // Öffentliche Besucher (ohne Login) sehen keine Moderationsfälle und keine Gesprächspartner
+          const partners = isLoggedIn ? statsService.getTopTalkPartners(guild.id, userId, 10) : [];
+          const cases = isLoggedIn ? moderationService.getCases(guild.id, userId) : [];
           const config = statsService.getConfig(guild.id);
 
           const messagesCount = profile?.stats.messagesCount || 0;
@@ -610,8 +624,19 @@ export function startInternalApi(client: Client) {
           }
 
           const targetMember = await guild.members.fetch(targetId).catch(() => null);
+          if (targetMember) {
+            if (targetMember.id === guild.ownerId) return send(res, 403, { error: "Der Server-Owner kann nicht moderiert werden." });
+            if (targetMember.id === actorId) return send(res, 403, { error: "Du kannst dich nicht selbst moderieren." });
+            if (!(await outranks(targetMember.roles.highest.position))) {
+              return send(res, 403, { error: "Das Mitglied hat eine gleich hohe oder höhere Rolle als du." });
+            }
+          }
           const modName = by || "Web-Admin";
-          const modUser = (await client.users.fetch(guild.ownerId).catch(() => null)) || client.user!;
+          // Als Moderator den tatsächlich eingeloggten Nutzer eintragen (nicht pauschal den Owner)
+          const modUser =
+            (actorId && (await client.users.fetch(actorId).catch(() => null))) ||
+            (await client.users.fetch(guild.ownerId).catch(() => null)) ||
+            client.user!;
 
           switch (action) {
             case "warn": {
@@ -768,6 +793,30 @@ export function startInternalApi(client: Client) {
           if (!member) return send(res, 404, { error: "Mitglied nicht gefunden." });
           const role = guild.roles.cache.get(roleId);
           if (!role) return send(res, 404, { error: "Rolle nicht gefunden." });
+          if (role.managed || role.id === guild.id) return send(res, 400, { error: "Diese Rolle kann nicht vergeben werden." });
+
+          // Schutz vor Rechteausweitung: Rollen nur unterhalb der eigenen höchsten Rolle,
+          // gefährliche Rechte (Admin, Server/Rollen verwalten, Bannen …) nur für Owner & Administratoren
+          const actor = await getActor();
+          const actorIsAdmin = !!actor && (actor.id === guild.ownerId || actor.permissions.has(PermissionFlagsBits.Administrator));
+          const DANGEROUS =
+            PermissionFlagsBits.Administrator |
+            PermissionFlagsBits.ManageGuild |
+            PermissionFlagsBits.ManageRoles |
+            PermissionFlagsBits.ManageChannels |
+            PermissionFlagsBits.BanMembers |
+            PermissionFlagsBits.KickMembers |
+            PermissionFlagsBits.ManageWebhooks;
+          if (!actorIsAdmin && (role.permissions.bitfield & DANGEROUS) !== BigInt(0)) {
+            return send(res, 403, { error: "Rollen mit Admin- oder Verwaltungsrechten dürfen nur Administratoren vergeben." });
+          }
+          if (!(await outranks(role.position))) {
+            return send(res, 403, { error: "Du kannst nur Rollen vergeben, die unter deiner höchsten Rolle stehen." });
+          }
+          if (member.id !== actorId && member.id !== guild.ownerId && !(await outranks(member.roles.highest.position))) {
+            return send(res, 403, { error: "Das Mitglied hat eine gleich hohe oder höhere Rolle als du." });
+          }
+          if (member.id === guild.ownerId && !actorIsAdmin) return send(res, 403, { error: "Rollen des Owners darf nur ein Administrator ändern." });
 
           if (action === "add") {
             await member.roles.add(role, `Benutzerverwaltung Webinterface durch ${by || "Admin"}`);
@@ -784,6 +833,10 @@ export function startInternalApi(client: Client) {
           const member = await guild.members.fetch(userId).catch(() => null);
           if (!member) return send(res, 404, { error: "Mitglied nicht gefunden." });
 
+          if (member.id === guild.ownerId) return send(res, 403, { error: "Den Spitznamen des Owners kann der Bot nicht ändern." });
+          if (member.id !== actorId && !(await outranks(member.roles.highest.position))) {
+            return send(res, 403, { error: "Das Mitglied hat eine gleich hohe oder höhere Rolle als du." });
+          }
           await member.setNickname(nickname ? String(nickname).slice(0, 32) : null, `Benutzerverwaltung durch ${by || "Admin"}`);
           return send(res, 200, { ok: true, nickname: member.nickname });
         }

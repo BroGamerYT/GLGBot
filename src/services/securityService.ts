@@ -38,7 +38,8 @@ const PHISHING_PATTERNS = [
   /discordgift\.[a-z]{2,}/i,
   /free-nitro[a-z0-9-]*\.[a-z]{2,}/i,
   /nitro-[a-z0-9-]*\.(gift|xyz|click|top|ru)/i,
-  /steamcommun[a-z0-9-]*\.(com|ru|org|xyz|site)/i,
+  // Fake-Steam-Domains (steamcommunlty.com, steamcommunity.ru …) - die ECHTE steamcommunity.com bleibt erlaubt
+  /steamcommun(?!ity\.com\b)[a-z0-9-]*\.(com|ru|org|xyz|site)/i,
   /steam-gift[a-z0-9-]*\.[a-z]{2,}/i,
   /steam-trade[a-z0-9-]*\.[a-z]{2,}/i,
   /trade-steam[a-z0-9-]*\.[a-z]{2,}/i,

@@ -25,7 +25,7 @@ const helpCommand: Command = {
           value:
             "`/setup-voice` • Richtet den „Join to Create“-Kanal ein\n" +
             "`/voice` • Lobbys sperren, verstecken, Bitrate ändern oder kicken\n" +
-            "`/interface` • Öffnet das interaktive Voice-Steuerungspanel\n" +
+            "`/interface` / `/voice-panel` • Postet das interaktive Voice-Steuerungspanel\n" +
             "`/voice-stats` • Zeigt deine Voice-Dauer & Top Talk-Partner an\n" +
             "`/top-voice` • Rangliste der Mitglieder mit der meisten Sprachzeit",
           inline: false,
@@ -34,6 +34,7 @@ const helpCommand: Command = {
           name: "🏆 Level & Ranglisten",
           value:
             "`/rank [user]` • Zeigt dein Level, gesammelte XP und Rangkarte\n" +
+            "`/level status` • Dein Level-Status: wie viele XP bis zum nächsten Level fehlen\n" +
             "`/leaderboard` • Die Top 10 aktivsten Server-Mitglieder",
           inline: false,
         },
@@ -45,6 +46,7 @@ const helpCommand: Command = {
             "`/kick` • Kickt ein Mitglied vom Server\n" +
             "`/ban` • Bannt einen Nutzer inklusive Nachrichtenbereinigung\n" +
             "`/unban` • Hebt einen Bann per Nutzer-ID auf\n" +
+            "`/knast einsperren|freilassen|liste` • Gefängnis: isoliert ein Mitglied (-1.000 XP)\n" +
             "`/case view|user|delete` • Durchsucht Moderations-Fälle\n" +
             "`/clear` • Löscht bis zu 100 Nachrichten (optional nach Nutzer)",
           inline: false,
@@ -62,15 +64,26 @@ const helpCommand: Command = {
           value:
             "`/free-games list|post` • Kostenlose Spiele von Epic, Steam & GOG\n" +
             "`/twitch-live start|stop` • Verwaltet persönliche Live-Stream Kanäle\n" +
+            "`/setup-live` • Richtet Live-Rolle & Live-Kanäle ein\n" +
             "`/streamer add|remove|list` • Richtet automatische Stream-Alerts ein",
+          inline: false,
+        },
+        {
+          name: "🔧 Sonstiges",
+          value:
+            "`/help` • Diese Übersicht\n" +
+            "`/ping` • Zeigt, wie schnell der Bot antwortet",
           inline: false,
         },
         {
           name: "⚙️ Administration & Backups",
           value:
             "`/backup create|list|restore` • Vollständige Rollen- & Kanal-Snapshots\n" +
+            "`/setup-rules post|lock|unlock` • Regeln posten & Server bis zur Bestätigung sperren\n" +
+            "`/setup-roles` • Erstellt das Rollenauswahl-Panel im Chat\n" +
             "`/setup-logs` • Richtet den geschützten Audit-Log Kanal ein\n" +
-            "`/setup-roles` • Erstellt das Rollenauswahl-Panel im Chat",
+            "`/logs` • Durchsucht das Audit-Log\n" +
+            "`/dm` • Private Nachricht im Namen des Servers senden",
           inline: false,
         }
       )

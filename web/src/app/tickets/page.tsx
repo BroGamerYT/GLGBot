@@ -775,6 +775,7 @@ export default function TicketsPage() {
               ) : transcriptViewMode === "html" && transcriptHtml ? (
                 <iframe
                   srcDoc={transcriptHtml}
+                  sandbox="allow-popups allow-popups-to-escape-sandbox"
                   title="Ticket Transkript Vorschau"
                   className="w-full flex-1 border-0 min-h-[480px]"
                 />

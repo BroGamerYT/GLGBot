@@ -17,7 +17,11 @@ export interface Session {
   name: string; // Anzeigename
   avatar: string | null; // Avatar-Hash
   exp: number; // Ablauf (Unix-Sekunden)
+  chk?: number; // Zeitpunkt der letzten Rechteprüfung bei Discord (Unix-Sekunden)
 }
+
+/** Wie oft die Admin-Rechte erneut bei Discord geprüft werden (Rechte weg -> automatisch ausgeloggt). */
+export const ACCESS_RECHECK_SECONDS = 60;
 
 const encoder = new TextEncoder();
 
@@ -59,10 +63,12 @@ function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
   return diff === 0;
 }
 
-export async function createSessionToken(data: Omit<Session, "exp">): Promise<string> {
+export async function createSessionToken(data: Omit<Session, "exp" | "chk"> & { exp?: number }): Promise<string> {
   const secret = getSecret();
   if (!secret) throw new Error("SESSION_SECRET fehlt oder ist kürzer als 32 Zeichen.");
-  const session: Session = { ...data, exp: Math.floor(Date.now() / 1000) + SESSION_MAX_AGE };
+  const now = Math.floor(Date.now() / 1000);
+  // exp bleibt beim Auffrischen erhalten (kein endloses Verlängern), chk = jetzt geprüft
+  const session: Session = { ...data, exp: data.exp ?? now + SESSION_MAX_AGE, chk: now };
   const payload = b64url(encoder.encode(JSON.stringify(session)));
   const sig = b64url(await hmac(payload, secret));
   return `${payload}.${sig}`;

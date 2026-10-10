@@ -5,6 +5,7 @@ import {
   EmbedBuilder,
 } from "discord.js";
 import { Command } from "../../types";
+import { checkModeration } from "../../utils/modChecks";
 import { moderationService } from "../../services/moderationService";
 
 const banCommand: Command = {
@@ -43,6 +44,12 @@ const banCommand: Command = {
     const deleteDays = interaction.options.getInteger("nachrichten_loeschen") || 0;
 
     const member = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
+
+    const modProblem = await checkModeration(interaction, member);
+    if (modProblem) {
+      await interaction.reply({ content: `❌ ${modProblem}`, ephemeral: true });
+      return;
+    }
     if (member && !member.bannable) {
       await interaction.reply({
         content: "❌ Dieses Mitglied kann nicht gebannt werden (höhere Rolle oder Administrator).",

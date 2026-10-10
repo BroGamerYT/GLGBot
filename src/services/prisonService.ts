@@ -12,6 +12,7 @@ import {
   EmbedBuilder,
 } from "discord.js";
 import { moderationService } from "./moderationService";
+import { readJsonFile, writeJsonAtomic } from "../utils/jsonFile";
 
 export interface PrisonEntry {
   userId: string;
@@ -50,7 +51,7 @@ class PrisonService {
   private loadData() {
     try {
       if (fs.existsSync(PRISON_FILE)) {
-        this.prisoners = JSON.parse(fs.readFileSync(PRISON_FILE, "utf-8"));
+        this.prisoners = readJsonFile(PRISON_FILE, this.prisoners);
       }
     } catch (e) {
       console.error("[PrisonService] Fehler beim Laden der Gefängnis-Daten:", e);
@@ -61,7 +62,7 @@ class PrisonService {
   private saveData() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(PRISON_FILE, JSON.stringify(this.prisoners, null, 2), "utf-8");
+      writeJsonAtomic(PRISON_FILE, this.prisoners);
     } catch (e) {
       console.error("[PrisonService] Fehler beim Speichern der Gefängnis-Daten:", e);
     }
@@ -117,6 +118,31 @@ class PrisonService {
     });
   }
 
+  /**
+   * Sperrt alle Kategorien und eigenständigen Kanäle für die Gefängnis-Rolle (außer dem Gefängnis-Kanal).
+   * Kanäle, die mit ihrer Kategorie synchronisiert sind, erben die Sperre automatisch.
+   * Wird bei jeder Inhaftierung ausgeführt, damit auch neu erstellte Kanäle gesperrt werden.
+   */
+  public async applyPrisonLockdown(guild: Guild, prisonRole: Role, prisonChannelId: string) {
+    const DENY = {
+      ViewChannel: false,
+      SendMessages: false,
+      SendMessagesInThreads: false,
+      AddReactions: false,
+      Connect: false,
+      Speak: false,
+    };
+    for (const ch of guild.channels.cache.values()) {
+      if (ch.id === prisonChannelId || ch.isThread() || !("permissionOverwrites" in ch)) continue;
+      const isCategory = ch.type === ChannelType.GuildCategory;
+      const synced = !isCategory && ch.parent && (ch as any).permissionsLocked;
+      if (synced) continue; // erbt von der Kategorie
+      const existing = ch.permissionOverwrites.cache.get(prisonRole.id);
+      if (existing && existing.deny.has(PermissionsBitField.Flags.ViewChannel)) continue;
+      await ch.permissionOverwrites.edit(prisonRole, DENY, { reason: "Gefängnis: Kanal für Inhaftierte sperren" }).catch(() => null);
+    }
+  }
+
   public isImprisoned(guildId: string, userId: string): boolean {
     return Boolean(this.prisoners[guildId]?.[userId]);
   }
@@ -147,8 +173,11 @@ class PrisonService {
       const prisonRole = await this.ensurePrisonRole(guild);
       const prisonChannel = await this.ensurePrisonChannel(guild, prisonRole);
 
-      // Speichere die aktuellen Rollen (außer @everyone und Bot-Managed)
-      const rolesToRemove = member.roles.cache.filter((r) => !r.managed && r.id !== guild.roles.everyone.id);
+      // Speichere die aktuellen Rollen (außer @everyone, Bot-Rollen und Rollen ÜBER dem Bot -
+      // die kann der Bot nicht entfernen, sonst schlägt das ganze Rollen-Update fehl)
+      const rolesToRemove = member.roles.cache.filter(
+        (r) => !r.managed && r.id !== guild.roles.everyone.id && r.id !== prisonRole.id && r.editable
+      );
       const previousRoleIds = rolesToRemove.map((r) => r.id);
 
       // Rollen entfernen & Gefängnis-Rolle zuweisen
@@ -159,6 +188,19 @@ class PrisonService {
         await member.roles.add(prisonRole, `Inhaftiert: ${reason}`);
       } catch (e: any) {
         console.error("[PrisonService] Fehler beim Rollen-Update:", e);
+        return {
+          ok: false,
+          error: "Die Rollen konnten nicht geändert werden. Die Bot-Rolle muss in den Server-Einstellungen über allen Rollen des Mitglieds und über der Gefängnis-Rolle stehen.",
+          xpPenalty: 0,
+        };
+      }
+
+      // Alle anderen Kanäle für die Gefängnis-Rolle sperren & aus dem Voice werfen
+      await this.applyPrisonLockdown(guild, prisonRole, prisonChannel.id).catch((e) =>
+        console.error("[PrisonService] Sperre der Kanäle fehlgeschlagen:", e)
+      );
+      if (member.voice.channel) {
+        await member.voice.disconnect(`Inhaftiert: ${reason}`).catch(() => null);
       }
 
       // Speichere Gefängnis-Eintrag
