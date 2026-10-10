@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { pathToFileURL } from "url";
 import { BotClient } from "../client/BotClient";
 import { BotEvent } from "../types";
 
@@ -15,7 +16,8 @@ export async function loadEvents(client: BotClient, eventsPath: string = path.jo
   for (const file of files) {
     const fullPath = path.join(eventsPath, file);
     try {
-      const eventModule = await import(fullPath);
+      const fileUrl = pathToFileURL(fullPath).href;
+      const eventModule = await import(fileUrl);
       const event: BotEvent = eventModule.default || eventModule;
 
       if (event && event.name && typeof event.execute === "function") {
