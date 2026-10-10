@@ -16,12 +16,15 @@ export class BotClient extends Client {
           GatewayIntentBits.GuildVoiceStates,
           GatewayIntentBits.GuildPresences,
           GatewayIntentBits.DirectMessages,
+          GatewayIntentBits.GuildModeration,
+          GatewayIntentBits.GuildExpressions,
         ],
         partials: [
           Partials.Channel,
           Partials.Message,
           Partials.User,
           Partials.Reaction,
+          Partials.GuildMember,
         ],
       }
     );

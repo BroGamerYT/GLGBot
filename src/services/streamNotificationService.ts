@@ -5,7 +5,8 @@ import {
   EmbedBuilder, 
   TextChannel, 
   GuildMember, 
-  ChannelType 
+  ChannelType,
+  MessageFlags,
 } from "discord.js";
 import { liveStreamService } from "./liveStreamService";
 
@@ -21,6 +22,7 @@ export interface StreamNotification {
   pingRoleId?: string;
   linkedDiscordUserId?: string;
   customMessage?: string;
+  silent?: boolean;
   lastNotified?: string;
   isLive?: boolean;
   currentStreamId?: string;
@@ -47,15 +49,66 @@ interface TwitchGqlResponse {
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const NOTIFICATIONS_FILE = path.join(DATA_DIR, "stream_notifications.json");
+// Live-Status liegt in einer EIGENEN Datei, die nur der Bot schreibt.
+// So kann das Dashboard oder ein Befehl den Status nie versehentlich zurücksetzen.
+const STATE_FILE = path.join(DATA_DIR, "stream_live_state.json");
+
+// Erst als offline werten, wenn der Stream so lange weg ist (kurze Abbrüche/Neustarts ignorieren)
+const OFFLINE_GRACE_MS = 5 * 60 * 1000;
+// Nie öfter als einmal in diesem Zeitraum für denselben Streamer benachrichtigen
+const ALERT_COOLDOWN_MS = 30 * 60 * 1000;
+
+interface LiveState {
+  isLive: boolean;
+  currentStreamId?: string;
+  lastNotified?: string;
+  offlineSince?: number;
+}
 
 class StreamNotificationService {
   private notifications: StreamNotification[] = [];
   private pollerInterval: NodeJS.Timeout | null = null;
   private client: Client | null = null;
+  private state: Record<string, LiveState> = {};
+  // Läuft gerade eine Prüfung? Dann wird keine zweite parallel gestartet.
+  private runningCheck: Promise<void> | null = null;
 
   constructor() {
     this.ensureDataDir();
     this.loadNotifications();
+    this.loadState();
+  }
+
+  private loadState() {
+    try {
+      this.state = fs.existsSync(STATE_FILE) ? JSON.parse(fs.readFileSync(STATE_FILE, "utf-8")) : {};
+    } catch {
+      this.state = {};
+    }
+  }
+
+  private saveState() {
+    try {
+      this.ensureDataDir();
+      // Erst in Temp-Datei schreiben, dann umbenennen -> Datei ist nie halb geschrieben
+      const tmp = STATE_FILE + ".tmp";
+      fs.writeFileSync(tmp, JSON.stringify(this.state, null, 2), "utf-8");
+      fs.renameSync(tmp, STATE_FILE);
+    } catch (e) {
+      console.error("[StreamNotification] Fehler beim Speichern des Live-Status:", e);
+    }
+  }
+
+  /** Live-Status eines Eintrags (aus der Status-Datei, Fallback: alte Felder im Eintrag). */
+  private getState(notif: StreamNotification): LiveState {
+    if (!this.state[notif.id]) {
+      this.state[notif.id] = {
+        isLive: Boolean(notif.isLive),
+        currentStreamId: notif.currentStreamId,
+        lastNotified: notif.lastNotified,
+      };
+    }
+    return this.state[notif.id];
   }
 
   private ensureDataDir() {
@@ -89,7 +142,12 @@ class StreamNotificationService {
 
   public getByGuild(guildId: string): StreamNotification[] {
     this.loadNotifications();
-    return this.notifications.filter((n) => n.guildId === guildId);
+    return this.notifications
+      .filter((n) => n.guildId === guildId)
+      .map((n) => {
+        const st = this.state[n.id];
+        return st ? { ...n, isLive: st.isLive, lastNotified: st.lastNotified } : n;
+      });
   }
 
   // Fragt Twitch User- & Stream-Status über die Web-GQL-Schnittstelle ab
@@ -189,11 +247,15 @@ class StreamNotificationService {
       const liveUrl = `https://www.youtube.com/channel/${channelId}/live`;
       const liveRes = await fetch(liveUrl, { headers: { "User-Agent": "Mozilla/5.0" }, redirect: "follow" });
       const liveHtml = await liveRes.text();
-      const isLive = liveHtml.includes("\"isLive\":true") || liveHtml.includes("\"liveStreamabilityRenderer\"");
+      // Geplante/angekündigte Streams ("isUpcoming") zählen NICHT als live
+      const isUpcoming = liveHtml.includes('"isUpcoming":true');
+      const isLive = !isUpcoming && (liveHtml.includes('"isLiveNow":true') || liveHtml.includes('"isLive":true'));
 
       let stream = null;
       if (isLive) {
-        const videoIdMatch = liveHtml.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
+        const videoIdMatch =
+          liveHtml.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/) ||
+          liveHtml.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
         const streamTitleMatch = liveHtml.match(/<meta property="og:title" content="([^"]+)">/);
         const videoId = videoIdMatch ? videoIdMatch[1] : "";
         if (videoId) {
@@ -232,6 +294,7 @@ class StreamNotificationService {
     pingRoleId?: string;
     linkedDiscordUserId?: string;
     customMessage?: string;
+    silent?: boolean;
   }): Promise<{ success: boolean; notification?: StreamNotification; message?: string }> {
     const platform = params.platform || "twitch";
     const cleanName = params.channelName.trim();
@@ -289,6 +352,7 @@ class StreamNotificationService {
       pingRoleId: params.pingRoleId || undefined,
       linkedDiscordUserId: params.linkedDiscordUserId || undefined,
       customMessage: params.customMessage || undefined,
+      silent: params.silent !== undefined ? params.silent : (existingIndex >= 0 ? this.notifications[existingIndex].silent : false),
       lastNotified: existingIndex >= 0 ? this.notifications[existingIndex].lastNotified : undefined,
       isLive: existingIndex >= 0 ? this.notifications[existingIndex].isLive : isLive,
       currentStreamId: streamId || (existingIndex >= 0 ? this.notifications[existingIndex].currentStreamId : undefined),
@@ -337,81 +401,130 @@ class StreamNotificationService {
     }, 60000);
   }
 
-  // Prüft alle eingetragenen Benachrichtigungen (Twitch & YouTube)
-  public async checkAllStreams() {
+  /**
+   * Prüft alle eingetragenen Streamer. Läuft bereits eine Prüfung (Poller + /streamer check
+   * gleichzeitig), wird auf diese gewartet statt eine zweite zu starten.
+   */
+  public checkAllStreams(): Promise<void> {
+    if (!this.runningCheck) {
+      this.runningCheck = this.runCheck().finally(() => {
+        this.runningCheck = null;
+      });
+    }
+    return this.runningCheck;
+  }
+
+  private async runCheck() {
     if (!this.client) return;
-    this.loadNotifications();
+    const notifications = [...this.loadNotifications()];
+    if (notifications.length === 0) return;
 
-    if (this.notifications.length === 0) return;
+    // Status von gelöschten Einträgen aufräumen
+    const ids = new Set(notifications.map((n) => n.id));
+    for (const id of Object.keys(this.state)) if (!ids.has(id)) delete this.state[id];
 
-    for (const notif of this.notifications) {
+    for (const notif of notifications) {
       try {
         const guild = this.client.guilds.cache.get(notif.guildId);
         if (!guild) continue;
 
         let isNowLive = false;
         let streamData: any = null;
-        let fetchedDisplayName = notif.displayName;
-        let fetchedAvatar = notif.profileImageUrl;
+        let fetchedDisplayName: string | undefined;
+        let fetchedAvatar: string | undefined;
 
         if (notif.platform === "youtube") {
           const ytInfo = await this.fetchYouTubeUser(notif.channelName, notif.youtubeChannelId);
-          if (!ytInfo.exists) continue;
+          if (!ytInfo.exists) continue; // Abruf fehlgeschlagen -> Status NICHT ändern
           isNowLive = ytInfo.stream !== null;
           streamData = ytInfo.stream;
-          if (ytInfo.displayName) fetchedDisplayName = ytInfo.displayName;
-          if (ytInfo.profileImageUrl) fetchedAvatar = ytInfo.profileImageUrl;
+          fetchedDisplayName = ytInfo.displayName;
+          fetchedAvatar = ytInfo.profileImageUrl;
         } else {
-          // Twitch
           const twitchInfo = await this.fetchTwitchUser(notif.channelName);
-          if (!twitchInfo.exists) continue;
+          if (!twitchInfo.exists) continue; // Abruf fehlgeschlagen -> Status NICHT ändern
           isNowLive = twitchInfo.stream !== null;
           streamData = twitchInfo.stream;
-          if (twitchInfo.displayName) fetchedDisplayName = twitchInfo.displayName;
-          if (twitchInfo.profileImageUrl) fetchedAvatar = twitchInfo.profileImageUrl;
+          fetchedDisplayName = twitchInfo.displayName;
+          fetchedAvatar = twitchInfo.profileImageUrl;
         }
 
-        if (fetchedDisplayName) notif.displayName = fetchedDisplayName;
-        if (fetchedAvatar) notif.profileImageUrl = fetchedAvatar;
+        this.updateProfile(notif, fetchedDisplayName, fetchedAvatar);
+        const st = this.getState(notif);
+        const now = Date.now();
+        const platformLabel = notif.platform === "youtube" ? "YouTube" : "Twitch";
+        const name = notif.displayName || notif.channelName;
 
-        // Fall 1: Streamer geht LIVE
-        if (isNowLive && (!notif.isLive || notif.currentStreamId !== streamData?.id)) {
-          const platformLabel = notif.platform === "youtube" ? "YouTube" : "Twitch";
-          console.log(`🔴 [StreamNotification] ${notif.displayName} ist jetzt LIVE auf ${platformLabel}!`);
-          notif.isLive = true;
-          notif.currentStreamId = streamData?.id;
-          notif.lastNotified = new Date().toISOString();
+        if (isNowLive) {
+          st.offlineSince = undefined;
 
-          await this.sendLiveAlert(guild, notif, {
-            displayName: notif.displayName || notif.channelName,
-            profileImageUrl: notif.profileImageUrl || "",
-            stream: streamData,
-          });
+          if (st.isLive) {
+            // War schon live (evtl. neue Stream-ID nach Neustart des Streams) -> KEIN neuer Alert
+            st.currentStreamId = streamData?.id;
+            this.saveState();
+            continue;
+          }
 
-          // Falls ein Discord-Mitglied verknüpft ist: Live-Rolle vergeben & Live-Kanal erstellen
+          // Wechsel offline -> live
+          st.isLive = true;
+          st.currentStreamId = streamData?.id;
+          const last = st.lastNotified ? new Date(st.lastNotified).getTime() : 0;
+          const inCooldown = now - last < ALERT_COOLDOWN_MS;
+
+          if (inCooldown) {
+            console.log(`⏸️ [StreamNotification] ${name} ist wieder live - Alert übersprungen (letzter vor < 30 Min.).`);
+            this.saveState();
+          } else {
+            console.log(`🔴 [StreamNotification] ${name} ist jetzt LIVE auf ${platformLabel}!`);
+            st.lastNotified = new Date(now).toISOString();
+            this.saveState(); // VOR dem Senden speichern -> auch bei Absturz kein zweiter Alert
+            await this.sendLiveAlert(guild, notif, {
+              displayName: name,
+              profileImageUrl: notif.profileImageUrl || "",
+              stream: streamData,
+            });
+          }
+
           if (notif.linkedDiscordUserId) {
             await this.handleLinkedMemberLive(guild, notif, streamData);
           }
+        } else if (st.isLive) {
+          // Erst nach OFFLINE_GRACE_MS als offline werten (kurze Abbrüche ignorieren)
+          if (!st.offlineSince) {
+            st.offlineSince = now;
+            this.saveState();
+            continue;
+          }
+          if (now - st.offlineSince < OFFLINE_GRACE_MS) continue;
 
-          this.saveNotifications();
-        } 
-        // Fall 2: Streamer geht OFFLINE
-        else if (!isNowLive && notif.isLive) {
-          console.log(`⚪ [StreamNotification] ${notif.displayName} ist jetzt OFFLINE.`);
-          notif.isLive = false;
-          notif.currentStreamId = undefined;
+          console.log(`⚪ [StreamNotification] ${name} ist jetzt OFFLINE.`);
+          st.isLive = false;
+          st.currentStreamId = undefined;
+          st.offlineSince = undefined;
+          this.saveState();
 
-          // Falls verknüpft: Live-Rolle entziehen & Live-Kanal löschen
           if (notif.linkedDiscordUserId) {
             await this.handleLinkedMemberOffline(guild, notif);
           }
-
-          this.saveNotifications();
         }
       } catch (err) {
         console.error(`[StreamNotification] Fehler bei der Prüfung von ${notif.channelName}:`, err);
       }
     }
+  }
+
+  /** Anzeigename/Avatar aktualisieren - frisch einlesen, damit Änderungen aus dem Dashboard erhalten bleiben. */
+  private updateProfile(notif: StreamNotification, displayName?: string, avatar?: string) {
+    const nameChanged = displayName && displayName !== notif.displayName;
+    const avatarChanged = avatar && avatar !== notif.profileImageUrl;
+    if (!nameChanged && !avatarChanged) return;
+
+    this.loadNotifications();
+    const fresh = this.notifications.find((n) => n.id === notif.id);
+    if (!fresh) return;
+    if (displayName) fresh.displayName = notif.displayName = displayName;
+    if (avatar) fresh.profileImageUrl = notif.profileImageUrl = avatar;
+    this.saveNotifications();
   }
 
   // Sendet das stylische Stream-Alert-Embed in den Discord-Kanal
@@ -491,34 +604,31 @@ class StreamNotificationService {
       embed.setImage(previewUrl);
     }
 
+    const isSilent = Boolean(notif.silent);
+    const finalContent = isSilent ? (content.startsWith("@silent") ? content : `@silent ${content}`) : content;
+
     await (channel as TextChannel).send({
-      content,
+      content: finalContent,
       embeds: [embed],
+      flags: isSilent ? MessageFlags.SuppressNotifications : undefined,
     }).catch((e) => console.error("[StreamNotification] Konnte Alert nicht senden:", e));
   }
 
-  // Verknüpftes Mitglied: Rolle & Kanal erzeugen
+  // Verknüpftes Mitglied: Rolle & Temp-Kanal erzeugen
   private async handleLinkedMemberLive(guild: any, notif: StreamNotification, streamData: any) {
     try {
       const member: GuildMember | null = await guild.members.fetch(notif.linkedDiscordUserId!).catch(() => null);
       if (!member) return;
 
-      const liveCfg = liveStreamService.getConfig(guild.id);
-      if (liveCfg && liveCfg.liveRoleId) {
-        if (!member.roles.cache.has(liveCfg.liveRoleId)) {
-          await member.roles.add(liveCfg.liveRoleId).catch(() => null);
-          console.log(`[StreamNotification] Live-Rolle an verknüpftes Mitglied ${member.user.tag} vergeben.`);
-        }
-      }
-
       const isYoutube = notif.platform === "youtube";
       const streamUrl = isYoutube ? `https://youtube.com/watch?v=${streamData?.id}` : `https://twitch.tv/${notif.channelName}`;
 
-      await liveStreamService.startLive(member, {
+      const result = await liveStreamService.setLive(member, "stream", {
         url: streamUrl,
         title: streamData?.title,
         game: streamData?.game,
       });
+      if (!result.success) console.warn(`[StreamNotification] ${member.user.tag}: ${result.message}`);
     } catch (e) {
       console.error("[StreamNotification] Fehler bei verknüpftem Mitglied (Live):", e);
     }
@@ -530,8 +640,9 @@ class StreamNotificationService {
       const member: GuildMember | null = await guild.members.fetch(notif.linkedDiscordUserId!).catch(() => null);
       if (!member) return;
 
-      await liveStreamService.stopLive(member);
-      console.log(`[StreamNotification] Live-Status für verknüpftes Mitglied ${member.user.tag} beendet.`);
+      // Nur die Quelle "stream" beenden - streamt die Person z. B. noch laut Discord-Status, bleibt sie live
+      await liveStreamService.clearLive(member, "stream");
+      console.log(`[StreamNotification] Stream von verknüpftem Mitglied ${member.user.tag} beendet.`);
     } catch (e) {
       console.error("[StreamNotification] Fehler bei verknüpftem Mitglied (Offline):", e);
     }

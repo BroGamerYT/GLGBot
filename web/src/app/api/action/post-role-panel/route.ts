@@ -21,6 +21,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Keine channelId angegeben." }, { status: 400 });
     }
 
+    // Nur Kanäle des eigenen Servers erlauben
+    const guildId = process.env.GUILD_ID;
+    const chRes = await fetch(`https://discord.com/api/v10/channels/${encodeURIComponent(channelId)}`, {
+      headers: { Authorization: `Bot ${token}` },
+      cache: "no-store",
+    });
+    const ch = chRes.ok ? await chRes.json() : null;
+    if (!ch || !guildId || ch.guild_id !== guildId) {
+      return NextResponse.json({ error: "Kanal gehört nicht zu diesem Server." }, { status: 400 });
+    }
+
     const payload = {
       embeds: [
         {
@@ -32,7 +43,11 @@ export async function POST(req: Request) {
             "🔴 **2. Live-Stream Benachrichtigungen (`bn.live`)**\n" +
             "Erhalte Stream-Pings und Zugriff auf den Live-Stream Kanal, sobald jemand streamt.\n\n" +
             "🎁 **3. Free-Games Alerts (`bn.free`)**\n" +
-            "Werde benachrichtigt, sobald Epic Games oder Steam 100% kostenlose Vollversionen anbieten und schalte den `#free-games` Kanal frei!",
+            "Werde benachrichtigt, sobald Epic Games oder Steam 100% kostenlose Vollversionen anbieten und schalte den `#free-games` Kanal frei!\n\n" +
+            "📰 **4. Game-News (`bn.gamenews`)**\n" +
+            "Spiel-Updates, Patchnotes und Events - schaltet den `#game-news` Kanal frei.\n\n" +
+            "🖥️ **5. Treiber-News (`bn.treiber`)**\n" +
+            "Neue Grafik- und Chipsatz-Treiber (NVIDIA, AMD, Intel) - schaltet den `#treiber-news` Kanal frei.",
           color: 0x5865f2,
           thumbnail: {
             url: "https://cdn.discordapp.com/emojis/849312521948823562.png",
@@ -67,6 +82,25 @@ export async function POST(req: Request) {
               label: "Free-Games Alerts (bn.free)",
               emoji: { name: "🎮" },
             },
+            {
+              type: 2,
+              style: 2,
+              custom_id: "role_btn_news",
+              label: "Game-News (bn.gamenews)",
+              emoji: { name: "📰" },
+            },
+            {
+              type: 2,
+              style: 2,
+              custom_id: "role_btn_driver",
+              label: "Treiber-News (bn.treiber)",
+              emoji: { name: "🖥️" },
+            },
+          ],
+        },
+        {
+          type: 1,
+          components: [
             {
               type: 2,
               style: 2,

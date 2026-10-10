@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { ChannelType, VoiceState, PermissionFlagsBits, VoiceChannel } from "discord.js";
+import { ChannelType, VoiceState, PermissionFlagsBits, VoiceChannel, MessageFlags } from "discord.js";
 import { createVoicePanelEmbed, createVoicePanelComponents } from "../commands/voice/voicePanel";
 
 interface VoiceConfig {

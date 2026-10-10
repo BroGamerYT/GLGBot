@@ -52,6 +52,12 @@ const streamerCommand: Command = {
             .setDescription("Eigener Benachrichtigungstext (z. B. '{streamer} ist live mit {game}! {url}')")
             .setRequired(false)
         )
+        .addBooleanOption((opt) =>
+          opt
+            .setName("lautlos")
+            .setDescription("Soll der Alert lautlos ohne Ping-Ton (@silent) gesendet werden?")
+            .setRequired(false)
+        )
     )
     .addSubcommand((sub) =>
       sub
@@ -110,6 +116,12 @@ const streamerCommand: Command = {
             .setDescription("Eigener Benachrichtigungstext mit {streamer}, {game}, {url}, {title}")
             .setRequired(false)
         )
+        .addBooleanOption((opt) =>
+          opt
+            .setName("lautlos")
+            .setDescription("Soll der Alert lautlos ohne Ping-Ton (@silent) gesendet werden?")
+            .setRequired(false)
+        )
     )
     .addSubcommand((sub) =>
       sub
@@ -149,6 +161,7 @@ const streamerCommand: Command = {
       const pingRole = interaction.options.getRole("ping_rolle");
       const discordUser = interaction.options.getUser("discord_nutzer");
       const customText = interaction.options.getString("custom_text");
+      const silent = interaction.options.getBoolean("lautlos") ?? false;
 
       const result = await streamNotificationService.addOrUpdateNotification({
         guildId: interaction.guild.id,
@@ -158,6 +171,7 @@ const streamerCommand: Command = {
         pingRoleId: pingRole ? pingRole.id : undefined,
         linkedDiscordUserId: discordUser ? discordUser.id : undefined,
         customMessage: customText || undefined,
+        silent,
       });
 
       if (!result.success || !result.notification) {
@@ -182,6 +196,7 @@ const streamerCommand: Command = {
           { name: "📺 Kanal", value: `[${notif.displayName}](${streamUrl})`, inline: true },
           { name: "📢 Ziel-Kanal", value: `<#${notif.discordChannelId}>`, inline: true },
           { name: "🔔 Ping-Rolle", value: notif.pingRoleId ? `<@&${notif.pingRoleId}>` : "*Keine*", inline: true },
+          { name: "🔕 Lautlos (@silent)", value: notif.silent ? "Ja (stumm) 🔕" : "Nein (mit Ton) 🔔", inline: true },
           { name: "👤 Verknüpfter Discord-Nutzer", value: notif.linkedDiscordUserId ? `<@${notif.linkedDiscordUserId}>` : "*Keiner*", inline: true },
           { name: "💬 Eigener Text", value: notif.customMessage ? `\`${notif.customMessage}\`` : "*Standard-Nachricht*", inline: false },
           { name: "🔴 Aktueller Status", value: notif.isLive ? `**LIVE auf ${isYt ? "YouTube" : "Twitch"}!**` : "Offline", inline: true }
@@ -217,6 +232,7 @@ const streamerCommand: Command = {
       const newPingRole = interaction.options.getRole("ping_rolle");
       const newDiscordUser = interaction.options.getUser("discord_nutzer");
       const newCustomText = interaction.options.getString("custom_text");
+      const newSilent = interaction.options.getBoolean("lautlos");
 
       const result = await streamNotificationService.addOrUpdateNotification({
         id: existing.id,
@@ -228,6 +244,7 @@ const streamerCommand: Command = {
         pingRoleId: newPingRole ? newPingRole.id : existing.pingRoleId,
         linkedDiscordUserId: newDiscordUser ? newDiscordUser.id : existing.linkedDiscordUserId,
         customMessage: newCustomText !== null ? (newCustomText.trim().length > 0 ? newCustomText.trim() : undefined) : existing.customMessage,
+        silent: newSilent !== null ? newSilent : existing.silent,
       });
 
       if (!result.success || !result.notification) {
@@ -252,6 +269,7 @@ const streamerCommand: Command = {
           { name: "📺 Kanal / Streamer", value: `[${notif.displayName}](${streamUrl})`, inline: true },
           { name: "📢 Ziel-Kanal", value: `<#${notif.discordChannelId}>`, inline: true },
           { name: "🔔 Ping-Rolle", value: notif.pingRoleId ? `<@&${notif.pingRoleId}>` : "*Keine*", inline: true },
+          { name: "🔕 Lautlos (@silent)", value: notif.silent ? "Ja (stumm) 🔕" : "Nein (mit Ton) 🔔", inline: true },
           { name: "👤 Verknüpfter Nutzer", value: notif.linkedDiscordUserId ? `<@${notif.linkedDiscordUserId}>` : "*Keiner*", inline: true },
           { name: "💬 Eigener Text", value: notif.customMessage ? `\`${notif.customMessage}\`` : "*Standard-Nachricht*", inline: false }
         )

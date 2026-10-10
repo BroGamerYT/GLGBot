@@ -21,6 +21,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Keine channelId angegeben." }, { status: 400 });
     }
 
+    // Nur Kanäle des eigenen Servers erlauben
+    const guildId = process.env.GUILD_ID;
+    const chRes = await fetch(`https://discord.com/api/v10/channels/${encodeURIComponent(channelId)}`, {
+      headers: { Authorization: `Bot ${token}` },
+      cache: "no-store",
+    });
+    const ch = chRes.ok ? await chRes.json() : null;
+    if (!ch || !guildId || ch.guild_id !== guildId) {
+      return NextResponse.json({ error: "Kanal gehört nicht zu diesem Server." }, { status: 400 });
+    }
+
     // Embed & Components payload
     const payload = {
       embeds: [

@@ -43,6 +43,7 @@ export async function POST(req: Request) {
     }
 
     allConfig[guildId] = {
+      ...allConfig[guildId], // Regel-/Berechtigungskanal behalten
       rulesRoleId: body.rulesRoleId || undefined,
       streamAlertRoleId: body.streamAlertRoleId || undefined,
       freeGamesRoleId: body.freeGamesRoleId || undefined,

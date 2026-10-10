@@ -19,6 +19,8 @@ if exist server_config.ini (
 if "%SERVER_IP%"=="" set "SERVER_IP=192.168.178.50"
 if "%SERVER_USER%"=="" set "SERVER_USER=root"
 if "%SERVER_PATH%"=="" set "SERVER_PATH=/opt/discordbot"
+set "REMOTE=%SERVER_USER%@%SERVER_IP%"
+set "ARCHIVE=%TEMP%\discordbot_deploy.tar.gz"
 
 :menu
 cls
@@ -26,17 +28,18 @@ echo =======================================================
 echo        PROXMOX SERVER - SYNC ^& DATENTRANSFER
 echo =======================================================
 echo  Aktuelle Server-Konfiguration:
-echo  Ziel-Server: %SERVER_USER%@%SERVER_IP%:%SERVER_PATH%
+echo  Ziel-Server: %REMOTE%:%SERVER_PATH%
 echo =======================================================
 echo.
-echo  [1] Code auf Proxmox-Server HOCHLADEN (Upload)
-echo  [2] Code / .env von Proxmox-Server HERUNTERLADEN (Download)
+echo  [1] Code auf Proxmox-Server HOCHLADEN (Upload + Build + Neustart)
+echo  [2] .env und data-Ordner vom Server HERUNTERLADEN (Backup)
 echo  [3] SSH-Konsole zum Proxmox-Server oeffnen
-echo  [4] Bot auf Proxmox-Server via PM2 neustarten
+echo  [4] Bot ^& Dashboard auf dem Server via PM2 neustarten
 echo  [5] Server-IP und Einstellungen bearbeiten (server_config.ini)
 echo  [0] Zurueck
 echo.
 echo =======================================================
+set "choice="
 set /p choice="Waehle eine Option [0-5]: "
 
 if "%choice%"=="1" goto upload
@@ -47,75 +50,117 @@ if "%choice%"=="5" goto edit_config
 if "%choice%"=="0" exit /b
 goto menu
 
+:: -----------------------------------------------------------------
 :upload
 cls
 echo =======================================================
 echo [UPLOAD] Lade Bot-Code auf Proxmox (%SERVER_IP%) hoch...
 echo =======================================================
-echo (node_modules und dist werden automatisch ausgelassen)
+echo Ausgelassen werden: node_modules, dist, .next, .git und data
+echo (der data-Ordner auf dem Server mit Live-Status ^& Einstellungen
+echo  bleibt dadurch unangetastet).
 echo.
 
-:: Erstelle Zielverzeichnis auf dem Server
-ssh %SERVER_USER%@%SERVER_IP% "mkdir -p %SERVER_PATH%"
-
-:: Synchronisiere Dateien via gepacktem Archiv (zuverlaessig und schnell)
-echo Uebertrage Quelldateien und Web-Dashboard...
-tar --exclude="node_modules" --exclude=".git" --exclude=".next" -czf deploy.tar.gz .
-scp deploy.tar.gz %SERVER_USER%@%SERVER_IP%:/tmp/deploy.tar.gz
-ssh %SERVER_USER%@%SERVER_IP% "tar -xzf /tmp/deploy.tar.gz -C %SERVER_PATH% && rm -f /tmp/deploy.tar.gz"
-del deploy.tar.gz > nul 2>&1
-
-if %errorlevel% equ 0 (
+:: Archiv im TEMP-Ordner erstellen (nicht im Projektordner, sonst packt tar sich selbst mit ein)
+if exist "%ARCHIVE%" del "%ARCHIVE%" > nul 2>&1
+tar --exclude="node_modules" --exclude=".git" --exclude=".next" --exclude="./dist" --exclude="./data" --exclude="./data_from_server" --exclude="./.env.from_server" --exclude="./deploy.tar.gz" -czf "%ARCHIVE%" .
+if errorlevel 1 (
     echo.
-    echo ✅ Dateien erfolgreich auf den Proxmox-Server hochgeladen!
-    echo.
-    echo Moechtest du 'npm install', Build ^& PM2-Restart fuer Bot ^& Web-Dashboard ausfuehren?
-    set /p remote_inst="Ausfuehren? [J/N]: "
-    if /i "%remote_inst%"=="J" (
-        echo [INFO] Baue Discord-Bot...
-        ssh %SERVER_USER%@%SERVER_IP% "cd %SERVER_PATH% && npm install && npm run build && npm run deploy-commands && (pm2 restart discord-bot || pm2 start dist/index.js --name discord-bot)"
-        echo [INFO] Baue Web-Dashboard...
-        ssh %SERVER_USER%@%SERVER_IP% "cd %SERVER_PATH%/web && npm install && npm run build && (pm2 restart discord-web || pm2 start npm --name discord-web -- start) && pm2 save"
-    )
-) else (
-    echo.
-    echo ❌ Fehler beim Hochladen! Bitte IP-Adresse und SSH-Verbindung pruefen.
+    echo ❌ Fehler beim Erstellen des Archivs.
+    goto upload_end
 )
+
+ssh %REMOTE% "mkdir -p %SERVER_PATH%"
+if errorlevel 1 goto upload_fail
+
+scp "%ARCHIVE%" %REMOTE%:/tmp/discordbot_deploy.tar.gz
+if errorlevel 1 goto upload_fail
+
+ssh %REMOTE% "tar -xzf /tmp/discordbot_deploy.tar.gz -C %SERVER_PATH% && rm -f /tmp/discordbot_deploy.tar.gz"
+if errorlevel 1 goto upload_fail
+
+del "%ARCHIVE%" > nul 2>&1
+echo.
+echo ✅ Dateien erfolgreich auf den Proxmox-Server hochgeladen!
+echo.
+echo Moechtest du jetzt 'npm install', Build ^& PM2-Neustart fuer Bot ^& Dashboard ausfuehren?
+set "remote_inst="
+set /p remote_inst="Ausfuehren? [J/N]: "
+if /i not "%remote_inst%"=="J" goto upload_end
+
+echo.
+echo [1/2] Baue Discord-Bot...
+ssh %REMOTE% "cd %SERVER_PATH% && npm install && npm run build && npm run deploy-commands && (pm2 restart discord-bot || pm2 start dist/index.js --name discord-bot)"
+if errorlevel 1 (
+    echo ❌ Fehler beim Bauen/Starten des Bots. Siehe Ausgabe oben.
+    goto upload_end
+)
+
+echo.
+echo [2/2] Baue Web-Dashboard...
+ssh %REMOTE% "cd %SERVER_PATH%/web && npm install && npm run build && (pm2 restart discord-web || pm2 start npm --name discord-web -- start) && pm2 save"
+if errorlevel 1 (
+    echo ❌ Fehler beim Bauen/Starten des Dashboards. Siehe Ausgabe oben.
+    goto upload_end
+)
+
+echo.
+echo ✅ Bot und Dashboard wurden gebaut und neu gestartet!
+goto upload_end
+
+:upload_fail
+del "%ARCHIVE%" > nul 2>&1
+echo.
+echo ❌ Fehler beim Hochladen! Bitte IP-Adresse und SSH-Verbindung pruefen.
+
+:upload_end
 pause
 goto menu
 
+:: -----------------------------------------------------------------
 :download
 cls
 echo =======================================================
-echo [DOWNLOAD] Lade Dateien vom Server herunter...
+echo [DOWNLOAD] Lade .env und data-Ordner vom Server herunter...
 echo =======================================================
 echo.
-scp %SERVER_USER%@%SERVER_IP%:%SERVER_PATH%/.env .env.from_server
-if %errorlevel% equ 0 (
-    echo ✅ .env Datei vom Server erfolgreich heruntergeladen (gespeichert als .env.from_server)!
-) else (
+scp %REMOTE%:%SERVER_PATH%/.env .env.from_server
+if errorlevel 1 (
     echo ❌ Fehler beim Herunterladen der .env Datei.
+) else (
+    echo ✅ .env gespeichert als .env.from_server
+)
+
+if exist data_from_server rmdir /s /q data_from_server
+scp -r %REMOTE%:%SERVER_PATH%/data data_from_server
+if errorlevel 1 (
+    echo ❌ Fehler beim Herunterladen des data-Ordners.
+) else (
+    echo ✅ data-Ordner gespeichert als data_from_server
 )
 pause
 goto menu
 
+:: -----------------------------------------------------------------
 :ssh_connect
 cls
 echo =======================================================
-echo Verbinde per SSH mit %SERVER_USER%@%SERVER_IP%...
+echo Verbinde per SSH mit %REMOTE%...
 echo =======================================================
 echo (Tippe 'exit' ein, um die Sitzung zu beenden)
 echo.
-ssh %SERVER_USER%@%SERVER_IP%
+ssh %REMOTE%
 goto menu
 
+:: -----------------------------------------------------------------
 :pm2_restart
 cls
-echo [INFO] Sende Neustart-Befehl an PM2 auf dem Proxmox-Server...
-ssh %SERVER_USER%@%SERVER_IP% "cd %SERVER_PATH% && pm2 restart discord-bot || pm2 status"
+echo [INFO] Starte Bot ^& Dashboard auf dem Proxmox-Server neu...
+ssh %REMOTE% "pm2 restart discord-bot discord-web; pm2 status"
 pause
 goto menu
 
+:: -----------------------------------------------------------------
 :edit_config
 notepad server_config.ini
 goto load_config

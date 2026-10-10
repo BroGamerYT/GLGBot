@@ -2,6 +2,10 @@ import { ActivityType, Events } from "discord.js";
 import { BotEvent } from "../types";
 import { freeGamesService } from "../services/freeGamesService";
 import { streamNotificationService } from "../services/streamNotificationService";
+import { liveStreamService } from "../services/liveStreamService";
+import { backupService } from "../services/backupService";
+import { startInternalApi } from "../api/internalApi";
+import { gameNewsService } from "../services/gameNewsService";
 
 const readyEvent: BotEvent<Events.ClientReady> = {
   name: Events.ClientReady,
@@ -21,6 +25,18 @@ const readyEvent: BotEvent<Events.ClientReady> = {
 
     // Automatischer Benachrichtigungsdienst für Gratis-Spiele
     freeGamesService.startAutoChecker(client);
+
+    // Automatischer Snapshot-Scheduler für Server-Backups
+    backupService.startAutoBackupSchedule(client);
+
+    // Schnittstelle für das Web-Dashboard (nur lokal erreichbar)
+    startInternalApi(client);
+
+    // Live-Rollen & Temp-Kanäle nach dem Neustart abgleichen
+    liveStreamService.reconcile(client).catch((e) => console.error("[LiveStream] Fehler beim Abgleich:", e));
+
+    // Game-News (Spiel-Updates & Treiber)
+    gameNewsService.startAutoChecker(client);
 
     // Automatischer Poller für Twitch-Stream Benachrichtigungen
     streamNotificationService.startPoller(client);

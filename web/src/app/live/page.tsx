@@ -34,6 +34,7 @@ interface StreamNotification {
   pingRoleId?: string;
   linkedDiscordUserId?: string;
   customMessage?: string;
+  silent?: boolean;
   lastNotified?: string;
   isLive?: boolean;
 }
@@ -76,6 +77,7 @@ export default function LiveStreamerPage() {
   const [newPingRoleId, setNewPingRoleId] = useState("");
   const [newLinkedUserId, setNewLinkedUserId] = useState("");
   const [newCustomMessage, setNewCustomMessage] = useState("");
+  const [newSilent, setNewSilent] = useState(false);
   const [addingStreamer, setAddingStreamer] = useState(false);
 
   const [loading, setLoading] = useState(true);
@@ -214,6 +216,7 @@ export default function LiveStreamerPage() {
     setNewPingRoleId("");
     setNewLinkedUserId("");
     setNewCustomMessage("");
+    setNewSilent(false);
     setShowAddModal(true);
   };
 
@@ -234,6 +237,7 @@ export default function LiveStreamerPage() {
     setNewPingRoleId(s.pingRoleId || "");
     setNewLinkedUserId(s.linkedDiscordUserId || "");
     setNewCustomMessage(s.customMessage || "");
+    setNewSilent(Boolean(s.silent));
     setShowAddModal(true);
   };
 
@@ -262,6 +266,7 @@ export default function LiveStreamerPage() {
         pingRoleId: newPingRoleId || undefined,
         linkedDiscordUserId: newLinkedUserId || undefined,
         customMessage: newCustomMessage.trim() || undefined,
+        silent: newSilent,
       };
 
       const res = await fetch("/api/config/streamers", {
@@ -738,6 +743,25 @@ export default function LiveStreamerPage() {
                     Leer lassen für die Standard-Nachricht. Das farbige Embed mit Thumbnail und Button wird immer automatisch mitgesendet.
                   </p>
                 </div>
+
+                {/* Silent Mode Toggle */}
+                <div className="bg-discord-dark/50 border border-discord-border rounded-lg p-3 flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <label htmlFor="streamer-silent-toggle" className="text-xs font-semibold text-gray-200 cursor-pointer flex items-center gap-1.5">
+                      <span>🔕 Lautlose Benachrichtigung (@silent)</span>
+                    </label>
+                    <p className="text-[11px] text-gray-400">
+                      Sendet den Alert ohne Ping-Ton / Sound auf Desktop & Smartphone.
+                    </p>
+                  </div>
+                  <input
+                    id="streamer-silent-toggle"
+                    type="checkbox"
+                    checked={newSilent}
+                    onChange={(e) => setNewSilent(e.target.checked)}
+                    className="w-4 h-4 accent-purple-600 rounded cursor-pointer"
+                  />
+                </div>
               </div>
 
               <div className="sm:col-span-2 flex justify-end gap-2 pt-2">
@@ -901,6 +925,11 @@ export default function LiveStreamerPage() {
                               {s.pingRoleId && (
                                 <span className="text-purple-300">
                                   🔔 {s.pingRoleId === "@everyone" ? "@everyone" : `@${pingRole?.name || "Rolle"}`}
+                                </span>
+                              )}
+                              {s.silent && (
+                                <span className="text-amber-300 font-medium bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                  🔕 Lautlos
                                 </span>
                               )}
                               {s.linkedDiscordUserId && (

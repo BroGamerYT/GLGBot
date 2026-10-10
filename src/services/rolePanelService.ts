@@ -18,6 +18,14 @@ export interface RolePanelConfig {
     streamAlertRoleId?: string;
     freeGamesRoleId?: string;
     freeGamesChannelId?: string;
+    gameNewsRoleId?: string;
+    gameNewsChannelId?: string;
+    driverNewsRoleId?: string;
+    driverNewsChannelId?: string;
+    rulesChannelId?: string;
+    permissionsChannelId?: string;
+    serverLocked?: boolean;
+    headerMessages?: Record<string, string>; // Kanal-ID -> ID der Kopf-Nachricht (Banner)
   };
 }
 
@@ -66,11 +74,19 @@ class RolePanelService {
   ) {
     this.loadConfig();
     this.config[guildId] = {
+      ...this.config[guildId], // weitere Felder (Regel-/Berechtigungskanal) behalten
       rulesRoleId,
       streamAlertRoleId,
       freeGamesRoleId,
       freeGamesChannelId,
     };
+    this.saveConfig();
+  }
+
+  /** Einzelne Felder ändern, ohne den Rest zu überschreiben. */
+  public updateConfig(guildId: string, patch: Partial<RolePanelConfig[string]>) {
+    this.loadConfig();
+    this.config[guildId] = { ...this.config[guildId], ...patch };
     this.saveConfig();
   }
 
@@ -170,6 +186,20 @@ class RolePanelService {
       console.log(`[RolePanel] Free-Games Textkanal neu erstellt: ${freeGamesChannel.name} (${freeGamesChannel.id})`);
     }
 
+    // Berechtigungen für Free-Games Kanal absichern (Nur für bn.free sichtbar)
+    try {
+      await freeGamesChannel.permissionOverwrites.edit(guild.roles.everyone, {
+        ViewChannel: false,
+      });
+      await freeGamesChannel.permissionOverwrites.edit(freeGamesRole, {
+        ViewChannel: true,
+        ReadMessageHistory: true,
+        SendMessages: false,
+      });
+    } catch (e) {
+      console.warn("[RolePanel] Konnte Berechtigungen für Free-Games Kanal nicht aktualisieren:", e);
+    }
+
     // 6. Konfigurationen speichern
     this.setConfig(
       guild.id,
@@ -179,9 +209,27 @@ class RolePanelService {
       freeGamesChannel.id
     );
 
-    // Live-Stream System Konfiguration anpassen
+    // Live-Stream System Konfiguration anpassen & Stream-Channel Berechtigungen absichern
     const existingLiveCfg = liveStreamService.getConfig(guild.id);
-    const streamChannel = channels.find((c) => c && c.isTextBased() && c.name.toLowerCase().includes("stream"));
+    const streamChannel = channels.find((c) => c && c.isTextBased() && (c.name.toLowerCase().includes("stream") || c.name.toLowerCase().includes("live-alert")));
+    if (streamChannel && "permissionOverwrites" in streamChannel) {
+      try {
+        await streamChannel.permissionOverwrites.edit(guild.roles.everyone, {
+          ViewChannel: false,
+        });
+        await streamChannel.permissionOverwrites.edit(streamAlertRole, {
+          ViewChannel: true,
+          ReadMessageHistory: true,
+          SendMessages: false,
+        });
+        if (streamChannel.name !== "🔴・stream-alerts") {
+          await (streamChannel as any).setName("🔴・stream-alerts");
+        }
+      } catch (e) {
+        console.warn("[RolePanel] Konnte Berechtigungen für Stream-Alerts Kanal nicht aktualisieren:", e);
+      }
+    }
+
     liveStreamService.setConfig(
       guild.id,
       liveRole.id,
@@ -191,12 +239,126 @@ class RolePanelService {
       true
     );
 
+    // Game-News Rolle (bn.gamenews) & Kanal
+    const news = await this.ensureGameNewsSetup(guild);
+    const drivers = await this.ensureDriverNewsSetup(guild);
+
     return {
+      gameNewsRole: news.role,
+      gameNewsChannel: news.channel,
+      driverNewsRole: drivers.role,
+      driverNewsChannel: drivers.channel,
       guestRole: { id: guestRole.id, name: guestRole.name, created: guestCreated },
       streamAlertRole: { id: streamAlertRole.id, name: streamAlertRole.name, created: streamAlertCreated },
       freeGamesRole: { id: freeGamesRole.id, name: freeGamesRole.name, created: freeGamesCreated },
       liveRole: { id: liveRole.id, name: liveRole.name, created: liveCreated },
       freeGamesChannel: { id: freeGamesChannel.id, name: freeGamesChannel.name, created: channelCreated },
+    };
+  }
+
+  /**
+   * Legt die Rolle "bn.gamenews" und den Kanal "📰・game-news" an (falls nicht vorhanden).
+   * Der Kanal ist - wie #free-games - nur für Mitglieder mit der Rolle sichtbar und schreibgeschützt.
+   */
+  public async ensureGameNewsSetup(guild: Guild) {
+    return this.ensureNewsSetup(guild, "game");
+  }
+
+  public async ensureDriverNewsSetup(guild: Guild) {
+    return this.ensureNewsSetup(guild, "driver");
+  }
+
+  /**
+   * Legt Rolle + Kanal für Game-News ("game") bzw. Treiber-News ("driver") an.
+   * Die Kanäle sind jeweils nur für Mitglieder mit der passenden Rolle sichtbar und schreibgeschützt -
+   * wer nur bn.treiber hat, sieht also keine Spiele-News und umgekehrt.
+   */
+  public async ensureNewsSetup(guild: Guild, kind: "game" | "driver") {
+    const DEF = {
+      game: {
+        roleName: "📰 Game-News (bn.gamenews)",
+        roleColor: 0xf39c12,
+        roleMatch: /bn\.gamenews|bn\.news|game-news alerts|gamenews/i,
+        channelName: "📰・game-news",
+        channelMatch: /game-?news|patch-?notes/i,
+        topic: "Spiel-Updates, Patchnotes & Events | Benachrichtigungen mit @bn.gamenews",
+        roleKey: "gameNewsRoleId",
+        channelKey: "gameNewsChannelId",
+        label: "Game-News",
+      },
+      driver: {
+        roleName: "🖥️ Treiber-News (bn.treiber)",
+        roleColor: 0x00b4d8,
+        roleMatch: /bn\.treiber|treiber-news|driver-news/i,
+        channelName: "🖥️・treiber-news",
+        channelMatch: /treiber|driver/i,
+        topic: "Neue Grafik- & Chipsatz-Treiber (NVIDIA, AMD, Intel) | Benachrichtigungen mit @bn.treiber",
+        roleKey: "driverNewsRoleId",
+        channelKey: "driverNewsChannelId",
+        label: "Treiber-News",
+      },
+    } as const;
+    const d = DEF[kind];
+
+    const cfg: any = this.getConfig(guild.id) || {};
+    const roles = await guild.roles.fetch();
+    const channels = await guild.channels.fetch();
+
+    let role = (cfg[d.roleKey] && roles.get(cfg[d.roleKey])) || roles.find((r) => d.roleMatch.test(r.name));
+    let roleCreated = false;
+    if (!role) {
+      role = await guild.roles.create({
+        name: d.roleName,
+        color: d.roleColor,
+        mentionable: true,
+        reason: `Automatisch erstellt von GLGBot (${d.label})`,
+      });
+      roleCreated = true;
+      console.log(`[RolePanel] ${d.label} Rolle neu erstellt: ${role.name} (${role.id})`);
+    }
+
+    let channel =
+      (cfg[d.channelKey] && channels.get(cfg[d.channelKey])) ||
+      channels.find((c) => c !== null && c.type === ChannelType.GuildText && d.channelMatch.test(c.name));
+    let channelCreated = false;
+    if (!channel) {
+      channel = await guild.channels.create({
+        name: d.channelName,
+        type: ChannelType.GuildText,
+        topic: d.topic,
+        reason: `Automatisch erstellt von GLGBot (${d.label})`,
+      });
+      channelCreated = true;
+      console.log(`[RolePanel] ${d.label} Kanal neu erstellt: ${channel.name} (${channel.id})`);
+    }
+
+    // Einheitlicher Name wie die anderen Bot-Kanäle (🎮・free-games, 🔴・stream-alerts)
+    if (channel.name !== d.channelName && "setName" in channel) {
+      await (channel as any).setName(d.channelName, "GLGBot: einheitlicher Kanalname").catch((e: any) =>
+        console.warn(`[RolePanel] Konnte ${d.label} Kanal nicht umbenennen:`, e?.message || e)
+      );
+    }
+    if ("setTopic" in channel) {
+      await (channel as any).setTopic(d.topic).catch(() => null);
+    }
+
+    // Nur für die passende Rolle sichtbar, niemand außer dem Bot schreibt
+    if ("permissionOverwrites" in channel) {
+      try {
+        await channel.permissionOverwrites.edit(guild.roles.everyone, { ViewChannel: false, SendMessages: false });
+        await channel.permissionOverwrites.edit(role, { ViewChannel: true, ReadMessageHistory: true, SendMessages: false });
+        if (guild.members.me) {
+          await channel.permissionOverwrites.edit(guild.members.me, { ViewChannel: true, SendMessages: true, EmbedLinks: true });
+        }
+      } catch (e) {
+        console.warn(`[RolePanel] Konnte Berechtigungen für ${d.label} Kanal nicht setzen:`, e);
+      }
+    }
+
+    this.updateConfig(guild.id, { [d.roleKey]: role.id, [d.channelKey]: channel.id } as any);
+    return {
+      role: { id: role.id, name: role.name, created: roleCreated },
+      channel: { id: channel.id, name: channel.name, created: channelCreated },
     };
   }
 
@@ -212,14 +374,18 @@ class RolePanelService {
         "🔴 **2. Live-Stream Benachrichtigungen (`bn.live`)**\n" +
         "Erhalte Stream-Pings und Zugriff auf den Live-Stream Kanal, sobald jemand streamt.\n\n" +
         "🎁 **3. Free-Games Alerts (`bn.free`)**\n" +
-        "Werde benachrichtigt, sobald Epic Games oder Steam 100% kostenlose Vollversionen anbieten und schalte den `#free-games` Kanal frei!"
+        "Werde benachrichtigt, sobald Epic Games oder Steam 100% kostenlose Vollversionen anbieten und schalte den `#free-games` Kanal frei!\n\n" +
+        "📰 **4. Game-News (`bn.gamenews`)**\n" +
+        "Spiel-Updates, Patchnotes und Events - schaltet den `#game-news` Kanal frei.\n\n" +
+        "🖥️ **5. Treiber-News (`bn.treiber`)**\n" +
+        "Neue Grafik- und Chipsatz-Treiber (NVIDIA, AMD, Intel) - schaltet den `#treiber-news` Kanal frei."
       )
       .setThumbnail("https://cdn.discordapp.com/emojis/849312521948823562.png")
       .setFooter({ text: "GLGBot Rollen-System | 1-Klick Toggle" })
       .setTimestamp();
   }
 
-  public createPanelComponents() {
+  public createPanelComponents(includeRulesButton: boolean = true) {
     const rulesBtn = new ButtonBuilder()
       .setCustomId("role_btn_rules")
       .setLabel("Regeln akzeptieren (Gast)")
@@ -238,14 +404,33 @@ class RolePanelService {
       .setEmoji("🎮")
       .setStyle(ButtonStyle.Secondary);
 
+    const newsBtn = new ButtonBuilder()
+      .setCustomId("role_btn_news")
+      .setLabel("Game-News (bn.gamenews)")
+      .setEmoji("📰")
+      .setStyle(ButtonStyle.Secondary);
+
+    const driverBtn = new ButtonBuilder()
+      .setCustomId("role_btn_driver")
+      .setLabel("Treiber-News (bn.treiber)")
+      .setEmoji("🖥️")
+      .setStyle(ButtonStyle.Secondary);
+
     const statusBtn = new ButtonBuilder()
       .setCustomId("role_btn_status")
       .setLabel("Meine Rollen")
       .setEmoji("👤")
       .setStyle(ButtonStyle.Secondary);
 
-    const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(rulesBtn, liveBtn, freeGamesBtn, statusBtn);
-    return [row1];
+    const buttons = includeRulesButton
+      ? [rulesBtn, liveBtn, freeGamesBtn, newsBtn, driverBtn, statusBtn]
+      : [liveBtn, freeGamesBtn, newsBtn, driverBtn, statusBtn];
+    // Discord: max. 5 Buttons pro Reihe
+    const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+    for (let k = 0; k < buttons.length; k += 5) {
+      rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(buttons.slice(k, k + 5)));
+    }
+    return rows;
   }
 
   // --- INTERACTION BUTTON HANDLER ---
@@ -275,9 +460,21 @@ class RolePanelService {
         return;
       }
 
-      await member.roles.add(cfg.rulesRoleId).catch(() => null);
+      try {
+        await member.roles.add(cfg.rulesRoleId, "Regeln akzeptiert");
+      } catch (e) {
+        console.error("[RolePanel] Konnte Gast-Rolle nicht vergeben:", e);
+        await interaction.reply({
+          content: "❌ Die Rolle konnte nicht vergeben werden. Bitte melde dich beim Team (Bot-Rolle steht zu niedrig).",
+          ephemeral: true,
+        });
+        return;
+      }
+      const permsHint = cfg.permissionsChannelId
+        ? `\n\n🔔 In <#${cfg.permissionsChannelId}> kannst du dir noch Benachrichtigungen für Live-Streams und Gratis-Spiele aussuchen.`
+        : "";
       await interaction.reply({
-        content: `🎉 **Willkommen auf dem Server!** Du hast die Regeln akzeptiert und die Rolle <@&${cfg.rulesRoleId}> erhalten. Alle Kanäle sind nun für dich freigeschaltet!`,
+        content: `🎉 **Willkommen auf ${interaction.guild.name}!** Du hast die Regeln akzeptiert - alle Kanäle sind jetzt für dich freigeschaltet.${permsHint}`,
         ephemeral: true,
       });
       return;
@@ -335,11 +532,41 @@ class RolePanelService {
       return;
     }
 
+    // GAME-NEWS (bn.gamenews) & TREIBER-NEWS (bn.treiber)
+    if (interaction.customId === "role_btn_news" || interaction.customId === "role_btn_driver") {
+      const isDriver = interaction.customId === "role_btn_driver";
+      const roleId = isDriver ? cfg.driverNewsRoleId : cfg.gameNewsRoleId;
+      const channelId = isDriver ? cfg.driverNewsChannelId : cfg.gameNewsChannelId;
+      const label = isDriver ? "Treiber-News" : "Game-News";
+      if (!roleId) {
+        await interaction.reply({ content: `⚠️ Auf diesem Server ist noch keine ${label} Rolle eingerichtet.`, ephemeral: true });
+        return;
+      }
+      const has = member.roles.cache.has(roleId);
+      try {
+        if (has) await member.roles.remove(roleId, `${label} abbestellt`);
+        else await member.roles.add(roleId, `${label} abonniert`);
+      } catch (e) {
+        console.error("[RolePanel] Konnte Game-News Rolle nicht ändern:", e);
+        await interaction.reply({ content: "❌ Die Rolle konnte nicht geändert werden (Bot-Rolle zu niedrig?).", ephemeral: true });
+        return;
+      }
+      await interaction.reply({
+        content: has
+          ? `🔕 **Deaktiviert:** Du erhältst keine ${label} mehr.`
+          : `${isDriver ? "🖥️" : "📰"} **Aktiviert!** Du siehst jetzt ${channelId ? `<#${channelId}>` : `den ${label} Kanal`} und bekommst ${isDriver ? "neue Grafik- & Chipsatz-Treiber" : "Spiel-Updates & Patchnotes"}.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
     // 4. STATUS / MEINE ROLLEN
     if (interaction.customId === "role_btn_status") {
       const hasRules = cfg.rulesRoleId ? member.roles.cache.has(cfg.rulesRoleId) : false;
       const hasLive = cfg.streamAlertRoleId ? member.roles.cache.has(cfg.streamAlertRoleId) : false;
       const hasFree = cfg.freeGamesRoleId ? member.roles.cache.has(cfg.freeGamesRoleId) : false;
+      const hasNews = cfg.gameNewsRoleId ? member.roles.cache.has(cfg.gameNewsRoleId) : false;
+      const hasDriver = cfg.driverNewsRoleId ? member.roles.cache.has(cfg.driverNewsRoleId) : false;
 
       const embed = new EmbedBuilder()
         .setColor(0x5865f2)
@@ -359,6 +586,16 @@ class RolePanelService {
             name: "🎮 Free-Games Alerts (bn.free)", 
             value: hasFree ? "✅ Aktiv (Erhält Gratis-Spiele Alerts)" : "❌ Deaktiviert",
             inline: true 
+          },
+          {
+            name: "📰 Game-News (bn.gamenews)",
+            value: hasNews ? "✅ Aktiv (Erhält Spiel-Updates)" : "❌ Deaktiviert",
+            inline: true
+          },
+          {
+            name: "🖥️ Treiber-News (bn.treiber)",
+            value: hasDriver ? "✅ Aktiv (Erhält neue Treiber)" : "❌ Deaktiviert",
+            inline: true
           }
         )
         .setFooter({ text: "Klicke einfach auf die Buttons, um Rollen an- oder abzuwählen." })

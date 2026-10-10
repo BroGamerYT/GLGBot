@@ -6,7 +6,7 @@ const DATA_DIR = path.join(process.cwd(), "..", "data");
 const NOTIFS_FILE = path.join(DATA_DIR, "stream_notifications.json");
 
 function getGuildId() {
-  return process.env.GUILD_ID || "548842540074401802";
+  return process.env.GUILD_ID || "";
 }
 
 function loadNotifs(): any[] {
@@ -30,7 +30,19 @@ function saveNotifs(list: any[]) {
 export async function GET() {
   const guildId = getGuildId();
   const all = loadNotifs();
-  const guildNotifs = all.filter((n) => n.guildId === guildId);
+
+  // Live-Status kommt aus stream_live_state.json (wird nur vom Bot geschrieben)
+  let state: Record<string, { isLive?: boolean; lastNotified?: string }> = {};
+  try {
+    const stateFile = path.join(DATA_DIR, "stream_live_state.json");
+    if (fs.existsSync(stateFile)) state = JSON.parse(fs.readFileSync(stateFile, "utf-8"));
+  } catch {
+    // ignorieren
+  }
+
+  const guildNotifs = all
+    .filter((n) => n.guildId === guildId)
+    .map((n) => (state[n.id] ? { ...n, isLive: state[n.id].isLive, lastNotified: state[n.id].lastNotified } : n));
   return NextResponse.json(guildNotifs);
 }
 
@@ -38,7 +50,7 @@ export async function POST(req: Request) {
   try {
     const guildId = getGuildId();
     const body = await req.json();
-    const { id, platform = "twitch", channelName, displayName: passedDisplayName, profileImageUrl: passedAvatar, channelId: passedChannelId, discordChannelId, pingRoleId, linkedDiscordUserId, customMessage } = body;
+    const { id, platform = "twitch", channelName, displayName: passedDisplayName, profileImageUrl: passedAvatar, channelId: passedChannelId, discordChannelId, pingRoleId, linkedDiscordUserId, customMessage, silent } = body;
 
     if (!channelName || !discordChannelId) {
       return NextResponse.json({ error: "Fehlende Pflichtangaben (Kanalname & Discord-Kanal)." }, { status: 400 });
@@ -126,6 +138,7 @@ export async function POST(req: Request) {
       pingRoleId: pingRoleId || undefined,
       linkedDiscordUserId: linkedDiscordUserId || undefined,
       customMessage: customMessage !== undefined ? (customMessage.trim().length > 0 ? customMessage.trim() : undefined) : (existingIndex >= 0 ? all[existingIndex].customMessage : undefined),
+      silent: typeof silent === "boolean" ? silent : (existingIndex >= 0 ? Boolean(all[existingIndex].silent) : false),
       lastNotified: existingIndex >= 0 ? all[existingIndex].lastNotified : undefined,
       isLive: existingIndex >= 0 ? all[existingIndex].isLive : isLive,
       currentStreamId: currentStreamId !== undefined ? currentStreamId : (existingIndex >= 0 ? all[existingIndex].currentStreamId : undefined),

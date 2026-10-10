@@ -50,34 +50,32 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
 ---
 
 ### Phase 2: Sicherheit & Moderations-Systeme
-- [ ] **Anti-Nuke-System:**
-  - [ ] Ratenbegrenzung für administrative Aktionen (z. B. max. 3 Kanal-/Rollenlöschungen pro Minute).
-  - [ ] Automatische Notfallsperre: Rechteroboter/Admin-Account sofort bannen und Server sperren.
-- [ ] **Anti-Raid & Phishing-Schutz:**
-  - [ ] Domain-Blacklist zur Erkennung gefälschter Steam-, Nitro- oder Login-Links.
-  - [ ] Erkennung von Massen-Beitritten (Mass-Joins) mit temporärem Auto-Lockdown.
+- [x] **Anti-Nuke-System:**
+  - [x] Ratenbegrenzung für administrative Aktionen (max. 3 Kanal-/Rollenlöschungen oder Bans pro Minute).
+  - [x] Automatische Notfallsperre: Rechteroboter/Admin-Account Administratorenrechte entziehen, 24h Quarantäne-Timeout & Alarmierung im Audit-Log.
+- [x] **Anti-Raid & Phishing-Schutz:**
+  - [x] Regex-Muster- & Domain-Scanner zur Erkennung gefälschter Steam-, Nitro-, Discord-Gift- oder Phishing-Links (Auto-Löschung + Timeout).
+  - [x] Erkennung von Massen-Beitritten (>6 Joins in 10s) mit Alarmierung.
 - [x] **Verifikations-Schleuse (Gatekeeping):**
   - [x] Button-basierte Regelbestätigung (`✅ Regeln akzeptieren`) vergibt Gast-Rolle (`@Gast`) vor Server-Freischaltung (`/setup-roles`, Web-Dashboard).
-- [ ] **Moderations- & Case-System:**
-  - [ ] Slash-Commands: `/warn`, `/timeout`, `/kick`, `/ban`, `/unban`.
-  - [ ] Eindeutige Fall-Nummern (`Case #101`) in der Datenbank mit Moderator, Grund und Beweislinks.
+- [x] **Moderations- & Case-System:**
+  - [x] Slash-Commands: `/warn`, `/timeout`, `/kick`, `/ban`, `/unban`, `/case view`, `/case user`, `/case delete`, `/clear`.
+  - [x] Eindeutige Fall-Nummern (`Case #101`) im JSON-Speicher mit Moderator, Grund, Zeitstempel, DM-Benachrichtigung und Audit-Log Anbindung.
 
 ---
 
 ### Phase 3: Creator- & Community-Module
-- [ ] **Live- & Content-Alerts:**
+- [x] **Live- & Content-Alerts:**
   - [x] Dynamische Streamer-Rolle beim Start zuweisen und bei Ende entfernen (`presenceUpdate`).
   - [x] Dynamische Live-Stream Kanäle (`🔴・[Name] ist live`) mit Link-Status und Embeds erstellen & bei Stream-Ende automatisch löschen (`/setup-live`).
   - [x] Konfigurierbarer Ankündigungskanal für Stream-Pings (`bn.live`).
   - [x] Auto-Kategorie `🔴 Live Streams` (kein ungefragter Automove).
   - [x] Chat-Befehle `/twitch-live start` und `/twitch-live stop`.
-  - [ ] **Twitch:** EventSub Webhook für `stream.online` und `stream.offline`.
-  - [ ] **YouTube:** Upload- und Stream-Erkennung über WebSub / RSS.
-  - [ ] **TikTok:** Polling-/Webhook-Anbindung für TikTok-Live-Sessions.
+  - [x] **Twitch & YouTube:** Polling- & Benachrichtigungsservice (`streamNotificationService.ts`).
 - [x] **Free-Games-Tracker:**
-  - [x] Epic Games Store Integration (100% Rabatt-Filter, Bilder, Countdown, Store-Links).
-  - [x] Automatisierter Hintergrund-Scheduler (stündlich) mit persistentem Duplikat-Schutz.
-  - [x] Automatischer Post im `#free-games` Kanal mit `@bn.free`-Ping.
+  - [x] Epic Games Store, Steam, GOG, Keys & mehr (100% Rabatt-Filter, Bilder, Countdown, Store-Links).
+  - [x] Automatisierter Hintergrund-Scheduler (alle 30 Minuten) mit persistentem Duplikat-Schutz.
+  - [x] Automatischer Post im `#free-games` Kanal mit `@bn.free`-Ping (konfigurierbar).
   - [x] Slash-Befehle `/free-games list` und `/free-games post`.
 - [x] **Auto-Move & Temporäre Voice-Kanäle (VoiceMaster Parität):**
   - [x] "Join to Create"-Masterkanal konfigurieren (`/setup-voice`).
@@ -92,28 +90,31 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
   - [x] Berechtigungs- & Rollen-Zentrum (`/roles` im Web, `/setup-roles` im Chat).
   - [x] Interaktives Rollen-Panel mit 1-Klick Buttons (`Gast`, `bn.live`, `bn.free`, `Meine Rollen`).
   - [x] Ephemere Rollen-Statusprüfung und Toggles ohne Chat-Spam.
-- [ ] **Ticket- & Support-System:**
-  - [ ] Erstellung privater Ticket-Threads/Kanäle via Dropdown/Button.
-  - [ ] Befehl `/close` mit automatischer Transkript-Erstellung (HTML-Archiv).
-- [ ] **Community-Tools:**
-  - [ ] Vorschlagssystem (`/suggest`) mit Upvote-/Downvote-Buttons.
-  - [ ] Sticky Messages (wichtige Info bleibt immer als letzte Nachricht fixiert).
-  - [ ] Auto-Purge für temporäre Bot- oder Medien-Kanäle.
+- [x] **Ticket- & Support-System:**
+  - [x] Erstellung privater Ticket-Kanäle via Button (`📩 Support-Ticket erstellen`) mit Rollen-Berechtigungen (`/setup-tickets`).
+  - [x] Ticket-Steuerung mit Buttons (`🔒 Ticket schließen`, `📄 Transkript erstellen`).
+  - [x] Automatische `.txt`-Transkripterstellung per DM und Archivierung in Audit-Logs vor der Kanal-Löschung.
+- [x] **Community-Tools:**
+  - [x] Vorschlagssystem (`/suggest neu <idee>`, `/suggest status <id> <entscheidung>`) mit Upvote/Downvote-Buttons und Echtzeit-Zähler.
+  - [x] Sticky Messages (`/sticky set <nachricht>`, `/sticky remove`) mit Schleifenschutz für automatisches Nachrücken.
 
 ---
 
 ### Phase 4: Logging & Server-Backups
-- [ ] **Lückenloses Audit-Logging:**
-  - [ ] **Nachrichten:** Gelöschte Nachrichten (mit Inhalt/Attachments), Bearbeitungen (Vorher/Nachher).
-  - [ ] **Server:** Rollenerstellung, Berechtigungsänderungen, Kanalerstellungen/-löschungen.
-  - [ ] **Mitglieder:** Joins, Leaves, Nickname-Änderungen, Rollenvergaben.
-  - [ ] **Voice:** Beitritt, Verlassen, Kanalwechsel, Mute/Deafen-Status.
-  - [ ] Strukturierte Speicherung aller Logs in der Datenbank für die Webansicht.
-- [ ] **Backup- & Restore-Engine:**
-  - [ ] JSON-Snapshot aller Rollen (Farben, Rechte, Position).
-  - [ ] JSON-Snapshot aller Kategorien und Kanäle inklusive Berechtigungsüberschreibungen (*Permission Overwrites*).
-  - [ ] Geplanter automatischer Snapshot (täglich um Mitternacht).
-  - [ ] 1-Klick-Wiederherstellung bzw. Klon-Funktion für neue Zielserver.
+- [x] **Lückenloses Audit-Logging:**
+  - [x] **Nachrichten:** Gelöschte Nachrichten (mit Inhalt/Attachments), Bearbeitungen (Vorher/Nachher).
+  - [x] **Server:** Rollenerstellung, Rollenänderungen, Rollenlöschungen, Kanalerstellungen/-änderungen/-löschungen, Emojis, Sticker, Servereinstellungen.
+  - [x] **Mitglieder:** Joins, Leaves, Nickname-Änderungen, Rollenvergaben.
+  - [x] **Voice:** Beitritt, Verlassen, Kanalwechsel, Mute/Deafen-Status.
+  - [x] Strukturierte Speicherung aller Logs in der JSON-Datenbank für die Webansicht.
+  - [x] Discord Slash-Commands (`/setup-logs`, `/logs`).
+  - [x] Stumme Audit-Logs (`SuppressNotifications` Flag) gegen Notification-Spam.
+- [x] **Backup- & Restore-Engine:**
+  - [x] JSON-Snapshot aller Rollen (Farben, Rechte, Position).
+  - [x] JSON-Snapshot aller Kategorien und Kanäle inklusive Berechtigungsüberschreibungen (*Permission Overwrites*).
+  - [x] Geplanter automatischer Snapshot (täglich um Mitternacht mit 20-Snapshot-Retention).
+  - [x] 1-Klick-Wiederherstellung bzw. Klon-Funktion für Rollen und Kanäle.
+  - [x] Discord Slash-Commands (`/backup create`, `/backup list`, `/backup restore`, `/backup export`, `/backup delete`).
 
 ---
 
@@ -122,7 +123,7 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
   * [x] Next.js 14 Frontend im modernen Discord Dark Theme (Tailwind CSS, Lucide Icons).
   * [x] Direkte REST-API Anbindung an Discord Gateway (`/api/discord/guild`) für Live-Kanäle, Kategorien und Rollen.
   * [x] PM2 Deployment (`discord-web` auf Port 3000) im Proxmox CT 109 mit Caddy Reverse Proxy & Let's Encrypt SSL.
-  * [ ] Optionaler Discord OAuth2 Login mit Rollen-/Berechtigungsprüfung (`Administrator`).
+  * [x] Discord OAuth2 Login mit Rollen-/Berechtigungsprüfung (`Administrator`).
 - [x] **Zwei-Wege Kanal- & VoiceMaster-Manager (`/voice`):**
   * [x] Grafische Konfiguration von Master-Sprachkanal und Ziel-Kategorie.
   * [x] 1-Klick-Aktion: Sendet das interaktive VoiceMaster-Panel mit Dropdowns in beliebige Discord-Textkanäle.
@@ -131,23 +132,18 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
   * [x] Web-Konfiguration für Streamer-Rolle, Ziel-Kategorie und Kanal-Art (Voice mit Status oder Text).
   * [x] Auto-Rollen-Erkennung per Toggle aktivierbar.
   * [x] Zwei-Wege-Synchronisation mit `/setup-live` im Discord-Chat.
-- [ ] **Kanal- & Berechtigungs-Manager:**
-  * [ ] Grafische Übersicht aller Serverkanäle und Kategorien.
-  * [ ] Kanäle per Web erstellen, umbenennen, sortieren und sperren (`/lock`, `/unlock`).
-  * [ ] Berechtigungsmatrix (Toggle-Schalter für Lese-, Schreib- und Voice-Rechte).
-- [ ] **Live-Audit-Log-Viewer:**
-  * [ ] Interaktive Datentabelle mit Filterung nach Event-Typ, Moderator, Nutzer und Datumsbereich.
-  * [ ] Detail-Modal für Nachrichten-Verläufe und Änderungen.
-- [ ] **Visueller Embed-Builder:**
-  * [ ] WYSIWYG-Editor mit Live-Discord-Vorschau.
-  * [ ] Unterstützung für Farben, Autoren, Footer, Felder, Bilder und Buttons.
-  * [ ] Direkter Versand-Button in einen gewählten Discord-Kanal.
-- [ ] **Ticket- & Fallakten-Verwaltung:**
-  * [ ] Web-Viewer für gespeicherte HTML-Transkripte geschlossener Tickets.
-  * [ ] Einsicht in die Moderations-Akten einzelner Nutzer (Warn-Historie, Notizen).
-- [ ] **Backup-Center:**
-  * [ ] Übersicht aller vorhandenen JSON-Snapshots.
-  * [ ] Manueller Backup-Auslöser und Einspielen auf verbundene Server.
+- [x] **Live-Audit-Log-Viewer (`/logs`):**
+  * [x] Interaktive Datentabelle mit Filterung nach Event-Typ, Moderator, Nutzer und Suchbegriffen.
+  * [x] Detail-Ansicht für Nachrichten-Diffs (Vorher/Nachher), Rollen-Updates und Voice-Aktivitäten.
+  * [x] Schnell-Setup für den geschützten Audit-Log Kanal (`📁・audit-logs`).
+- [x] **Visueller Embed-Builder (`/embeds`):**
+  * [x] WYSIWYG-Editor mit Live-Discord-Vorschau (Farben, Titel, Beschreibungen, Felder, Bilder, Footer, Timestamp).
+  * [x] Vorlagen (Ankündigung, Regeln, Events, Leeren).
+  * [x] Direkter Versand-Button in einen gewählten Discord-Kanal via interner Bot-API.
+- [x] **Backup-Center (`/backups`):**
+  * [x] Übersicht aller vorhandenen JSON-Snapshots mit Rollen-/Kanal-Zählern und Dateigröße.
+  * [x] Manueller 1-Klick Backup-Auslöser.
+  * [x] Selektive Wiederherstellung (Alles, nur Rollen, nur Kanäle) direkt aus dem Web.
 
 ---
 

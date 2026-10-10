@@ -7,3 +7,8 @@ dist/
 web/.next/
 web/node_modules/
 deploy.tar.gz
+
+# Laufzeit-Daten (Einstellungen & Live-Status) - gehoeren nicht ins Repo und nicht in den Upload
+data/
+data_from_server/
+.env.from_server

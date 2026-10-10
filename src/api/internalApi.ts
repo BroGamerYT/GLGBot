@@ -1,0 +1,362 @@
+import http from "http";
+import crypto from "crypto";
+import { Client, EmbedBuilder } from "discord.js";
+import { freeGamesService } from "../services/freeGamesService";
+import { rulesService } from "../services/rulesService";
+import { rolePanelService } from "../services/rolePanelService";
+import { gameNewsService } from "../services/gameNewsService";
+import { auditLogService } from "../services/auditLogService";
+import { backupService } from "../services/backupService";
+
+/**
+ * Interne Schnittstelle für das Web-Dashboard.
+ *
+ * - lauscht NUR auf 127.0.0.1 (von außen nicht erreichbar)
+ * - jede Anfrage braucht den Header "x-bot-token" (= INTERNAL_API_TOKEN, sonst SESSION_SECRET aus der .env)
+ * - Port: BOT_API_PORT (Standard 3101)
+ */
+
+const PORT = Number(process.env.BOT_API_PORT || 3101);
+
+function getToken(): string | null {
+  const t = process.env.INTERNAL_API_TOKEN || process.env.SESSION_SECRET || "";
+  return t.length >= 32 ? t : null;
+}
+
+function safeEqual(a: string, b: string) {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ab.length === bb.length && crypto.timingSafeEqual(ab, bb);
+}
+
+function send(res: http.ServerResponse, status: number, body: unknown) {
+  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+  res.end(JSON.stringify(body));
+}
+
+async function readBody(req: http.IncomingMessage): Promise<any> {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > 512 * 1024) throw new Error("Anfrage zu groß");
+    chunks.push(chunk as Buffer);
+  }
+  const raw = Buffer.concat(chunks).toString("utf-8");
+  return raw ? JSON.parse(raw) : {};
+}
+
+export function startInternalApi(client: Client) {
+  const token = getToken();
+  if (!token) {
+    console.warn("⚠️ [BotAPI] Kein SESSION_SECRET/INTERNAL_API_TOKEN (min. 32 Zeichen) - Dashboard-Aktionen sind deaktiviert.");
+    return;
+  }
+
+  const server = http.createServer(async (req, res) => {
+    const given = String(req.headers["x-bot-token"] || "");
+    if (!safeEqual(given, token)) return send(res, 401, { error: "Nicht autorisiert." });
+
+    const guildId = process.env.GUILD_ID || "";
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return send(res, 503, { error: "Bot ist nicht mit dem Server verbunden (GUILD_ID prüfen)." });
+
+    const route = `${req.method} ${(req.url || "").split("?")[0]}`;
+    // Wer im Dashboard eingeloggt ist (für den Verlauf)
+    const by = decodeURIComponent(String(req.headers["x-dashboard-user"] || "")).slice(0, 64) || undefined;
+    const refreshNewsHeader = () =>
+      Promise.all([rulesService.postChannelHeaders(guild, "game-news"), rulesService.postChannelHeaders(guild, "driver-news")]).catch((e) =>
+        console.error("[BotAPI] News Kopf-Nachricht:", e)
+      );
+
+    try {
+      switch (route) {
+        case "GET /health":
+          return send(res, 200, { ok: true, bot: client.user?.tag, guild: guild.name });
+
+        // ---------------- Free-Games ----------------
+        case "GET /free-games": {
+          const games = await freeGamesService.fetchAll();
+          return send(res, 200, { games, settings: freeGamesService.getSettings(guild.id) });
+        }
+        case "POST /free-games/settings": {
+          const body = await readBody(req);
+          const patch: Record<string, boolean> = {};
+          for (const k of ["epic", "steam", "gog", "other", "upcoming", "keys", "silent"]) {
+            if (typeof body[k] === "boolean") patch[k] = body[k];
+          }
+          return send(res, 200, { settings: freeGamesService.updateSettings(guild.id, patch) });
+        }
+        case "POST /free-games/post": {
+          const body = await readBody(req);
+          const result = await freeGamesService.postFreeGames(guild, Boolean(body.repostAll));
+          if (result.error === "no_channel") {
+            return send(res, 400, { error: "Kein Free-Games-Kanal eingerichtet (Seite „Rollen & Rechte“)." });
+          }
+          return send(res, 200, result);
+        }
+
+        // ---------------- Game-News ----------------
+        case "GET /news": {
+          const cfg = rolePanelService.getConfig(guild.id) || {};
+          return send(res, 200, {
+            feeds: gameNewsService.getFeeds(guild.id),
+            history: gameNewsService.getHistory(guild.id).slice(0, 30),
+            catalog: gameNewsService.catalog(),
+            includes: gameNewsService.includes(),
+            setup: {
+              roleId: cfg.gameNewsRoleId || null,
+              channelId: cfg.gameNewsChannelId || null,
+              driverRoleId: cfg.driverNewsRoleId || null,
+              driverChannelId: cfg.driverNewsChannelId || null,
+            },
+          });
+        }
+        case "POST /news/setup": {
+          const game = await rolePanelService.ensureGameNewsSetup(guild);
+          const driver = await rolePanelService.ensureDriverNewsSetup(guild);
+          // Treiber-Quellen, die bisher im Game-News-Kanal lagen, in den Treiber-Kanal umziehen
+          const moved = gameNewsService.moveDriverFeeds(guild.id, game.channel.id, driver.channel.id, driver.role.id, by);
+          await rulesService.postChannelHeaders(guild).catch((e) => console.error("[BotAPI] Kanal-Banner:", e));
+          return send(res, 200, { game, driver, moved });
+        }
+        case "POST /news/preview": {
+          const body = await readBody(req);
+          const result = await gameNewsService.preview(body.type, body.appId ? String(body.appId) : undefined, Boolean(body.snapshots));
+          return typeof result === "string" ? send(res, 400, { error: result }) : send(res, 200, { items: result });
+        }
+        case "POST /news/feeds": {
+          const body = await readBody(req);
+          const result = gameNewsService.addFeed(guild, body, by);
+          if (typeof result === "string") return send(res, 400, { error: result });
+          refreshNewsHeader();
+          return send(res, 200, { feed: result });
+        }
+        case "POST /news/feeds/update": {
+          const body = await readBody(req);
+          const result = gameNewsService.updateFeed(guild, String(body.id), body.patch || {}, by);
+          if (typeof result === "string") return send(res, 400, { error: result });
+          refreshNewsHeader();
+          return send(res, 200, { feed: result });
+        }
+        case "POST /news/feeds/delete": {
+          const body = await readBody(req);
+          const ok = gameNewsService.deleteFeed(guild.id, String(body.id), by);
+          refreshNewsHeader();
+          return send(res, 200, { ok });
+        }
+        case "POST /news/feeds/test": {
+          const body = await readBody(req);
+          const error = await gameNewsService.postLatest(guild, String(body.id));
+          return error ? send(res, 400, { error }) : send(res, 200, { ok: true });
+        }
+        case "POST /news/steam-lookup": {
+          const body = await readBody(req);
+          const result = await gameNewsService.lookupSteam(String(body.input || ""));
+          return typeof result === "string" ? send(res, 400, { error: result }) : send(res, 200, result);
+        }
+
+        // ---------------- Regeln ----------------
+        case "GET /rules": {
+          const cfg = rolePanelService.getConfig(guild.id) || {};
+          return send(res, 200, {
+            rules: rulesService.getRules(),
+            customized: rulesService.isCustomized(),
+            status: {
+              rulesChannelId: cfg.rulesChannelId || null,
+              permissionsChannelId: cfg.permissionsChannelId || null,
+              guestRoleId: cfg.rulesRoleId || null,
+              serverLocked: Boolean(cfg.serverLocked),
+              lockProblem: rulesService.checkLockPrerequisites(guild),
+            },
+          });
+        }
+        case "PUT /rules": {
+          const body = await readBody(req);
+          const error = rulesService.saveRules(body.rules);
+          if (error) return send(res, 400, { error });
+          return send(res, 200, { ok: true, rules: rulesService.getRules() });
+        }
+        case "POST /rules/reset": {
+          rulesService.resetRules();
+          return send(res, 200, { ok: true, rules: rulesService.getRules() });
+        }
+        case "POST /rules/post": {
+          const { rules, perms } = await rulesService.setupChannels(guild);
+          return send(res, 200, {
+            ok: true,
+            rulesChannel: { id: rules.channel.id, name: rules.channel.name, created: rules.created },
+            permissionsChannel: { id: perms.channel.id, name: perms.channel.name, created: perms.created },
+          });
+        }
+        case "POST /rules/lock": {
+          if (!rolePanelService.getConfig(guild.id)?.rulesChannelId) {
+            return send(res, 400, { error: "Bitte zuerst die Regeln posten, damit der Regelkanal existiert." });
+          }
+          const problem = rulesService.checkLockPrerequisites(guild);
+          if (problem) return send(res, 400, { error: problem.replace(/\*\*/g, "") });
+          return send(res, 200, { ok: true, ...(await rulesService.lockServer(guild)) });
+        }
+        case "POST /rules/unlock": {
+          await rulesService.unlockServer(guild);
+          return send(res, 200, { ok: true });
+        }
+
+        // ---------------- Audit-Logs ----------------
+        case "GET /logs": {
+          const qs = (req.url || "").split("?")[1] || "";
+          const params = new URLSearchParams(qs);
+          const page = Number(params.get("page") || 1);
+          const limit = Number(params.get("limit") || 50);
+          const category = params.get("category") || undefined;
+          const query = params.get("q") || undefined;
+
+          const data = auditLogService.getLogs(guild.id, { page, limit, category, query });
+          const stats = auditLogService.getStats(guild.id);
+          const config = auditLogService.getConfig(guild.id);
+
+          return send(res, 200, {
+            ...data,
+            stats,
+            config,
+          });
+        }
+        case "POST /logs/config": {
+          const body = await readBody(req);
+          const updated = auditLogService.setConfig(guild.id, body);
+          return send(res, 200, { ok: true, config: updated });
+        }
+        case "POST /logs/setup": {
+          const ch = await auditLogService.ensureLogChannel(guild);
+          return send(res, 200, { ok: true, channelId: ch.id, channelName: ch.name });
+        }
+
+        // ---------------- Backups ----------------
+        case "GET /backups": {
+          const backups = backupService.listBackups(guild.id);
+          return send(res, 200, { backups });
+        }
+        case "POST /backups/create": {
+          const body = await readBody(req);
+          const backup = await backupService.createBackup(guild, body.creator || "Web-Dashboard");
+          return send(res, 200, { ok: true, backup });
+        }
+        case "POST /backups/restore": {
+          const body = await readBody(req);
+          if (!body.backupId) return send(res, 400, { error: "Keine backupId angegeben." });
+          const result = await backupService.restoreBackup(guild, body.backupId, body.options);
+          return send(res, 200, { ok: true, result });
+        }
+        case "POST /backups/delete":
+        case "DELETE /backups/delete": {
+          const body = await readBody(req);
+          if (!body.backupId) return send(res, 400, { error: "Keine backupId angegeben." });
+          const ok = backupService.deleteBackup(body.backupId);
+          return send(res, 200, { ok });
+        }
+
+        // ---------------- Embed-Builder ----------------
+        case "GET /embeds/channels": {
+          const channels = Array.from(guild.channels.cache.values())
+            .filter((c) => c.isTextBased())
+            .map((c) => ({
+              id: c.id,
+              name: c.name,
+              parentId: c.parentId,
+              type: c.type,
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+          return send(res, 200, { channels });
+        }
+        case "POST /embeds/send": {
+          const body = await readBody(req);
+          const channelId = String(body.channelId || "").trim();
+          if (!channelId) return send(res, 400, { error: "Kein Kanal ausgewählt." });
+
+          const channel = guild.channels.cache.get(channelId) || (await guild.channels.fetch(channelId).catch(() => null));
+          if (!channel || !channel.isTextBased() || !("send" in channel)) {
+            return send(res, 400, { error: "Kanal nicht gefunden oder unterstützt keine Textnachrichten." });
+          }
+
+          const embedData = body.embed;
+          if (!embedData || (!embedData.title && !embedData.description && (!embedData.fields || embedData.fields.length === 0))) {
+            return send(res, 400, { error: "Das Embed benötigt mindestens einen Titel, eine Beschreibung oder Felder." });
+          }
+
+          const embed = new EmbedBuilder();
+          if (embedData.title) embed.setTitle(embedData.title);
+          if (embedData.description) embed.setDescription(embedData.description);
+          if (embedData.url) embed.setURL(embedData.url);
+          if (embedData.color) {
+            try {
+              const hex = embedData.color.replace("#", "");
+              embed.setColor(parseInt(hex, 16));
+            } catch {
+              embed.setColor(0x5865f2);
+            }
+          }
+          if (embedData.author?.name) {
+            embed.setAuthor({
+              name: embedData.author.name,
+              iconURL: embedData.author.iconURL || undefined,
+              url: embedData.author.url || undefined,
+            });
+          }
+          if (embedData.thumbnail?.url) embed.setThumbnail(embedData.thumbnail.url);
+          if (embedData.image?.url) embed.setImage(embedData.image.url);
+          if (embedData.footer?.text) {
+            embed.setFooter({
+              text: embedData.footer.text,
+              iconURL: embedData.footer.iconURL || undefined,
+            });
+          }
+          if (embedData.timestamp) {
+            embed.setTimestamp();
+          }
+          if (Array.isArray(embedData.fields)) {
+            for (const f of embedData.fields) {
+              if (f.name && f.value) {
+                embed.addFields({ name: String(f.name), value: String(f.value), inline: Boolean(f.inline) });
+              }
+            }
+          }
+
+          const content = body.content ? String(body.content) : undefined;
+          const msg = await (channel as any).send({
+            content,
+            embeds: [embed],
+          });
+
+          await auditLogService.log(
+            {
+              guildId: guild.id,
+              category: "server",
+              action: "EMBED_SENT",
+              executor: { id: "dashboard", tag: by || "Web-Dashboard" },
+              target: { id: channel.id, name: (channel as any).name },
+              details: {
+                channelName: (channel as any).name,
+                channelId: channel.id,
+                title: embedData.title || "(Ohne Titel)",
+              },
+            },
+            client
+          ).catch(() => null);
+
+          return send(res, 200, { ok: true, messageId: msg.id, channelId: channel.id });
+        }
+
+        default:
+          return send(res, 404, { error: "Unbekannte Aktion." });
+      }
+    } catch (e: any) {
+      console.error(`[BotAPI] Fehler bei ${route}:`, e);
+      return send(res, 500, { error: e?.message || "Interner Fehler." });
+    }
+  });
+
+  server.on("error", (e) => console.error("[BotAPI] Server-Fehler:", e));
+  server.listen(PORT, "127.0.0.1", () => {
+    console.log(`🔌 [BotAPI] Dashboard-Schnittstelle bereit auf 127.0.0.1:${PORT}`);
+  });
+}

@@ -162,6 +162,16 @@ const setupRolesCommand: Command = {
             name: "🎁 Free-Games Kanal", 
             value: `<#${result.freeGamesChannel.id}> ${result.freeGamesChannel.created ? "*(Neu erstellt)*" : "*(Vorhanden & Verknüpft)*"}`, 
             inline: false 
+          },
+          {
+            name: "📰 Game-News (bn.gamenews)",
+            value: `<@&${result.gameNewsRole.id}> · <#${result.gameNewsChannel.id}> ${result.gameNewsRole.created || result.gameNewsChannel.created ? "*(Neu erstellt)*" : "*(Vorhanden & Verknüpft)*"}`,
+            inline: false
+          },
+          {
+            name: "🖥️ Treiber-News (bn.treiber)",
+            value: `<@&${result.driverNewsRole.id}> · <#${result.driverNewsChannel.id}> ${result.driverNewsRole.created || result.driverNewsChannel.created ? "*(Neu erstellt)*" : "*(Vorhanden & Verknüpft)*"}`,
+            inline: false
           }
         )
         .setFooter({ text: "Tipp: Nutze '/setup-roles panel', um das Rollen-Auswahl-Panel im Regel- oder Rollenkanal zu posten!" })

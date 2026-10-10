@@ -1,11 +1,20 @@
 import { Events, Message, EmbedBuilder, MessageFlags } from "discord.js";
 import { BotEvent } from "../types";
+import { securityService } from "../services/securityService";
+import { stickyService } from "../services/stickyService";
 
 const messageCreateEvent: BotEvent<Events.MessageCreate> = {
   name: Events.MessageCreate,
   execute: async (client, message: Message) => {
     // Ignoriere Nachrichten von Bots
     if (message.author.bot) return;
+
+    // Phishing- & Scam-Schutz
+    const isPhishing = await securityService.handlePhishingMessage(message, client);
+    if (isPhishing) return;
+
+    // Sticky Messages aktualisieren
+    await stickyService.handleMessage(message);
 
     // Entferne führendes @silent, falls die Nachricht lautlos gesendet wurde
     let content = message.content.trim().toLowerCase();

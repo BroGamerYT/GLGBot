@@ -1,44 +1,83 @@
 import fs from "fs";
 import path from "path";
-import { 
-  GuildMember, 
-  ChannelType, 
-  Presence, 
-  ActivityType, 
+import {
+  Client,
+  Guild,
+  GuildMember,
+  ChannelType,
+  Presence,
+  ActivityType,
   EmbedBuilder,
-  VoiceChannel,
-  TextChannel
+  MessageFlags,
 } from "discord.js";
 
-interface LiveConfig {
-  [guildId: string]: {
-    liveRoleId: string;
-    announcementChannelId?: string;
-    categoryId?: string;
-    channelType: "voice" | "text";
-    autoRole?: boolean;
-  };
+interface GuildLiveConfig {
+  liveRoleId: string;
+  announcementChannelId?: string;
+  categoryId?: string;
+  channelType: "voice" | "text";
+  autoRole?: boolean;
 }
 
-interface ActiveLiveChannel {
+interface LiveConfig {
+  [guildId: string]: GuildLiveConfig;
+}
+
+/**
+ * Woher weiß der Bot, dass jemand live ist?
+ *  - presence: Discord-Status zeigt "Streamt" (Twitch/YouTube mit Discord verknüpft)
+ *  - stream:   Twitch/YouTube-Poller (/streamer mit verknüpftem Discord-Nutzer)
+ *  - manual:   /twitch-live start
+ *  - role:     Ein Admin hat die Live-Rolle von Hand vergeben
+ *
+ * Rolle & Temp-Kanal bleiben, solange mindestens eine Quelle "live" meldet.
+ */
+export type LiveSource = "presence" | "stream" | "manual" | "role";
+
+interface LiveEntry {
   guildId: string;
   userId: string;
-  channelId: string;
-  channelType: "voice" | "text";
+  sources: LiveSource[];
+  channelId?: string;
+  channelType?: "voice" | "text";
+}
+
+interface LiveData {
+  url?: string;
+  title?: string;
+  game?: string;
 }
 
 const DATA_DIR = path.join(__dirname, "../../data");
 const CONFIG_FILE = path.join(DATA_DIR, "live_stream_config.json");
 const ACTIVE_FILE = path.join(DATA_DIR, "active_live_channels.json");
 
+function isHttpUrl(value: string | undefined): value is string {
+  if (!value) return false;
+  try {
+    const u = new URL(value);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 class LiveStreamService {
   private config: LiveConfig = {};
-  private activeChannels: ActiveLiveChannel[] = [];
+  private entries: LiveEntry[] = [];
+  // Verhindert doppelte Kanäle, wenn mehrere Events gleichzeitig feuern
+  private pendingCreates: Map<string, Promise<void>> = new Map();
+  // Stream-Infos (Link, Titel, Spiel) für den nächsten Kanal, egal welches Event ihn erstellt
+  private pendingData: Map<string, LiveData> = new Map();
 
   constructor() {
     this.ensureDataDir();
     this.loadConfig();
     this.loadActive();
+  }
+
+  private key(guildId: string, userId: string) {
+    return `${guildId}:${userId}`;
   }
 
   private ensureDataDir() {
@@ -69,28 +108,40 @@ class LiveStreamService {
   private loadActive() {
     try {
       if (fs.existsSync(ACTIVE_FILE)) {
-        this.activeChannels = JSON.parse(fs.readFileSync(ACTIVE_FILE, "utf-8"));
+        const raw = JSON.parse(fs.readFileSync(ACTIVE_FILE, "utf-8"));
+        // Altes Format (ohne "sources") übernehmen
+        this.entries = (Array.isArray(raw) ? raw : []).map((e: any) => ({
+          guildId: e.guildId,
+          userId: e.userId,
+          channelId: e.channelId,
+          channelType: e.channelType,
+          sources: Array.isArray(e.sources) && e.sources.length ? e.sources : ["role"],
+        }));
       }
     } catch (e) {
-      this.activeChannels = [];
+      this.entries = [];
     }
   }
 
   private saveActive() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(ACTIVE_FILE, JSON.stringify(this.activeChannels, null, 2), "utf-8");
+      fs.writeFileSync(ACTIVE_FILE, JSON.stringify(this.entries, null, 2), "utf-8");
     } catch (e) {
       console.error("[LiveStream] Fehler beim Speichern der aktiven Kanäle:", e);
     }
   }
 
+  private getEntry(guildId: string, userId: string) {
+    return this.entries.find((e) => e.guildId === guildId && e.userId === userId);
+  }
+
   public setConfig(
-    guildId: string, 
-    liveRoleId: string, 
-    announcementChannelId?: string, 
-    categoryId?: string, 
-    channelType: "voice" | "text" = "voice", 
+    guildId: string,
+    liveRoleId: string,
+    announcementChannelId?: string,
+    categoryId?: string,
+    channelType: "voice" | "text" = "voice",
     autoRole: boolean = true
   ) {
     this.config[guildId] = {
@@ -113,8 +164,12 @@ class LiveStreamService {
     return this.config[guildId] || null;
   }
 
+  public getSources(guildId: string, userId: string): LiveSource[] {
+    return this.getEntry(guildId, userId)?.sources || [];
+  }
+
   // Findet oder erstellt automatisch die Kategorie '🔴 Live Streams'
-  public async ensureCategory(guild: any, configuredCategoryId?: string) {
+  public async ensureCategory(guild: Guild, configuredCategoryId?: string) {
     if (configuredCategoryId) {
       const existing = guild.channels.cache.get(configuredCategoryId);
       if (existing && existing.type === ChannelType.GuildCategory) {
@@ -123,15 +178,20 @@ class LiveStreamService {
     }
 
     const voiceCat = guild.channels.cache.find(
-      (c: any) => c.type === ChannelType.GuildCategory && (c.name.toLowerCase().includes("voice") || c.name.toLowerCase().includes("sprach"))
+      (c) =>
+        c.type === ChannelType.GuildCategory &&
+        (c.name.toLowerCase().includes("voice") || c.name.toLowerCase().includes("sprach"))
     );
 
     const found = guild.channels.cache.find(
-      (c: any) => c.type === ChannelType.GuildCategory && 
-        (c.name.toLowerCase().includes("live stream") || c.name.toLowerCase().includes("live-stream") || c.name.toLowerCase().includes("livestream"))
+      (c) =>
+        c.type === ChannelType.GuildCategory &&
+        (c.name.toLowerCase().includes("live stream") ||
+          c.name.toLowerCase().includes("live-stream") ||
+          c.name.toLowerCase().includes("livestream"))
     );
-    if (found) {
-      if (voiceCat && found.position !== voiceCat.position + 1) {
+    if (found && found.type === ChannelType.GuildCategory) {
+      if (voiceCat && voiceCat.type === ChannelType.GuildCategory && found.position !== voiceCat.position + 1) {
         await found.setPosition(voiceCat.position + 1).catch(() => null);
       }
       return found;
@@ -141,9 +201,9 @@ class LiveStreamService {
       const created = await guild.channels.create({
         name: "🔴 Live Streams",
         type: ChannelType.GuildCategory,
-        position: voiceCat ? voiceCat.position + 1 : undefined,
+        position: voiceCat && voiceCat.type === ChannelType.GuildCategory ? voiceCat.position + 1 : undefined,
       });
-      console.log(`[LiveStream] Kategorie '🔴 Live Streams' automatisch erstellt auf ${guild.name} unter Voice Channels`);
+      console.log(`[LiveStream] Kategorie '🔴 Live Streams' automatisch erstellt auf ${guild.name}`);
       return created;
     } catch (e) {
       console.error("[LiveStream] Konnte Kategorie '🔴 Live Streams' nicht automatisch erstellen:", e);
@@ -151,233 +211,317 @@ class LiveStreamService {
     }
   }
 
-  // --- MEMBER UPDATE (Rollen-Prüfung) ---
+  // =====================================================================
+  //  ZENTRALE LOGIK: live setzen / live beenden
+  // =====================================================================
+
+  /**
+   * Markiert ein Mitglied als live (aus einer bestimmten Quelle).
+   * Vergibt die Live-Rolle und erstellt den Temp-Kanal, falls noch nicht vorhanden.
+   */
+  public async setLive(member: GuildMember, source: LiveSource, data?: LiveData) {
+    this.loadConfig();
+    const cfg = this.config[member.guild.id];
+    if (!cfg || !cfg.liveRoleId) {
+      return { success: false, message: "❌ Das Live-System ist auf diesem Server noch nicht eingerichtet. Nutze `/setup-live set`." };
+    }
+
+    // 1. Quelle merken (Eintrag VOR der Rollenvergabe anlegen, damit das
+    //    GuildMemberUpdate-Event weiß, dass der Bot die Rolle vergeben hat)
+    let entry = this.getEntry(member.guild.id, member.id);
+    if (!entry) {
+      entry = { guildId: member.guild.id, userId: member.id, sources: [] };
+      this.entries.push(entry);
+    }
+    if (!entry.sources.includes(source)) {
+      entry.sources.push(source);
+      this.saveActive();
+    }
+
+    if (data) this.pendingData.set(this.key(member.guild.id, member.id), data);
+
+    // 2. Rolle vergeben
+    if (!member.roles.cache.has(cfg.liveRoleId)) {
+      try {
+        await member.roles.add(cfg.liveRoleId, `Live (${source})`);
+        console.log(`[LiveStream] Live-Rolle an ${member.user.tag} vergeben (Quelle: ${source})`);
+      } catch (e) {
+        console.error(`[LiveStream] Konnte Live-Rolle nicht vergeben (Bot-Rolle zu niedrig?):`, e);
+        return { success: false, message: "❌ Die Live-Rolle konnte nicht vergeben werden. Die Bot-Rolle muss in den Server-Einstellungen **über** der Live-Rolle stehen." };
+      }
+    }
+
+    // 3. Temp-Kanal erstellen (falls noch keiner existiert)
+    const ok = await this.ensureLiveChannel(member, cfg, data);
+    if (!ok) {
+      return { success: false, message: "⚠️ Live-Rolle vergeben, aber der Live-Kanal konnte nicht erstellt werden (fehlen dem Bot Rechte?)." };
+    }
+    return { success: true, message: "🎉 Du bist jetzt als LIVE markiert! Rolle wurde zugewiesen und dein Live-Kanal erstellt." };
+  }
+
+  /**
+   * Entfernt eine Live-Quelle. Erst wenn keine Quelle mehr übrig ist,
+   * werden Live-Rolle und Temp-Kanal entfernt.
+   * Mit source = "all" wird der Live-Status komplett beendet.
+   */
+  public async clearLive(member: GuildMember, source: LiveSource | "all") {
+    const entry = this.getEntry(member.guild.id, member.id);
+    if (entry) {
+      entry.sources = source === "all" ? [] : entry.sources.filter((s) => s !== source);
+      this.saveActive();
+      if (entry.sources.length > 0) {
+        console.log(`[LiveStream] ${member.user.tag}: Quelle '${source}' beendet, bleibt live über: ${entry.sources.join(", ")}`);
+        return { success: true, stillLive: true };
+      }
+    }
+
+    // Keine Quelle mehr -> Kanal löschen, dann Rolle entfernen
+    await this.endLive(member.guild, member.id);
+
+    this.loadConfig();
+    const cfg = this.config[member.guild.id];
+    if (cfg?.liveRoleId && member.roles.cache.has(cfg.liveRoleId)) {
+      await member.roles.remove(cfg.liveRoleId, "Nicht mehr live").catch((e) =>
+        console.error("[LiveStream] Konnte Live-Rolle nicht entfernen:", e)
+      );
+      console.log(`[LiveStream] Live-Rolle von ${member.user.tag} entfernt`);
+    }
+    return { success: true, stillLive: false };
+  }
+
+  /** Löscht Eintrag + Temp-Kanal eines Nutzers. */
+  private async endLive(guild: Guild, userId: string) {
+    const index = this.entries.findIndex((e) => e.guildId === guild.id && e.userId === userId);
+    if (index === -1) return;
+
+    const entry = this.entries[index];
+    this.entries.splice(index, 1);
+    this.saveActive();
+
+    if (!entry.channelId) return;
+    const channel = guild.channels.cache.get(entry.channelId);
+    if (channel) {
+      await channel.delete("Stream beendet").catch(() => null);
+      console.log(`[LiveStream] Live-Kanal gelöscht: ${channel.name}`);
+    }
+  }
+
+  // =====================================================================
+  //  EVENTS
+  // =====================================================================
+
+  // Rolle wurde (von Hand oder vom Bot) vergeben / entfernt
   public async handleMemberUpdate(oldMember: GuildMember, newMember: GuildMember) {
     this.loadConfig();
-    const guildId = newMember.guild.id;
-    const cfg = this.config[guildId];
+    const cfg = this.config[newMember.guild.id];
     if (!cfg || !cfg.liveRoleId) return;
 
     const hadRole = oldMember.roles.cache.has(cfg.liveRoleId);
     const hasRole = newMember.roles.cache.has(cfg.liveRoleId);
 
-    // Rolle erhalten -> Live Kanal erstellen
+    // Rolle erhalten
     if (!hadRole && hasRole) {
-      await this.createLiveChannel(newMember, cfg);
+      let entry = this.getEntry(newMember.guild.id, newMember.id);
+      if (!entry) {
+        // Kein Eintrag -> ein Admin hat die Rolle von Hand vergeben
+        entry = { guildId: newMember.guild.id, userId: newMember.id, sources: ["role"] };
+        this.entries.push(entry);
+        this.saveActive();
+      }
+      await this.ensureLiveChannel(newMember, cfg);
     }
 
-    // Rolle verloren -> Live Kanal löschen
+    // Rolle verloren (z. B. von einem Admin entfernt) -> Live komplett beenden
     if (hadRole && !hasRole) {
-      await this.deleteChannelForUser(newMember.guild, newMember.id);
+      await this.endLive(newMember.guild, newMember.id);
     }
   }
 
-  // --- PRESENCE UPDATE (Automatisches Zuweisen der Live-Rolle bei Stream-Start) ---
+  // Discord-Status "Streamt" -> automatisch live
   public async handlePresenceUpdate(oldPresence: Presence | null, newPresence: Presence) {
     if (!newPresence.guild || !newPresence.member) return;
     this.loadConfig();
-    const guildId = newPresence.guild.id;
-    const cfg = this.config[guildId];
+    const cfg = this.config[newPresence.guild.id];
     if (!cfg || !cfg.autoRole || !cfg.liveRoleId) return;
 
     const member = newPresence.member;
-    const streamingActivity = newPresence.activities.find((a) => a.type === ActivityType.Streaming);
+    const streaming = newPresence.activities.find((a) => a.type === ActivityType.Streaming);
+    const hasPresenceSource = this.getSources(member.guild.id, member.id).includes("presence");
 
-    // Nutzer streamt -> Live-Rolle zuweisen
-    if (streamingActivity) {
-      if (!member.roles.cache.has(cfg.liveRoleId)) {
-        await member.roles.add(cfg.liveRoleId).catch(() => null);
-        console.log(`[LiveStream] Auto-Live-Rolle an ${member.user.tag} vergeben (${streamingActivity.name})`);
-      }
-    } else {
-      // Nutzer streamt nicht mehr -> Live-Rolle entfernen
-      if (member.roles.cache.has(cfg.liveRoleId)) {
-        await member.roles.remove(cfg.liveRoleId).catch(() => null);
-        console.log(`[LiveStream] Auto-Live-Rolle von ${member.user.tag} entfernt`);
-      }
+    if (streaming && !hasPresenceSource) {
+      await this.setLive(member, "presence", {
+        url: streaming.url || undefined,
+        game: streaming.state || undefined,
+        title: streaming.details || undefined,
+      });
+    } else if (!streaming && hasPresenceSource) {
+      // Nur die Quelle "presence" entfernen - wer per /twitch-live oder
+      // Poller live ist, behält Rolle & Kanal
+      await this.clearLive(member, "presence");
     }
   }
 
-  // --- LIVE KANAL ERSTELLEN ---
-  private async createLiveChannel(
-    member: GuildMember, 
-    cfg: { announcementChannelId?: string; categoryId?: string; channelType: "voice" | "text" },
-    customData?: { url?: string; title?: string; game?: string }
-  ) {
-    // Prüfen ob bereits ein Kanal für diesen Nutzer existiert
-    const existing = this.activeChannels.find((c) => c.guildId === member.guild.id && c.userId === member.id);
-    if (existing) return;
+  // =====================================================================
+  //  /twitch-live start & stop
+  // =====================================================================
 
+  public async startLive(member: GuildMember, data?: LiveData) {
+    if (data?.url && !isHttpUrl(data.url)) {
+      return { success: false, message: "❌ Ungültiger Link. Bitte gib eine vollständige URL an, z. B. `https://twitch.tv/deinkanal`." };
+    }
+    return this.setLive(member, "manual", data);
+  }
+
+  public async stopLive(member: GuildMember) {
+    await this.clearLive(member, "all");
+    return { success: true, message: "🛑 Live-Status beendet. Deine Live-Rolle wurde entfernt und der Kanal gelöscht." };
+  }
+
+  // =====================================================================
+  //  TEMP-KANAL
+  // =====================================================================
+
+  /** Erstellt den Live-Kanal, falls noch keiner existiert. Gibt false bei Fehler zurück. */
+  private async ensureLiveChannel(member: GuildMember, cfg: GuildLiveConfig, data?: LiveData): Promise<boolean> {
+    const key = this.key(member.guild.id, member.id);
+
+    // Läuft gerade schon eine Erstellung (z. B. Event + Befehl gleichzeitig)? Dann darauf warten.
+    const pending = this.pendingCreates.get(key);
+    if (pending) {
+      await pending;
+      return Boolean(this.getEntry(member.guild.id, member.id)?.channelId);
+    }
+
+    const entry = this.getEntry(member.guild.id, member.id);
+    if (!entry) return false;
+    if (entry.channelId && member.guild.channels.cache.has(entry.channelId)) return true;
+
+    const job = this.createLiveChannel(member, cfg, entry, data || this.pendingData.get(key));
+    this.pendingCreates.set(key, job);
+    try {
+      await job;
+    } finally {
+      this.pendingCreates.delete(key);
+      this.pendingData.delete(key);
+    }
+    return Boolean(entry.channelId);
+  }
+
+  private async createLiveChannel(member: GuildMember, cfg: GuildLiveConfig, entry: LiveEntry, data?: LiveData) {
     try {
       const streaming = member.presence?.activities.find((a) => a.type === ActivityType.Streaming);
-      const streamUrl = customData?.url || streaming?.url || "";
-      const streamGame = customData?.game || streaming?.state || streaming?.details || streaming?.name || "Twitch Live-Stream";
-      const streamTitle = customData?.title || streaming?.details || `🔴 ${member.displayName} überträgt live!`;
-
-      const channelName = `🔴・${member.displayName} ist live`;
+      const rawUrl = data?.url || streaming?.url || "";
+      const streamUrl = isHttpUrl(rawUrl) ? rawUrl : "";
+      const streamGame = data?.game || streaming?.state || streaming?.details || streaming?.name || "Live-Stream";
+      const streamTitle = (data?.title || streaming?.details || `🔴 ${member.displayName} überträgt live!`).slice(0, 256);
 
       const embed = new EmbedBuilder()
-        .setColor(0x9146ff) // Twitch Lila
+        .setColor(0x9146ff)
         .setAuthor({
           name: `${member.displayName} ist jetzt LIVE!`,
           iconURL: member.user.displayAvatarURL(),
         })
         .setTitle(streamTitle)
-        .setURL(streamUrl || "https://twitch.tv")
         .addFields(
-          { name: "🎮 Spiel / Kategorie", value: streamGame, inline: true },
+          { name: "🎮 Spiel / Kategorie", value: streamGame.slice(0, 1024), inline: true },
           { name: "🔗 Stream-Link", value: streamUrl ? `[Hier klicken zum Stream](${streamUrl})` : "*Kein Link hinterlegt*", inline: true }
         )
-        .setFooter({ text: "BroBot Live-Alerts" })
+        .setFooter({ text: "GLGBot Live-Streamer Suite" })
         .setTimestamp();
+      if (streamUrl) embed.setURL(streamUrl);
 
-      // 1. Benachrichtigung in den ausgewählten Ankündigungskanal senden (NUR falls nicht bereits von streamNotificationService gesendet)
-      if (cfg.announcementChannelId && !customData) {
-        try {
-          const announceChannel = member.guild.channels.cache.get(cfg.announcementChannelId);
-          if (announceChannel && "send" in announceChannel) {
-            const announceText = streamUrl 
-              ? `📢 **${member.displayName} ist jetzt live auf Twitch!** Schaut vorbei auf **${streamUrl}**!` 
-              : `📢 **${member.displayName} ist jetzt live!**`;
-            await (announceChannel as any).send({
-              content: announceText,
-              embeds: [embed],
-            });
-            console.log(`[LiveStream] Ankündigung gesendet in <#${cfg.announcementChannelId}> für ${member.user.tag}`);
-          }
-        } catch (annErr) {
-          console.error("[LiveStream] Fehler beim Senden der Ankündigung:", annErr);
-        }
-      }
-
-      // 2. Ziel-Kategorie ermitteln oder automatisch '🔴 Live Streams' erstellen
       const targetCategory = await this.ensureCategory(member.guild, cfg.categoryId);
+      const parent = targetCategory ? targetCategory.id : undefined;
 
       if (cfg.channelType === "voice") {
         const voiceChannel = await member.guild.channels.create({
-          name: channelName,
+          name: `🔴・${member.displayName} ist live`.slice(0, 100),
           type: ChannelType.GuildVoice,
-          parent: targetCategory ? targetCategory.id : undefined,
+          parent,
         });
 
-        // Setze Sprachkanal-Status, falls Discord-Feature verfügbar ist
+        // Sprachkanal-Status setzen, falls verfügbar
         const statusText = streamUrl ? `🔴 Live auf: ${streamUrl}` : `🔴 ${member.displayName} ist live!`;
         if (typeof (voiceChannel as any).setStatus === "function") {
           await (voiceChannel as any).setStatus(statusText).catch(() => null);
         }
 
-        // Sende Info-Embed in den Textchat des Sprachkanals
-        if (voiceChannel.isSendable()) {
-          await voiceChannel.send({ embeds: [embed] }).catch(() => null);
-        }
+        await voiceChannel.send({ embeds: [embed], flags: [MessageFlags.SuppressNotifications] }).catch(() => null);
 
-        this.activeChannels.push({
-          guildId: member.guild.id,
-          userId: member.id,
-          channelId: voiceChannel.id,
-          channelType: "voice",
-        });
-        this.saveActive();
-        // KEIN AUTOMOVE: Nutzer wird nicht verschoben
-        console.log(`[LiveStream] Live-Sprachkanal erstellt: ${channelName} für ${member.user.tag} (kein automove)`);
+        entry.channelId = voiceChannel.id;
+        entry.channelType = "voice";
+        console.log(`[LiveStream] Live-Sprachkanal erstellt für ${member.user.tag}`);
       } else {
-        // Textkanal
+        const name = `🔴・${member.displayName}-ist-live`
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9äöüß\-_🔴・]/g, "")
+          .slice(0, 100);
+
         const textChannel = await member.guild.channels.create({
-          name: `🔴・${member.displayName}-ist-live`.toLowerCase().replace(/[^a-z0-9-_]/g, ""),
+          name: name || "🔴・live",
           type: ChannelType.GuildText,
-          parent: targetCategory ? targetCategory.id : undefined,
+          parent,
         });
 
-        await textChannel.send({
-          content: streamUrl ? `📢 <@${member.id}> ist jetzt live auf **${streamUrl}**! @everyone` : `📢 <@${member.id}> ist jetzt live!`,
-          embeds: [embed],
-        });
+        // Kein @everyone mehr - nur der Streamer selbst wird erwähnt
+        await textChannel
+          .send({
+            content: `📢 <@${member.id}> ist jetzt live!`,
+            embeds: [embed],
+            allowedMentions: { users: [member.id] },
+          })
+          .catch(() => null);
 
-        this.activeChannels.push({
-          guildId: member.guild.id,
-          userId: member.id,
-          channelId: textChannel.id,
-          channelType: "text",
-        });
-        this.saveActive();
+        entry.channelId = textChannel.id;
+        entry.channelType = "text";
         console.log(`[LiveStream] Live-Textkanal erstellt für ${member.user.tag}`);
       }
+
+      this.saveActive();
     } catch (error) {
       console.error("[LiveStream] Fehler beim Erstellen des Live-Kanals:", error);
     }
   }
 
-  // --- MANUELLER START / BEFEHL (/twitch-live) ---
-  public async startLive(member: GuildMember, customData?: { url?: string; title?: string; game?: string }) {
+  // =====================================================================
+  //  ABGLEICH BEIM START (Bot war offline)
+  // =====================================================================
+
+  /**
+   * Räumt nach einem Neustart auf: Wer nicht mehr live ist, verliert Rolle & Kanal;
+   * fehlende Kanäle werden neu erstellt.
+   */
+  public async reconcile(client: Client) {
     this.loadConfig();
-    const guildId = member.guild.id;
-    const cfg = this.config[guildId];
-    if (!cfg) {
-      return { success: false, message: "❌ Das Live-System ist auf diesem Server noch nicht eingerichtet. Nutze `/setup-live set`." };
-    }
+    for (const entry of [...this.entries]) {
+      const guild = client.guilds.cache.get(entry.guildId);
+      const cfg = this.config[entry.guildId];
+      if (!guild || !cfg) continue;
 
-    // 1. Live-Rolle vergeben
-    if (cfg.liveRoleId && !member.roles.cache.has(cfg.liveRoleId)) {
-      await member.roles.add(cfg.liveRoleId).catch(() => null);
-      console.log(`[LiveStream] Live-Rolle manuell vergeben an ${member.user.tag}`);
-    }
-
-    // 2. Kanal erstellen & Benachrichtigung senden (kein automove)
-    await this.createLiveChannel(member, cfg, customData);
-    return { success: true, message: "🎉 Du bist jetzt als LIVE markiert! Rolle wurde zugewiesen und Kanal erstellt." };
-  }
-
-  // --- MANUELLES BEENDEN (/twitch-end) ---
-  public async stopLive(member: GuildMember) {
-    this.loadConfig();
-    const guildId = member.guild.id;
-    const cfg = this.config[guildId];
-
-    // Live-Rolle entfernen
-    if (cfg && cfg.liveRoleId && member.roles.cache.has(cfg.liveRoleId)) {
-      await member.roles.remove(cfg.liveRoleId).catch(() => null);
-    }
-
-    // Kanal löschen
-    await this.deleteChannelForUser(member.guild, member.id);
-    return { success: true, message: "🛑 Live-Status beendet. Deine Live-Rolle wurde entfernt und der Kanal gelöscht." };
-  }
-
-  // --- LIVE KANAL ENTFERNEN ---
-  private async removeLiveChannel(guildId: string, userId: string) {
-    const index = this.activeChannels.findIndex((c) => c.guildId === guildId && c.userId === userId);
-    if (index === -1) return;
-
-    const item = this.activeChannels[index];
-    this.activeChannels.splice(index, 1);
-    this.saveActive();
-
-    try {
-      const guild = this.activeChannels.length ? null : null; // Guild fetch
-      // Hole den Kanal über Client
-      // Der Client-Cache wird im Aufrufer oder über guild gelöscht
-    } catch (e) {
-      // Ignoriere
-    }
-  }
-
-  public async deleteChannelForUser(guild: any, userId: string) {
-    const index = this.activeChannels.findIndex((c) => c.guildId === guild.id && c.userId === userId);
-    if (index === -1) return;
-
-    const item = this.activeChannels[index];
-    this.activeChannels.splice(index, 1);
-    this.saveActive();
-
-    try {
-      const channel = guild.channels.cache.get(item.channelId);
-      if (channel) {
-        await channel.delete("Stream beendet (Live-Rolle entfernt)").catch(() => null);
-        console.log(`[LiveStream] Live-Kanal gelöscht: ${channel.name}`);
+      const member = await guild.members.fetch(entry.userId).catch(() => null);
+      if (!member) {
+        await this.endLive(guild, entry.userId);
+        continue;
       }
-    } catch (e) {
-      console.error("[LiveStream] Fehler beim Löschen des Live-Kanals:", e);
+
+      // Discord-Status prüfen: streamt die Person noch?
+      if (entry.sources.includes("presence")) {
+        const streaming = member.presence?.activities.some((a) => a.type === ActivityType.Streaming);
+        if (!streaming) entry.sources = entry.sources.filter((s) => s !== "presence");
+      }
+
+      // Rolle wurde entfernt, während der Bot offline war
+      if (!member.roles.cache.has(cfg.liveRoleId)) entry.sources = [];
+
+      if (entry.sources.length === 0) {
+        await this.clearLive(member, "all");
+      } else {
+        await this.ensureLiveChannel(member, cfg);
+      }
     }
+    this.saveActive();
+    console.log(`[LiveStream] Abgleich nach Start abgeschlossen (${this.entries.length} aktive Live-Nutzer).`);
   }
 }
 

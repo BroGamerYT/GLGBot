@@ -155,3 +155,19 @@ npm run dev
 npm run build
 npm start
 ```
+
+## 🔐 Dashboard-Login (Discord OAuth2)
+
+Das Web-Dashboard ist komplett geschützt (Seiten **und** API). Anmeldung erfolgt über Discord.
+
+**Zugriff haben:** Server-Owner, Mitglieder mit *Administrator* oder *Server verwalten*, sowie optional
+alle Rollen/Nutzer aus `DASHBOARD_ROLE_IDS` / `DASHBOARD_USER_IDS`.
+
+**Einrichtung:**
+1. Discord Developer Portal → deine App → **OAuth2**:
+   - *Client Secret* kopieren → `DISCORD_CLIENT_SECRET` in der `.env`
+   - Unter *Redirects* eintragen: `https://glgbot.brogameryt.de/api/auth/callback`
+2. In der `.env` setzen: `SESSION_SECRET` (min. 32 Zeichen, zufällig) und `DASHBOARD_URL`.
+3. Dashboard neu bauen & starten (`npm run build` im Ordner `web`, dann `pm2 restart discord-web`).
+
+Sessions sind 24 Stunden gültig. Wird `SESSION_SECRET` geändert, werden alle Nutzer ausgeloggt.
