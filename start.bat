@@ -119,18 +119,24 @@ if %errorlevel% neq 0 (
     goto menu
 )
 
-powershell -NoProfile -Command "tar --exclude='node_modules' --exclude='.git' --exclude='dist' -czf - . | ssh %SERVER_USER%@%SERVER_IP% 'tar -xzf - -C %SERVER_PATH%'"
+echo Packe Bot-Dateien und Web-Dashboard...
+tar --exclude="node_modules" --exclude=".git" --exclude=".next" -czf deploy.tar.gz .
+scp deploy.tar.gz %SERVER_USER%@%SERVER_IP%:/tmp/deploy.tar.gz
+ssh %SERVER_USER%@%SERVER_IP% "tar -xzf /tmp/deploy.tar.gz -C %SERVER_PATH% && rm -f /tmp/deploy.tar.gz"
+del deploy.tar.gz > nul 2>&1
 
 if %errorlevel% equ 0 (
     echo.
     echo ✅ Dateien erfolgreich hochgeladen!
     echo.
-    echo Moechtest du Pakete auf dem Server installieren ^& den Bot starten?
+    echo Moechtest du Pakete auf dem Server installieren ^& Bot sowie Web-Dashboard starten?
     set /p start_remote="Ausfuehren? [J/N]: "
     if /i "%start_remote%"=="J" (
         echo.
-        echo [INFO] Führe Build ^& PM2-Start auf Server aus...
-        ssh %SERVER_USER%@%SERVER_IP% "cd %SERVER_PATH% && npm install && npm run build && npm run deploy-commands && pm2 restart discord-bot || pm2 start dist/index.js --name discord-bot"
+        echo [INFO] Fuehre Build ^& PM2 fuer Discord-Bot aus...
+        ssh %SERVER_USER%@%SERVER_IP% "cd %SERVER_PATH% && npm install && npm run build && npm run deploy-commands && (pm2 restart discord-bot || pm2 start dist/index.js --name discord-bot)"
+        echo [INFO] Fuehre Build ^& PM2 fuer Web-Dashboard aus...
+        ssh %SERVER_USER%@%SERVER_IP% "cd %SERVER_PATH%/web && npm install && npm run build && (pm2 restart discord-web || pm2 start npm --name discord-web -- start) && pm2 save"
     )
 ) else (
     echo ❌ Upload fehlgeschlagen.

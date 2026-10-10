@@ -1,5 +1,6 @@
 import { ActivityType, Events } from "discord.js";
 import { BotEvent } from "../types";
+import { freeGamesService } from "../services/freeGamesService";
 
 const readyEvent: BotEvent<Events.ClientReady> = {
   name: Events.ClientReady,
@@ -16,7 +17,11 @@ const readyEvent: BotEvent<Events.ClientReady> = {
       activities: [{ name: "Community & Security | /help", type: ActivityType.Custom }],
       status: "online",
     });
+
+    // Automatischer Benachrichtigungsdienst für Gratis-Spiele
+    freeGamesService.startAutoChecker(client);
   },
 };
 
 export default readyEvent;
+

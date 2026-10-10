@@ -16,7 +16,7 @@ import { tempVoiceService } from "../services/tempVoiceService";
 
 export async function handleVoiceSelectMenu(interaction: StringSelectMenuInteraction) {
   const member = interaction.guild?.members.cache.get(interaction.user.id);
-  const voiceChannel = member?.voice.channel as VoiceChannel | null;
+  const voiceChannel = (member?.voice.channel || (interaction.channel?.type === ChannelType.GuildVoice ? interaction.channel : null)) as VoiceChannel | null;
 
   if (!voiceChannel) {
     await interaction.reply({
@@ -205,7 +205,7 @@ export async function handleVoiceSelectMenu(interaction: StringSelectMenuInterac
 
 export async function handleVoiceModalSubmit(interaction: ModalSubmitInteraction) {
   const member = interaction.guild?.members.cache.get(interaction.user.id);
-  const voiceChannel = member?.voice.channel as VoiceChannel | null;
+  const voiceChannel = (member?.voice.channel || (interaction.channel?.type === ChannelType.GuildVoice ? interaction.channel : null)) as VoiceChannel | null;
 
   if (!voiceChannel || !tempVoiceService.isTempChannel(voiceChannel.id)) {
     await interaction.reply({
@@ -252,7 +252,7 @@ export async function handleVoiceModalSubmit(interaction: ModalSubmitInteraction
 export async function handleVoiceButton(interaction: ButtonInteraction) {
   if (interaction.customId === "voice_btn_refresh") {
     const member = interaction.guild?.members.cache.get(interaction.user.id);
-    const voiceChannel = member?.voice.channel as VoiceChannel | null;
+    const voiceChannel = (member?.voice.channel || (interaction.channel?.type === ChannelType.GuildVoice ? interaction.channel : null)) as VoiceChannel | null;
 
     if (!voiceChannel || !tempVoiceService.isTempChannel(voiceChannel.id)) {
       await interaction.reply({

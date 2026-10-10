@@ -56,8 +56,8 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
 - [ ] **Anti-Raid & Phishing-Schutz:**
   - [ ] Domain-Blacklist zur Erkennung gefälschter Steam-, Nitro- oder Login-Links.
   - [ ] Erkennung von Massen-Beitritten (Mass-Joins) mit temporärem Auto-Lockdown.
-- [ ] **Verifikations-Schleuse (Gatekeeping):**
-  - [ ] Button-basierte Regelbestätigung oder Captcha für neue Accounts vor Kanal-Freischaltung.
+- [x] **Verifikations-Schleuse (Gatekeeping):**
+  - [x] Button-basierte Regelbestätigung (`✅ Regeln akzeptieren`) vergibt Gast-Rolle (`@Gast`) vor Server-Freischaltung (`/setup-roles`, Web-Dashboard).
 - [ ] **Moderations- & Case-System:**
   - [ ] Slash-Commands: `/warn`, `/timeout`, `/kick`, `/ban`, `/unban`.
   - [ ] Eindeutige Fall-Nummern (`Case #101`) in der Datenbank mit Moderator, Grund und Beweislinks.
@@ -68,24 +68,30 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
 - [ ] **Live- & Content-Alerts:**
   - [x] Dynamische Streamer-Rolle beim Start zuweisen und bei Ende entfernen (`presenceUpdate`).
   - [x] Dynamische Live-Stream Kanäle (`🔴・[Name] ist live`) mit Link-Status und Embeds erstellen & bei Stream-Ende automatisch löschen (`/setup-live`).
+  - [x] Konfigurierbarer Ankündigungskanal für Stream-Pings (`bn.live`).
+  - [x] Auto-Kategorie `🔴 Live Streams` (kein ungefragter Automove).
+  - [x] Chat-Befehle `/twitch-live start` und `/twitch-live stop`.
   - [ ] **Twitch:** EventSub Webhook für `stream.online` und `stream.offline`.
   - [ ] **YouTube:** Upload- und Stream-Erkennung über WebSub / RSS.
   - [ ] **TikTok:** Polling-/Webhook-Anbindung für TikTok-Live-Sessions.
-- [ ] **Free-Games-Tracker:**
-  - [ ] Automatisierter Cronjob (jeden Donnerstag 17:00 Uhr für Epic Games Store).
-  - [ ] Steam 100%-Discounts API-Polling.
-  - [ ] Automatischer Post im Ankündigungskanal mit Bild, Link und `@FreeGames`-Ping.
+- [x] **Free-Games-Tracker:**
+  - [x] Epic Games Store Integration (100% Rabatt-Filter, Bilder, Countdown, Store-Links).
+  - [x] Automatisierter Hintergrund-Scheduler (stündlich) mit persistentem Duplikat-Schutz.
+  - [x] Automatischer Post im `#free-games` Kanal mit `@bn.free`-Ping.
+  - [x] Slash-Befehle `/free-games list` und `/free-games post`.
 - [x] **Auto-Move & Temporäre Voice-Kanäle (VoiceMaster Parität):**
   - [x] "Join to Create"-Masterkanal konfigurieren (`/setup-voice`).
-  - [x] Beim Betreten dynamisch neuen Kanal `🔊・Lobby von [Name]` anlegen und Nutzer verschieben.
+  - [x] Beim Betreten dynamisch neuen Kanal `🔊・Lobby von [Name]` anlegen (exakt unter Masterkanal) und Nutzer verschieben.
   - [x] Kanal automatisch löschen, sobald sich 0 Personen darin aufhalten.
   - [x] Interaktives VoiceMaster-Dashboard (`/interface` / `/voice-panel`) mit Dropdowns & Modals.
+  - [x] Automatisches Steuerungs-Panel direkt im Textchat der neu erstellten Sprach-Lobby gepostet.
   - [x] Vollständige Voice-Befehle: `/voice lock`, `/voice unlock`, `/voice hide`, `/voice unhide`, `/voice permit`, `/voice reject`, `/voice transfer`, `/voice claim`, `/voice bitrate`.
   - [x] Temporärer Textkanal verknüpft mit Sprach-Lobby (automatisches Mitlöschen).
   - [x] Automatischer Kanalname basierend auf aktuellem Spiel (`/voice game`).
-- [ ] **Rollen-Management & Onboarding:**
-  - [ ] Auto-Rolle bei Serverbeitritt (`on_member_join`).
-  - [ ] Interaktives Rollen-Panel mit Buttons (Gaming-Rollen, Stream-Pings, Notification-Filter).
+- [x] **Rollen-Management & Onboarding:**
+  - [x] Berechtigungs- & Rollen-Zentrum (`/roles` im Web, `/setup-roles` im Chat).
+  - [x] Interaktives Rollen-Panel mit 1-Klick Buttons (`Gast`, `bn.live`, `bn.free`, `Meine Rollen`).
+  - [x] Ephemere Rollen-Statusprüfung und Toggles ohne Chat-Spam.
 - [ ] **Ticket- & Support-System:**
   - [ ] Erstellung privater Ticket-Threads/Kanäle via Dropdown/Button.
   - [ ] Befehl `/close` mit automatischer Transkript-Erstellung (HTML-Archiv).
@@ -112,26 +118,36 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
 ---
 
 ### Phase 5: Web-Dashboard (Admin-Interface)
-- [ ] **Basis & Authentifizierung:**
-  - [ ] Next.js Frontend im modernen Dark Theme (Tailwind CSS).
-  - [ ] Discord OAuth2 Login mit Rollen-/Berechtigungsprüfung (`Administrator`).
+- [x] **Basis & Live-Bereitstellung (`https://glgbot.brogameryt.de`):**
+  * [x] Next.js 14 Frontend im modernen Discord Dark Theme (Tailwind CSS, Lucide Icons).
+  * [x] Direkte REST-API Anbindung an Discord Gateway (`/api/discord/guild`) für Live-Kanäle, Kategorien und Rollen.
+  * [x] PM2 Deployment (`discord-web` auf Port 3000) im Proxmox CT 109 mit Caddy Reverse Proxy & Let's Encrypt SSL.
+  * [ ] Optionaler Discord OAuth2 Login mit Rollen-/Berechtigungsprüfung (`Administrator`).
+- [x] **Zwei-Wege Kanal- & VoiceMaster-Manager (`/voice`):**
+  * [x] Grafische Konfiguration von Master-Sprachkanal und Ziel-Kategorie.
+  * [x] 1-Klick-Aktion: Sendet das interaktive VoiceMaster-Panel mit Dropdowns in beliebige Discord-Textkanäle.
+  * [x] Sofortige Zwei-Wege-Synchronisation ohne Bot-Neustart (Web <-> `/setup-voice`).
+- [x] **Live-Streamer Manager (`/live`):**
+  * [x] Web-Konfiguration für Streamer-Rolle, Ziel-Kategorie und Kanal-Art (Voice mit Status oder Text).
+  * [x] Auto-Rollen-Erkennung per Toggle aktivierbar.
+  * [x] Zwei-Wege-Synchronisation mit `/setup-live` im Discord-Chat.
 - [ ] **Kanal- & Berechtigungs-Manager:**
-  - [ ] Grafische Übersicht aller Serverkanäle und Kategorien.
-  - [ ] Kanäle per Web erstellen, umbenennen, sortieren und löschen.
-  - [ ] Berechtigungsmatrix (Toggle-Schalter für Lese-, Schreib- und Voice-Rechte).
+  * [ ] Grafische Übersicht aller Serverkanäle und Kategorien.
+  * [ ] Kanäle per Web erstellen, umbenennen, sortieren und sperren (`/lock`, `/unlock`).
+  * [ ] Berechtigungsmatrix (Toggle-Schalter für Lese-, Schreib- und Voice-Rechte).
 - [ ] **Live-Audit-Log-Viewer:**
-  - [ ] Interaktive Datentabelle mit Filterung nach Event-Typ, Moderator, Nutzer und Datumsbereich.
-  - [ ] Detail-Modal für Nachrichten-Verläufe und Änderungen.
+  * [ ] Interaktive Datentabelle mit Filterung nach Event-Typ, Moderator, Nutzer und Datumsbereich.
+  * [ ] Detail-Modal für Nachrichten-Verläufe und Änderungen.
 - [ ] **Visueller Embed-Builder:**
-  - [ ] WYSIWYG-Editor mit Live-Discord-Vorschau.
-  - [ ] Unterstützung für Farben, Autoren, Footer, Felder, Bilder und Buttons.
-  - [ ] Direkter Versand-Button in einen gewählten Discord-Kanal.
+  * [ ] WYSIWYG-Editor mit Live-Discord-Vorschau.
+  * [ ] Unterstützung für Farben, Autoren, Footer, Felder, Bilder und Buttons.
+  * [ ] Direkter Versand-Button in einen gewählten Discord-Kanal.
 - [ ] **Ticket- & Fallakten-Verwaltung:**
-  - [ ] Web-Viewer für gespeicherte HTML-Transkripte geschlossener Tickets.
-  - [ ] Einsicht in die Moderations-Akten einzelner Nutzer (Warn-Historie, Notizen).
+  * [ ] Web-Viewer für gespeicherte HTML-Transkripte geschlossener Tickets.
+  * [ ] Einsicht in die Moderations-Akten einzelner Nutzer (Warn-Historie, Notizen).
 - [ ] **Backup-Center:**
-  - [ ] Übersicht aller vorhandenen JSON-Snapshots.
-  - [ ] Manueller Backup-Auslöser und Einspielen auf verbundene Server.
+  * [ ] Übersicht aller vorhandenen JSON-Snapshots.
+  * [ ] Manueller Backup-Auslöser und Einspielen auf verbundene Server.
 
 ---
 

@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { ChannelType, VoiceState, PermissionFlagsBits, VoiceChannel } from "discord.js";
+import { createVoicePanelEmbed, createVoicePanelComponents } from "../commands/voice/voicePanel";
 
 interface VoiceConfig {
   [guildId: string]: {
@@ -91,6 +92,7 @@ class TempVoiceService {
   }
 
   public getConfig(guildId: string) {
+    this.loadConfig();
     return this.config[guildId] || null;
   }
 
@@ -119,6 +121,7 @@ class TempVoiceService {
   }
 
   public async handleVoiceStateUpdate(oldState: VoiceState, newState: VoiceState) {
+    this.loadConfig();
     const guild = newState.guild || oldState.guild;
     const guildConfig = this.config[guild.id];
 
@@ -175,12 +178,16 @@ class TempVoiceService {
         const masterChannel = newState.channel;
         const parentCategory = guildConfig.categoryId || masterChannel.parentId || undefined;
 
+        // Position standardmäßig direkt unter dem "Join to Create" Master-Kanal
+        const targetPosition = masterChannel.position + 1;
+
         // Erstelle temporären Sprachkanal
         const channelName = `🔊・Lobby von ${member.displayName}`;
         const newVoiceChannel = await guild.channels.create({
           name: channelName,
           type: ChannelType.GuildVoice,
           parent: parentCategory,
+          position: targetPosition,
           permissionOverwrites: [
             {
               // Berechtigungen für den Kanalersteller
@@ -197,9 +204,25 @@ class TempVoiceService {
           ],
         });
 
+        // Sicherstellen, dass der Kanal direkt unter dem Master-Kanal angeordnet ist
+        await newVoiceChannel.setPosition(targetPosition).catch(() => null);
+
         // Speichere Kanal
         this.activeTempChannels.set(newVoiceChannel.id, member.id);
         this.saveTempChannels();
+
+        // Steuerungs-Panel direkt in den neu erstellten Sprachkanal senden
+        try {
+          const panelEmbed = createVoicePanelEmbed();
+          const panelComponents = createVoicePanelComponents();
+          await newVoiceChannel.send({
+            content: `👋 Willkommen in deiner persönlichen Sprach-Lobby, <@${member.id}>! Hier kannst du deinen Kanal steuern:`,
+            embeds: [panelEmbed],
+            components: panelComponents,
+          });
+        } catch (panelErr) {
+          console.error("[TempVoice] Konnte Steuerungs-Panel nicht in Sprachkanal senden:", panelErr);
+        }
 
         // Verschiebe Nutzer in den neuen Kanal
         if (member.voice.channelId) {

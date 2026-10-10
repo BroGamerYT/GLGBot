@@ -24,6 +24,13 @@ const setupLiveCommand: Command = {
         )
         .addChannelOption((opt) =>
           opt
+            .setName("ankuendigungskanal")
+            .setDescription("Textkanal für die automatischen Stream-Ankündigungen.")
+            .addChannelTypes(ChannelType.GuildText)
+            .setRequired(false)
+        )
+        .addChannelOption((opt) =>
+          opt
             .setName("kategorie")
             .setDescription("Die Kategorie, in der die Live-Kanäle erstellt werden sollen.")
             .addChannelTypes(ChannelType.GuildCategory)
@@ -35,7 +42,7 @@ const setupLiveCommand: Command = {
             .setDescription("Art des Live-Kanals: Sprachkanal oder Textkanal.")
             .setRequired(false)
             .addChoices(
-              { name: "🔊 Sprachkanal mit Link-Status (Empfohlen)", value: "voice" },
+              { name: "🔊 Sprachkanal mit Link-Status (Empfohlen - kein Automove)", value: "voice" },
               { name: "💬 Textkanal mit Ankündigung", value: "text" }
             )
         )
@@ -67,6 +74,7 @@ const setupLiveCommand: Command = {
 
     if (subcommand === "set") {
       const role = interaction.options.getRole("rolle", true);
+      const announceChannel = interaction.options.getChannel("ankuendigungskanal", false);
       const category = interaction.options.getChannel("kategorie", false);
       const channelType = (interaction.options.getString("kanal_art", false) || "voice") as "voice" | "text";
       const autoRole = interaction.options.getBoolean("auto_rolle", false) ?? true;
@@ -74,6 +82,7 @@ const setupLiveCommand: Command = {
       liveStreamService.setConfig(
         interaction.guildId,
         role.id,
+        announceChannel ? announceChannel.id : undefined,
         category ? category.id : undefined,
         channelType,
         autoRole
@@ -83,11 +92,12 @@ const setupLiveCommand: Command = {
         .setColor(0x9146ff)
         .setTitle("🔴 Live-Stream System erfolgreich eingerichtet!")
         .setDescription(
-          `Sobald ein Mitglied die Rolle <@&${role.id}> erhält (oder per Auto-Erkennung streamt), erstellt der Bot automatisch einen Live-Kanal **\`🔴・[Name] ist live\`** mit Stream-Link!`
+          `Sobald ein Mitglied die Rolle <@&${role.id}> erhält, streamt oder \`/twitch-live start\` nutzt, erstellt der Bot automatisch einen Live-Kanal **\`🔴・[Name] ist live\`** (kein Automove)!`
         )
         .addFields(
           { name: "🎭 Live-Rolle", value: `<@&${role.id}>`, inline: true },
-          { name: "📁 Ziel-Kategorie", value: category ? `<#${category.id}>` : "*Ganz oben*", inline: true },
+          { name: "📢 Ankündigungskanal", value: announceChannel ? `<#${announceChannel.id}>` : "*Keine automatische Nachricht*", inline: true },
+          { name: "📁 Ziel-Kategorie", value: category ? `<#${category.id}>` : "*Automatisch ('🔴 Live Streams')*", inline: true },
           { name: "📡 Kanal-Art", value: channelType === "voice" ? "🔊 Sprachkanal (mit Link-Status)" : "💬 Textkanal", inline: true },
           { name: "🤖 Auto-Erkennung", value: autoRole ? "✅ Aktiv (bei Twitch/YouTube-Stream)" : "❌ Deaktiviert (nur manuelle Rolle)", inline: true }
         )
@@ -114,7 +124,8 @@ const setupLiveCommand: Command = {
         .setTitle("🔴 Live-Stream System Status")
         .addFields(
           { name: "🎭 Live-Rolle", value: `<@&${config.liveRoleId}>`, inline: true },
-          { name: "📁 Ziel-Kategorie", value: config.categoryId ? `<#${config.categoryId}>` : "*Automatisch*", inline: true },
+          { name: "📢 Ankündigungskanal", value: config.announcementChannelId ? `<#${config.announcementChannelId}>` : "*Keiner hinterlegt*", inline: true },
+          { name: "📁 Ziel-Kategorie", value: config.categoryId ? `<#${config.categoryId}>` : "*Automatisch ('🔴 Live Streams')*", inline: true },
           { name: "📡 Kanal-Art", value: config.channelType === "voice" ? "🔊 Sprachkanal" : "💬 Textkanal", inline: true },
           { name: "🤖 Auto-Erkennung", value: config.autoRole ? "✅ Aktiv" : "❌ Aus", inline: true }
         )

@@ -5,6 +5,7 @@ import {
   handleVoiceModalSubmit, 
   handleVoiceButton 
 } from "../handlers/voicePanelHandler";
+import { rolePanelService } from "../services/rolePanelService";
 
 const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
   name: Events.InteractionCreate,
@@ -59,12 +60,17 @@ const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
       return;
     }
 
-    // 4. Buttons (Refresh / Info)
+    // 4. Buttons (Voice & Rollen-Panel)
     if (interaction.isButton()) {
       if (interaction.customId === "voice_btn_refresh") {
         await handleVoiceButton(interaction);
+        return;
       }
-      return;
+
+      if (interaction.customId.startsWith("role_btn_")) {
+        await rolePanelService.handleButton(interaction);
+        return;
+      }
     }
   },
 };

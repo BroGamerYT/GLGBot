@@ -1,6 +1,20 @@
 # 🤖 GermanyLanGame-Bot (GLGBot)
 
-Ein modularer, hochperformanter Discord-Bot in **TypeScript (discord.js v14)** mit interaktivem **VoiceMaster-System**, **dynamischen Live-Streamer-Kanälen**, **24/7 Proxmox-Betrieb** und Vorbereitung für das **Web-Dashboard** unter [`https://glgbot.brogameryt.de`](https://glgbot.brogameryt.de).
+Ein modularer, hochperformanter Discord-Bot in **TypeScript (discord.js v14)** mit interaktivem **VoiceMaster-System**, **dynamischen Live-Streamer-Kanälen**, **24/7 Proxmox-Betrieb** und vollständigem **Web-Dashboard** unter [`https://glgbot.brogameryt.de`](https://glgbot.brogameryt.de).
+
+---
+
+## 🌐 Zentrales Web-Dashboard (`https://glgbot.brogameryt.de`)
+
+Alle Server-Kanäle und Bot-Module können sowohl **im Discord-Chat** als auch **im Web-Dashboard** in Echtzeit konfiguriert werden:
+* **Server-Statistiken:** Live-Zähler für Mitglieder, Text- & Sprachkanäle sowie Server-Rollen.
+* **VoiceMaster-Verwaltung (`/voice`):** 
+  * Wähle den Master-Kanal (Join-to-Create) und die Ziel-Kategorie bequem per Dropdown aus.
+  * Sende das interaktive Discord-Steuerungs-Panel per 1-Klick-Button in jeden beliebigen Textkanal.
+* **Live-Streamer Manager (`/live`):**
+  * Weise die Streamer-Rolle zu, bestimme die Ziel-Kategorie und wähle zwischen Sprachkanal (mit Link-Status) und Textkanal.
+  * Schalte die automatische Rollenerkennung bei Twitch-/YouTube-Streams ein oder aus.
+* **Zwei-Wege-Echtzeit-Synchronisation:** Änderungen im Web werden sofort ohne Bot-Neustart aktiv.
 
 ---
 
@@ -22,13 +36,41 @@ Ein modularer, hochperformanter Discord-Bot in **TypeScript (discord.js v14)** m
   * `/voice bitrate <kbps>` (Audioqualität bis 384 kbps anpassen)
   * `/voice name <titel>` & `/voice limit <anzahl>`
 
-### 2. 🔴 Dynamische Live-Streamer-Kanäle
-* **Automatischer Live-Kanal:** Sobald ein Mitglied die Live-Rolle erhält (oder Discord einen Twitch-/YouTube-Stream erkennt), erstellt der Bot in der konfigurierten Kategorie sofort einen Kanal: `🔴・[Name] ist live`.
+### 2. 🔴 Dynamische Live-Streamer-Kanäle & Alerts
+* **Automatischer oder Manueller Go-Live:**
+  * Sobald ein Mitglied die Live-Rolle erhält, streamt ODER den Befehl `/twitch-live start [link] [spiel] [titel]` nutzt, erstellt der Bot sofort einen Kanal: `🔴・[Name] ist live`.
+  * **Automatischer Stream-Alert:** Postet ein stylisches Twitch-Violettes Ankündigungs-Embed direkt in den gewählten Benachrichtigungskanal.
+  * **Automatische Kategorie:** Falls keine Kategorie angegeben ist, erstellt der Bot selbstständig die Kategorie `🔴 Live Streams`.
+  * **Kein Automove:** Niemand wird ungefragt in den Sprachkanal verschoben.
 * **Kanal-Status & Embed:** Setzt den offiziellen Discord-Kanalstatus auf den Stream-Link und postet ein violettes Twitch-Embed im Chat mit direktem Stream-Link und Spiel.
-* **Auto-Cleanup:** Sobald der Streamer offline geht, wird der Kanal automatisch wieder gelöscht.
-* **Einrichtung:** `/setup-live set rolle: @Live [kategorie: #Kategorie] [kanal_art: voice/text]`.
+* **Auto-Cleanup & Stop:** Sobald der Streamer offline geht oder `/twitch-live stop` nutzt, wird die Live-Rolle entzogen und der Kanal automatisch wieder gelöscht.
+* **Einrichtung:** Sowohl im Web unter [`/live`](https://glgbot.brogameryt.de/live) als auch im Chat via `/setup-live set rolle: @Live [ankuendigungskanal: #alerts] [kategorie: #Kategorie]`.
 
-### 3. 💬 Sichere Direktnachrichten & Silent-Support
+### 3. 🛡️ Berechtigungs- & Rollen-Zentrum (`/roles` & `/setup-roles`)
+* **Regel-Verifikation (`@Gast`):**
+  * Neues Mitglied tritt bei und sieht zunächst nur den Regelkanal.
+  * Ein Klick auf den Button `✅ Regeln akzeptieren` im interaktiven Rollen-Panel vergibt sofort die konfigurierte Gast-Rolle und schaltet den Server frei.
+* **Stream-Benachrichtigungen (`bn.live`):**
+  * 1-Klick Toggle `🔴 Live-Stream Alerts (bn.live)` im Rollen-Panel.
+  * Nutzer erhalten Ping-Benachrichtigungen bei neuen Streams und schalten den Live-Bereich frei.
+* **Gratis-Spiele & Free-Games Kanal (`bn.free`):**
+  * 1-Klick Toggle `🎮 Free-Games Alerts (bn.free)`.
+  * Schaltet den exklusiven Kanal `#free-games` frei und aktiviert die wöchentlichen Gratis-Spiele-Benachrichtigungen.
+* **Echtzeit-Statusprüfung:**
+  * Button `👤 Meine Rollen` liefert eine ephemere Übersicht aller aktuell zugewiesenen Benachrichtigungs- und Verifikationsrollen.
+* **Verwaltung:**
+  * Im Web unter [`/roles`](https://glgbot.brogameryt.de/roles) oder im Chat via `/setup-roles set [gast_rolle] [stream_rolle] [free_games_rolle] [free_games_kanal]`.
+  * Panel-Versand via 1-Klick-Button im Web oder per Befehl `/setup-roles panel`.
+
+### 4. 🎮 Epic Games Store Free-Games Alerts
+* **Wöchentliche Gratis-Spiele:** Erkennt automatisch 100% rabattierte Spiele aus dem Epic Games Store (Aktionen jeden Donnerstag).
+* **Automatischer Background-Scheduler:** Prüft stündlich nach neuen Gratis-Titeln und postet stylische Embeds (inkl. Cover-Art, Store-Link und Ablaufdatum) direkt in den `#free-games` Kanal mit Rollen-Ping für `@bn.free`.
+* **Duplikat-Schutz:** Bereits gepostete Spiele werden persistent gespeichert und niemals doppelt angekündigt.
+* **Chat-Befehle:**
+  * `/free-games list`: Zeigt alle aktuell kostenlosen Spiele sofort an.
+  * `/free-games post`: Postet die aktuellen Gratis-Spiele direkt in den eingerichteten Benachrichtigungskanal.
+
+### 5. 💬 Sichere Direktnachrichten & Silent-Support
 * **`/dm`:** Sendet private Nachrichten im Namen des Servers und fängt Fehler (z. B. blockierte DMs) sauber ab.
 * **`@silent` Unterstützung:** Erkennt `@silent` in Textnachrichten und antwortet bei Bedarf ebenfalls komplett lautlos ohne Push-Benachrichtigung für andere.
 * **Text-Befehl Fallback:** Reagiert sowohl auf moderne Slash-Befehle als auch auf Textbefehle wie `!ping`, `ping` oder `/ping`.
@@ -45,8 +87,15 @@ Ein modularer, hochperformanter Discord-Bot in **TypeScript (discord.js v14)** m
 | `/setup-voice status` / `disable` | Zeigt Konfiguration an oder deaktiviert sie. | Kanäle verwalten |
 | `/interface` *(oder `/voice-panel`)* | Sendet das interaktive VoiceMaster-Steuerungs-Panel. | Kanäle verwalten |
 | `/voice <aktion>` | Steuert die eigene temporäre Sprach-Lobby (Lock, Hide, Permit, etc.). | Lobby-Besitzer |
-| `/setup-live set <rolle> [kategorie]` | Konfiguriert das dynamische Live-Streamer-System. | Kanäle verwalten |
+| `/setup-live set <rolle> [alert-kanal] [kategorie]` | Konfiguriert das Live-Streamer-System & Benachrichtigungen. | Kanäle verwalten |
 | `/setup-live status` / `disable` | Zeigt Status der Live-Streamer-Erkennung an. | Kanäle verwalten |
+| `/twitch-live start [link] [spiel] [titel]` | Gehe sofort live: Vergibt Live-Rolle, sendet Alert & erstellt Kanal. | Alle Streamer |
+| `/twitch-live stop` | Beendet deinen Live-Status, entfernt die Rolle und löscht den Kanal. | Alle Streamer |
+| `/setup-roles set [gast] [live] [free] [kanal]` | Konfiguriert Gast- & Benachrichtigungsrollen sowie den Free-Games Kanal. | Rollen verwalten |
+| `/setup-roles panel [kanal]` | Sendet das interaktive Berechtigungs- & Rollen-Panel. | Rollen verwalten |
+| `/setup-roles status` | Zeigt die aktuelle Konfiguration des Rollen-Zentrums an. | Rollen verwalten |
+| `/free-games list` | Zeigt die aktuell kostenlosen PC-Spiele im Epic Games Store an. | Alle |
+| `/free-games post` | Sendet die aktuellen Gratis-Spiele sofort in den konfigurierten Kanal. | Nachrichten verwalten |
 
 ---
 

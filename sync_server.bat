@@ -58,18 +58,24 @@ echo.
 :: Erstelle Zielverzeichnis auf dem Server
 ssh %SERVER_USER%@%SERVER_IP% "mkdir -p %SERVER_PATH%"
 
-:: Synchronisiere Dateien via SCP / Tar Pipe
-echo Uebertrage Quelldateien...
-powershell -NoProfile -Command "tar --exclude='node_modules' --exclude='.git' --exclude='dist' -czf - . | ssh %SERVER_USER%@%SERVER_IP% 'tar -xzf - -C %SERVER_PATH%'"
+:: Synchronisiere Dateien via gepacktem Archiv (zuverlaessig und schnell)
+echo Uebertrage Quelldateien und Web-Dashboard...
+tar --exclude="node_modules" --exclude=".git" --exclude=".next" -czf deploy.tar.gz .
+scp deploy.tar.gz %SERVER_USER%@%SERVER_IP%:/tmp/deploy.tar.gz
+ssh %SERVER_USER%@%SERVER_IP% "tar -xzf /tmp/deploy.tar.gz -C %SERVER_PATH% && rm -f /tmp/deploy.tar.gz"
+del deploy.tar.gz > nul 2>&1
 
 if %errorlevel% equ 0 (
     echo.
     echo ✅ Dateien erfolgreich auf den Proxmox-Server hochgeladen!
     echo.
-    echo Moechtest du 'npm install' und 'pm2 restart' auf dem Server ausfuehren?
+    echo Moechtest du 'npm install', Build ^& PM2-Restart fuer Bot ^& Web-Dashboard ausfuehren?
     set /p remote_inst="Ausfuehren? [J/N]: "
     if /i "%remote_inst%"=="J" (
-        ssh %SERVER_USER%@%SERVER_IP% "cd %SERVER_PATH% && npm install && npm run build && npm run deploy-commands && pm2 restart discord-bot || pm2 start dist/index.js --name discord-bot"
+        echo [INFO] Baue Discord-Bot...
+        ssh %SERVER_USER%@%SERVER_IP% "cd %SERVER_PATH% && npm install && npm run build && npm run deploy-commands && (pm2 restart discord-bot || pm2 start dist/index.js --name discord-bot)"
+        echo [INFO] Baue Web-Dashboard...
+        ssh %SERVER_USER%@%SERVER_IP% "cd %SERVER_PATH%/web && npm install && npm run build && (pm2 restart discord-web || pm2 start npm --name discord-web -- start) && pm2 save"
     )
 ) else (
     echo.
