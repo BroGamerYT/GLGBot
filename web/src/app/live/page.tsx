@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { 
   Radio, 
   Save, 
@@ -15,7 +15,9 @@ import {
   Trash2, 
   ExternalLink,
   Search,
-  UserCheck
+  UserCheck,
+  Youtube,
+  Check
 } from "lucide-react";
 
 interface StreamNotification {
@@ -25,12 +27,22 @@ interface StreamNotification {
   channelName: string;
   displayName?: string;
   profileImageUrl?: string;
+  youtubeChannelId?: string;
   discordChannelId: string;
   pingRoleId?: string;
   linkedDiscordUserId?: string;
   customMessage?: string;
   lastNotified?: string;
   isLive?: boolean;
+}
+
+interface StreamerSearchResult {
+  platform: "twitch" | "youtube";
+  channelName: string;
+  displayName: string;
+  channelId?: string;
+  avatar: string;
+  url: string;
 }
 
 export default function LiveStreamerPage() {
@@ -41,14 +53,21 @@ export default function LiveStreamerPage() {
   const [channelType, setChannelType] = useState<"voice" | "text">("voice");
   const [autoRole, setAutoRole] = useState(true);
 
-  // Stream-Benachrichtigungen (Streamcord Alternative)
+  // Stream-Benachrichtigungen
   const [streamers, setStreamers] = useState<StreamNotification[]>([]);
   const [loadingStreamers, setLoadingStreamers] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchFilter, setSearchFilter] = useState("");
 
-  // Neues Streamer-Formular
-  const [newTwitchName, setNewTwitchName] = useState("");
+  // Live-Autovervollständigung / Suche
+  const [channelInput, setChannelInput] = useState("");
+  const [platformTab, setPlatformTab] = useState<"all" | "twitch" | "youtube">("all");
+  const [searchResults, setSearchResults] = useState<StreamerSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedStreamer, setSelectedStreamer] = useState<StreamerSearchResult | null>(null);
+
+  // Formular-Zusatzfelder
   const [newChannelId, setNewChannelId] = useState("");
   const [newPingRoleId, setNewPingRoleId] = useState("");
   const [newLinkedUserId, setNewLinkedUserId] = useState("");
@@ -58,6 +77,8 @@ export default function LiveStreamerPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -73,7 +94,6 @@ export default function LiveStreamerPage() {
           setAnnouncementChannelId(liveRes.announcementChannelId);
           setNewChannelId(liveRes.announcementChannelId);
         } else if (guildRes?.textChannels?.length) {
-          // Standardmäßig nach 'stream' Kanal suchen
           const streamCh = guildRes.textChannels.find((c: any) => c.name.toLowerCase().includes("stream"));
           if (streamCh) setNewChannelId(streamCh.id);
         }
@@ -93,6 +113,58 @@ export default function LiveStreamerPage() {
     }
     load();
   }, []);
+
+  // Automatische Live-Suche mit Debounce bei Tastatureingabe
+  useEffect(() => {
+    if (selectedStreamer) return;
+
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+
+    const trimmed = channelInput.trim();
+    if (trimmed.length < 2) {
+      setSearchResults([]);
+      setIsSearching(false);
+      setShowDropdown(false);
+      return;
+    }
+
+    setIsSearching(true);
+    setShowDropdown(true);
+
+    searchDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search/streamers?q=${encodeURIComponent(trimmed)}&platform=${platformTab}`);
+        if (res.ok) {
+          const results = await res.json();
+          if (Array.isArray(results)) {
+            setSearchResults(results);
+          }
+        }
+      } catch (err) {
+        console.error("Suchfehler:", err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [channelInput, platformTab, selectedStreamer]);
+
+  const handleSelectSearchResult = (result: StreamerSearchResult) => {
+    setSelectedStreamer(result);
+    setChannelInput(result.channelName);
+    setShowDropdown(false);
+  };
+
+  const handleResetSelected = () => {
+    setSelectedStreamer(null);
+    setChannelInput("");
+    setSearchResults([]);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,34 +203,47 @@ export default function LiveStreamerPage() {
 
   const handleAddStreamer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTwitchName.trim() || !newChannelId) {
-      alert("Bitte gib einen Twitch-Namen und einen Ziel-Kanal an.");
+    const finalChannelName = selectedStreamer ? selectedStreamer.channelName : channelInput.trim();
+    if (!finalChannelName || !newChannelId) {
+      alert("Bitte wähle einen Streamer und einen Discord-Zielkanal aus.");
       return;
     }
 
     setAddingStreamer(true);
     try {
+      const payload = {
+        platform: selectedStreamer ? selectedStreamer.platform : (platformTab === "youtube" ? "youtube" : "twitch"),
+        channelName: finalChannelName,
+        displayName: selectedStreamer?.displayName,
+        profileImageUrl: selectedStreamer?.avatar,
+        channelId: selectedStreamer?.channelId,
+        discordChannelId: newChannelId,
+        pingRoleId: newPingRoleId || undefined,
+        linkedDiscordUserId: newLinkedUserId || undefined,
+        customMessage: newCustomMessage || undefined,
+      };
+
       const res = await fetch("/api/config/streamers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          channelName: newTwitchName.trim(),
-          discordChannelId: newChannelId,
-          pingRoleId: newPingRoleId || undefined,
-          linkedDiscordUserId: newLinkedUserId || undefined,
-          customMessage: newCustomMessage || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const json = await res.json();
       if (res.ok && json.notification) {
         setStreamers((prev) => {
-          const filtered = prev.filter((s) => s.id !== json.notification.id && s.channelName.toLowerCase() !== json.notification.channelName.toLowerCase());
+          const filtered = prev.filter(
+            (s) => s.id !== json.notification.id && 
+            !(s.channelName.toLowerCase() === json.notification.channelName.toLowerCase() && s.platform === json.notification.platform)
+          );
           return [...filtered, json.notification];
         });
-        setNewTwitchName("");
+        handleResetSelected();
         setShowAddModal(false);
-        setMessage({ text: `✅ Twitch-Streamer "${json.notification.displayName}" erfolgreich hinzugefügt!`, type: "success" });
+        setMessage({ 
+          text: `✅ ${json.notification.platform === "youtube" ? "YouTube" : "Twitch"}-Streamer "${json.notification.displayName}" erfolgreich hinzugefügt!`, 
+          type: "success" 
+        });
       } else {
         alert(json.error || "Fehler beim Hinzufügen des Streamers.");
       }
@@ -223,7 +308,7 @@ export default function LiveStreamerPage() {
             )}
           </div>
           <p className="text-gray-400 text-sm mt-1">
-            Verwalte Stream-Benachrichtigungen für deine Lieblings-Streamer (wie bei Streamcord) mit Live-Vorschau, Pings und automatischen Sprachräumen.
+            Verwalte Stream-Benachrichtigungen für Twitch & YouTube (wie bei Streamcord) mit Live-Vorschau, Pings und automatischen Sprachräumen.
           </p>
         </div>
       </div>
@@ -247,7 +332,7 @@ export default function LiveStreamerPage() {
           <div>
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <Bell className="w-5 h-5 text-purple-400" />
-              Stream-Benachrichtigungen (Streamcord Alternative)
+              Stream-Benachrichtigungen (Twitch & YouTube)
             </h2>
             <p className="text-sm text-gray-400 mt-1">
               Erhalte automatisch eine stylische Ankündigung im Discord-Kanal, sobald einer deiner eingetragenen Streamer live geht.
@@ -255,7 +340,10 @@ export default function LiveStreamerPage() {
           </div>
 
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              handleResetSelected();
+              setShowAddModal(true);
+            }}
             className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm flex items-center gap-2 shadow-lg shadow-purple-600/20 transition-all self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" />
@@ -263,9 +351,9 @@ export default function LiveStreamerPage() {
           </button>
         </div>
 
-        {/* Modal / Add Box */}
+        {/* Modal / Add Box with Live Search */}
         {showAddModal && (
-          <div className="bg-discord-dark/90 border border-purple-500/40 rounded-xl p-5 space-y-4 animate-in fade-in duration-200">
+          <div className="bg-discord-dark/95 border border-purple-500/40 rounded-xl p-5 space-y-4 animate-in fade-in duration-200">
             <div className="flex items-center justify-between border-b border-discord-border pb-3">
               <h3 className="font-bold text-white text-base flex items-center gap-2">
                 <Plus className="w-4 h-4 text-purple-400" />
@@ -280,24 +368,164 @@ export default function LiveStreamerPage() {
               </button>
             </div>
 
+            {/* Plattform Filter Tabs */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-gray-400 font-semibold mr-1">Plattform:</span>
+              <button
+                type="button"
+                onClick={() => setPlatformTab("all")}
+                className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+                  platformTab === "all" ? "bg-purple-600 text-white shadow" : "bg-discord-card text-gray-400 hover:text-white border border-discord-border"
+                }`}
+              >
+                Alle (Auto-Erkennung)
+              </button>
+              <button
+                type="button"
+                onClick={() => setPlatformTab("twitch")}
+                className={`px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-all ${
+                  platformTab === "twitch" ? "bg-purple-600 text-white shadow" : "bg-discord-card text-gray-400 hover:text-white border border-discord-border"
+                }`}
+              >
+                <Tv className="w-3.5 h-3.5 text-purple-400" /> Twitch
+              </button>
+              <button
+                type="button"
+                onClick={() => setPlatformTab("youtube")}
+                className={`px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition-all ${
+                  platformTab === "youtube" ? "bg-red-600 text-white shadow" : "bg-discord-card text-gray-400 hover:text-white border border-discord-border"
+                }`}
+              >
+                <Youtube className="w-3.5 h-3.5 text-red-500" /> YouTube
+              </button>
+            </div>
+
             <form onSubmit={handleAddStreamer} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
+              {/* Live Search Input with Suggestions Dropdown */}
+              <div className="relative sm:col-span-2">
                 <label className="block text-xs font-semibold text-gray-300 mb-1">
-                  Twitch Kanalname / Link <span className="text-red-500">*</span>
+                  Kanal suchen oder Name eingeben <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  placeholder="z. B. derbrogameryt oder mops43ver"
-                  value={newTwitchName}
-                  onChange={(e) => setNewTwitchName(e.target.value)}
-                  required
-                  className="w-full bg-discord-card border border-discord-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 font-medium"
-                />
+
+                {selectedStreamer ? (
+                  /* Ausgewählter Streamer Badge */
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-purple-950/40 border border-purple-500/50">
+                    <div className="flex items-center gap-3">
+                      {selectedStreamer.avatar ? (
+                        <img
+                          src={selectedStreamer.avatar}
+                          alt={selectedStreamer.displayName}
+                          className="w-10 h-10 rounded-full object-cover border border-purple-500/40"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-300 font-bold">
+                          {selectedStreamer.displayName.substring(0, 2)}
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-bold text-white flex items-center gap-2">
+                          {selectedStreamer.displayName}
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase ${
+                              selectedStreamer.platform === "youtube"
+                                ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                                : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                            }`}
+                          >
+                            {selectedStreamer.platform}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {selectedStreamer.platform === "youtube" ? selectedStreamer.channelName : `/${selectedStreamer.channelName}`}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleResetSelected}
+                      className="text-xs text-gray-400 hover:text-white px-3 py-1.5 rounded-lg bg-discord-card border border-discord-border"
+                    >
+                      Anderen wählen ✕
+                    </button>
+                  </div>
+                ) : (
+                  /* Suchfeld */
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Tippe z. B. Floslist, BroGamerYT, MontanaBlack..."
+                      value={channelInput}
+                      onChange={(e) => setChannelInput(e.target.value)}
+                      onFocus={() => {
+                        if (searchResults.length > 0) setShowDropdown(true);
+                      }}
+                      required
+                      className="w-full bg-discord-card border border-discord-border rounded-lg pl-10 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500 font-medium"
+                    />
+                    <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    {isSearching && (
+                      <RefreshCw className="w-4 h-4 text-purple-400 animate-spin absolute right-3.5 top-1/2 -translate-y-1/2" />
+                    )}
+
+                    {/* Dropdown Suggestions */}
+                    {showDropdown && searchResults.length > 0 && (
+                      <div className="absolute left-0 right-0 top-full mt-1.5 bg-discord-card border border-discord-border rounded-xl shadow-2xl z-50 overflow-hidden max-h-72 overflow-y-auto divide-y divide-discord-border/50">
+                        <div className="p-2 text-[11px] font-semibold text-gray-400 bg-discord-dark flex items-center justify-between">
+                          <span>Gefundene Kanäle (zum Auswählen anklicken):</span>
+                          <span>{searchResults.length} Treffer</span>
+                        </div>
+                        {searchResults.map((r, idx) => (
+                          <div
+                            key={`${r.platform}_${r.channelName}_${idx}`}
+                            onClick={() => handleSelectSearchResult(r)}
+                            className="p-3 hover:bg-discord-dark/80 cursor-pointer flex items-center justify-between transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              {r.avatar ? (
+                                <img
+                                  src={r.avatar}
+                                  alt={r.displayName}
+                                  className="w-8 h-8 rounded-full object-cover border border-purple-500/30"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-300 font-bold text-xs">
+                                  {r.displayName.substring(0, 2)}
+                                </div>
+                              )}
+                              <div>
+                                <div className="text-sm font-semibold text-white flex items-center gap-2">
+                                  {r.displayName}
+                                  <span
+                                    className={`text-[10px] px-1.5 py-0.2 rounded font-semibold uppercase ${
+                                      r.platform === "youtube"
+                                        ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                                        : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                                    }`}
+                                  >
+                                    {r.platform}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  {r.platform === "youtube" ? r.channelName : `twitch.tv/${r.channelName}`}
+                                </div>
+                              </div>
+                            </div>
+                            <span className="text-xs text-purple-400 font-semibold flex items-center gap-1">
+                              Auswählen <Check className="w-3.5 h-3.5" />
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <p className="text-[11px] text-gray-400 mt-1">
-                  Der Twitch-Benutzername ohne Leerzeichen.
+                  Die Live-Suche erkennt Twitch-Streamer und YouTube-Kanäle automatisch während des Tippens!
                 </p>
               </div>
 
+              {/* Ziel Discord Kanal */}
               <div>
                 <label className="block text-xs font-semibold text-gray-300 mb-1">
                   Ziel-Discord-Kanal <span className="text-red-500">*</span>
@@ -320,6 +548,7 @@ export default function LiveStreamerPage() {
                 </p>
               </div>
 
+              {/* Ping Rolle */}
               <div>
                 <label className="block text-xs font-semibold text-gray-300 mb-1">
                   Ping-Rolle bei Alert (Optional)
@@ -343,7 +572,8 @@ export default function LiveStreamerPage() {
                 </p>
               </div>
 
-              <div>
+              {/* Discord Mitglied verknüpfen */}
+              <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-gray-300 mb-1 flex items-center gap-1.5">
                   <UserCheck className="w-3.5 h-3.5 text-discord-blurple" />
                   Discord-Mitglied verknüpfen (Optional)
@@ -401,7 +631,7 @@ export default function LiveStreamerPage() {
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Streamer durchsuchen..."
+              placeholder="Eingerichtete Streamer filtern..."
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               className="w-full bg-discord-dark border border-discord-border rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
@@ -422,7 +652,7 @@ export default function LiveStreamerPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-discord-dark/80 text-gray-400 text-xs uppercase tracking-wider border-b border-discord-border">
               <tr>
-                <th className="px-4 py-3">Streamer</th>
+                <th className="px-4 py-3">Streamer / Plattform</th>
                 <th className="px-4 py-3">Discord-Kanal</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Letzter Alert</th>
@@ -440,7 +670,7 @@ export default function LiveStreamerPage() {
                           onClick={() => setShowAddModal(true)}
                           className="text-xs text-purple-400 hover:underline font-semibold"
                         >
-                          + Jetzt den ersten Streamer hinzufügen (z. B. DerBroGamerYT)
+                          + Jetzt den ersten Streamer hinzufügen (z. B. Floslist oder BroGamerYT)
                         </button>
                       </div>
                     ) : (
@@ -454,20 +684,24 @@ export default function LiveStreamerPage() {
                   const channelName = channel ? channel.name : s.discordChannelId;
                   const pingRole = roles.find((r: any) => r.id === s.pingRoleId);
                   const linkedMember = members.find((m: any) => m.id === s.linkedDiscordUserId);
+                  const isYoutube = s.platform === "youtube";
+                  const streamUrl = isYoutube 
+                    ? `https://youtube.com/${s.channelName.startsWith("@") ? s.channelName : "@" + s.channelName}` 
+                    : `https://twitch.tv/${s.channelName}`;
 
                   return (
                     <tr key={s.id} className="hover:bg-discord-dark/50 transition-colors">
-                      {/* Name / Avatar */}
+                      {/* Name / Avatar / Platform */}
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
                           {s.profileImageUrl ? (
                             <img
                               src={s.profileImageUrl}
                               alt={s.displayName || s.channelName}
-                              className="w-9 h-9 rounded-full object-cover border border-purple-500/40"
+                              className={`w-9 h-9 rounded-full object-cover border ${isYoutube ? "border-red-500/40" : "border-purple-500/40"}`}
                             />
                           ) : (
-                            <div className="w-9 h-9 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-300 font-bold text-xs">
+                            <div className={`w-9 h-9 rounded-full ${isYoutube ? "bg-red-600/30 text-red-300" : "bg-purple-600/30 text-purple-300"} flex items-center justify-center font-bold text-xs`}>
                               {s.channelName.substring(0, 2).toUpperCase()}
                             </div>
                           )}
@@ -475,15 +709,26 @@ export default function LiveStreamerPage() {
                             <div className="font-semibold text-white flex items-center gap-1.5">
                               {s.displayName || s.channelName}
                               <a
-                                href={`https://twitch.tv/${s.channelName}`}
+                                href={streamUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="text-gray-400 hover:text-purple-400"
+                                className="text-gray-400 hover:text-white"
                               >
                                 <ExternalLink className="w-3 h-3" />
                               </a>
                             </div>
-                            <div className="text-xs text-gray-400">/{s.channelName}</div>
+                            <div className="text-xs text-gray-400 flex items-center gap-1.5 mt-0.5">
+                              <span
+                                className={`text-[10px] px-1.5 py-0.2 rounded font-semibold uppercase ${
+                                  isYoutube
+                                    ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                                    : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                                }`}
+                              >
+                                {s.platform}
+                              </span>
+                              <span>{isYoutube ? s.channelName : `/${s.channelName}`}</span>
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -739,16 +984,16 @@ export default function LiveStreamerPage() {
         </h3>
         <ul className="text-sm text-gray-300 space-y-2.5 list-disc list-inside">
           <li>
-            <strong className="text-white">Streamer im Chat verwalten:</strong> Du kannst Streamer auch direkt im Discord mit <code className="text-purple-400 font-mono">/streamer add [twitch] [kanal] [ping_rolle]</code> hinzufügen oder mit <code className="text-purple-400 font-mono">/streamer list</code> ansehen!
+            <strong className="text-white">Live-Suche & Autocomplete:</strong> Tippe einfach die ersten Buchstaben eines Twitch- oder YouTube-Streamers ein, und der Bot findet ihn automatisch mit Profilbild!
+          </li>
+          <li>
+            <strong className="text-white">YouTube & Twitch Support:</strong> Unterstützt sowohl Twitch-Livestreams als auch YouTube-Kanäle und Streams.
+          </li>
+          <li>
+            <strong className="text-white">Streamer im Chat verwalten:</strong> Du kannst Streamer auch direkt im Discord mit <code className="text-purple-400 font-mono">/streamer add [name] [kanal] [ping_rolle]</code> hinzufügen oder mit <code className="text-purple-400 font-mono">/streamer list</code> ansehen!
           </li>
           <li>
             <strong className="text-white">Echtzeit-Prüfung:</strong> Mit <code className="text-purple-400 font-mono">/streamer check</code> prüft der Bot alle eingetragenen Streamer sofort auf ihren Live-Status.
-          </li>
-          <li>
-            <strong className="text-white">Manueller Go-Live:</strong> Streamer können jederzeit auch selbst im Chat <code className="text-discord-blurple font-mono">/twitch-live start [link] [spiel] [titel]</code> nutzen.
-          </li>
-          <li>
-            <strong className="text-white">Kein Automove:</strong> Zuschauer und Streamer werden niemals ungefragt verschoben – jeder entscheidet selbst.
           </li>
         </ul>
       </div>

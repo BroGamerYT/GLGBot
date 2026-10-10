@@ -38,55 +38,83 @@ export async function POST(req: Request) {
   try {
     const guildId = getGuildId();
     const body = await req.json();
-    const { channelName, discordChannelId, pingRoleId, linkedDiscordUserId, customMessage } = body;
+    const { platform = "twitch", channelName, displayName: passedDisplayName, profileImageUrl: passedAvatar, channelId: passedChannelId, discordChannelId, pingRoleId, linkedDiscordUserId, customMessage } = body;
 
-    const cleanName = channelName ? channelName.trim().toLowerCase().replace(/^https?:\/\/(www\.)?twitch\.tv\//i, "").replace(/[^a-z0-9_]/gi, "") : "";
-    if (!cleanName || !discordChannelId) {
-      return NextResponse.json({ error: "Fehlende Pflichtangaben (Twitch-Name & Discord-Kanal)." }, { status: 400 });
+    if (!channelName || !discordChannelId) {
+      return NextResponse.json({ error: "Fehlende Pflichtangaben (Kanalname & Discord-Kanal)." }, { status: 400 });
     }
 
-    // Abfrage Twitch GQL für Display-Name und Avatar
-    let displayName = cleanName;
-    let profileImageUrl = "";
+    const isYoutube = platform === "youtube";
+    let cleanName = channelName.trim();
+    if (!isYoutube) {
+      cleanName = cleanName.toLowerCase().replace(/^https?:\/\/(www\.)?twitch\.tv\//i, "").replace(/[^a-z0-9_]/gi, "");
+    }
+
+    let displayName = passedDisplayName || cleanName;
+    let profileImageUrl = passedAvatar || "";
     let isLive = false;
     let currentStreamId = undefined;
+    let youtubeChannelId = passedChannelId;
 
-    try {
-      const query = `query { user(login: "${cleanName}") { id displayName profileImageURL(width: 300) stream { id title game { name } viewersCount previewImageURL(width: 640, height: 360) } } }`;
-      const res = await fetch("https://gql.twitch.tv/gql", {
-        method: "POST",
-        headers: {
-          "Client-ID": "kimne78kx3ncx6brgo4mv6wki5h1ko",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ query }),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const user = json?.data?.user;
-        if (user) {
-          displayName = user.displayName || cleanName;
-          profileImageUrl = user.profileImageURL || "";
-          if (user.stream) {
-            isLive = true;
-            currentStreamId = user.stream.id;
+    if (!isYoutube) {
+      // Twitch
+      try {
+        const query = `query { user(login: "${cleanName}") { id displayName profileImageURL(width: 300) stream { id title game { name } viewersCount previewImageURL(width: 640, height: 360) } } }`;
+        const res = await fetch("https://gql.twitch.tv/gql", {
+          method: "POST",
+          headers: {
+            "Client-ID": "kimne78kx3ncx6brgo4mv6wki5h1ko",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ query }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const user = json?.data?.user;
+          if (user) {
+            displayName = user.displayName || cleanName;
+            profileImageUrl = user.profileImageURL || "";
+            if (user.stream) {
+              isLive = true;
+              currentStreamId = user.stream.id;
+            }
           }
         }
+      } catch (e) {
+        // Ignoriere Netzwerkfehler
       }
-    } catch (e) {
-      // Ignoriere Netzwerkfehler bei Twitch Abfrage
+    } else {
+      // YouTube
+      try {
+        const handle = cleanName.startsWith("@") ? cleanName : `@${cleanName}`;
+        const ytRes = await fetch(`https://www.youtube.com/${handle}`, {
+          headers: { "User-Agent": "Mozilla/5.0" },
+        });
+        if (ytRes.ok) {
+          const html = await ytRes.text();
+          const chMatch = html.match(/channel_id=([a-zA-Z0-9_-]+)/) || html.match(/"channelId":"([a-zA-Z0-9_-]+)"/);
+          const titleMatch = html.match(/<meta property="og:title" content="([^"]+)">/);
+          const imageMatch = html.match(/<meta property="og:image" content="([^"]+)">/);
+          if (chMatch) youtubeChannelId = chMatch[1];
+          if (titleMatch && !passedDisplayName) displayName = titleMatch[1];
+          if (imageMatch && !profileImageUrl) profileImageUrl = imageMatch[1];
+        }
+      } catch (e) {
+        // Ignoriere
+      }
     }
 
     const all = loadNotifs();
-    const existingIndex = all.findIndex((n) => n.guildId === guildId && n.channelName.toLowerCase() === cleanName);
+    const existingIndex = all.findIndex((n) => n.guildId === guildId && n.platform === platform && n.channelName.toLowerCase() === cleanName.toLowerCase());
 
     const item = {
       id: existingIndex >= 0 ? all[existingIndex].id : `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       guildId,
-      platform: "twitch",
+      platform,
       channelName: cleanName,
       displayName,
       profileImageUrl,
+      youtubeChannelId,
       discordChannelId,
       pingRoleId: pingRoleId || undefined,
       linkedDiscordUserId: linkedDiscordUserId || undefined,

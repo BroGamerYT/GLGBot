@@ -11,16 +11,16 @@ import { streamNotificationService } from "../../services/streamNotificationServ
 const streamerCommand: Command = {
   data: new SlashCommandBuilder()
     .setName("streamer")
-    .setDescription("Verwalte Twitch-Streamer Benachrichtigungen (wie bei Streamcord)")
+    .setDescription("Verwalte Twitch- & YouTube-Streamer Benachrichtigungen (wie bei Streamcord)")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
     .addSubcommand((sub) =>
       sub
         .setName("add")
-        .setDescription("Fügt einen Twitch-Streamer zur Benachrichtigungsliste hinzu")
+        .setDescription("Fügt einen Streamer zur Benachrichtigungsliste hinzu (Twitch oder YouTube)")
         .addStringOption((opt) =>
           opt
-            .setName("twitch_name")
-            .setDescription("Der Twitch-Kanalname des Streamers (z. B. derbrogameryt)")
+            .setName("name")
+            .setDescription("Kanalname oder Handle (z. B. floslist oder @BroGamerYT)")
             .setRequired(true)
         )
         .addChannelOption((opt) =>
@@ -29,6 +29,16 @@ const streamerCommand: Command = {
             .setDescription("In welchen Discord-Kanal soll der Live-Alert gepostet werden?")
             .addChannelTypes(ChannelType.GuildText)
             .setRequired(true)
+        )
+        .addStringOption((opt) =>
+          opt
+            .setName("plattform")
+            .setDescription("Streaming-Plattform auswählen (Standard: Twitch)")
+            .setRequired(false)
+            .addChoices(
+              { name: "Twitch", value: "twitch" },
+              { name: "YouTube", value: "youtube" }
+            )
         )
         .addRoleOption((opt) =>
           opt
@@ -46,11 +56,11 @@ const streamerCommand: Command = {
     .addSubcommand((sub) =>
       sub
         .setName("remove")
-        .setDescription("Entfernt einen Twitch-Streamer aus der Benachrichtigungsliste")
+        .setDescription("Entfernt einen Streamer aus der Benachrichtigungsliste")
         .addStringOption((opt) =>
           opt
-            .setName("twitch_name")
-            .setDescription("Der Twitch-Kanalname zum Entfernen")
+            .setName("name")
+            .setDescription("Der Kanalname des Streamers zum Entfernen")
             .setRequired(true)
         )
     )
@@ -75,14 +85,16 @@ const streamerCommand: Command = {
 
     if (sub === "add") {
       await interaction.deferReply();
-      const twitchName = interaction.options.getString("twitch_name", true);
+      const channelInput = interaction.options.getString("name", true);
       const channel = interaction.options.getChannel("kanal", true);
+      const platformChoice = (interaction.options.getString("plattform") || "twitch") as "twitch" | "youtube";
       const pingRole = interaction.options.getRole("ping_rolle");
       const discordUser = interaction.options.getUser("discord_nutzer");
 
       const result = await streamNotificationService.addOrUpdateNotification({
         guildId: interaction.guild.id,
-        channelName: twitchName,
+        platform: platformChoice,
+        channelName: channelInput,
         discordChannelId: channel.id,
         pingRoleId: pingRole ? pingRole.id : undefined,
         linkedDiscordUserId: discordUser ? discordUser.id : undefined,
@@ -96,17 +108,22 @@ const streamerCommand: Command = {
       }
 
       const notif = result.notification;
+      const isYt = notif.platform === "youtube";
+      const streamUrl = isYt 
+        ? `https://youtube.com/${notif.channelName.startsWith("@") ? notif.channelName : "@" + notif.channelName}` 
+        : `https://twitch.tv/${notif.channelName}`;
+
       const embed = new EmbedBuilder()
-        .setColor(0x9146ff)
-        .setTitle(`✅ Streamer-Benachrichtigung eingerichtet!`)
+        .setColor(isYt ? 0xff0000 : 0x9146ff)
+        .setTitle(`✅ ${isYt ? "YouTube" : "Twitch"}-Benachrichtigung eingerichtet!`)
         .setThumbnail(notif.profileImageUrl || null)
-        .setDescription(`Sobald **${notif.displayName}** auf Twitch live geht, postet der Bot automatisch einen Alert!`)
+        .setDescription(`Sobald **${notif.displayName}** auf ${isYt ? "YouTube" : "Twitch"} live geht, postet der Bot automatisch einen Alert!`)
         .addFields(
-          { name: "📺 Twitch-Kanal", value: `[${notif.displayName}](https://twitch.tv/${notif.channelName})`, inline: true },
+          { name: "📺 Kanal", value: `[${notif.displayName}](${streamUrl})`, inline: true },
           { name: "📢 Ziel-Kanal", value: `<#${notif.discordChannelId}>`, inline: true },
           { name: "🔔 Ping-Rolle", value: notif.pingRoleId ? `<@&${notif.pingRoleId}>` : "*Keine*", inline: true },
           { name: "👤 Verknüpfter Discord-Nutzer", value: notif.linkedDiscordUserId ? `<@${notif.linkedDiscordUserId}>` : "*Keiner*", inline: true },
-          { name: "🔴 Aktueller Status", value: notif.isLive ? "**LIVE auf Twitch!**" : "Offline", inline: true }
+          { name: "🔴 Aktueller Status", value: notif.isLive ? `**LIVE auf ${isYt ? "YouTube" : "Twitch"}!**` : "Offline", inline: true }
         )
         .setFooter({ text: "GLGBot Live-Streamer Suite" })
         .setTimestamp();
@@ -116,17 +133,17 @@ const streamerCommand: Command = {
     }
 
     if (sub === "remove") {
-      const twitchName = interaction.options.getString("twitch_name", true);
-      const removed = streamNotificationService.removeNotification(interaction.guild.id, twitchName);
+      const name = interaction.options.getString("name", true);
+      const removed = streamNotificationService.removeNotification(interaction.guild.id, name);
 
       if (removed) {
         await interaction.reply({
-          content: `✅ Die Benachrichtigung für Twitch-Streamer **${twitchName}** wurde gelöscht.`,
+          content: `✅ Die Benachrichtigung für Streamer **${name}** wurde gelöscht.`,
           ephemeral: true,
         });
       } else {
         await interaction.reply({
-          content: `❌ Kein Streamer mit dem Namen **${twitchName}** gefunden.`,
+          content: `❌ Kein Streamer mit dem Namen **${name}** gefunden.`,
           ephemeral: true,
         });
       }
@@ -137,7 +154,7 @@ const streamerCommand: Command = {
       const list = streamNotificationService.getByGuild(interaction.guild.id);
       if (list.length === 0) {
         await interaction.reply({
-          content: "ℹ️ Es sind aktuell keine Twitch-Streamer eingerichtet. Füge welche mit `/streamer add` oder über das Web-Dashboard hinzu!",
+          content: "ℹ️ Es sind aktuell keine Streamer eingerichtet. Füge welche mit `/streamer add` oder über das Web-Dashboard hinzu!",
           ephemeral: true,
         });
         return;
@@ -151,12 +168,15 @@ const streamerCommand: Command = {
         .setTimestamp();
 
       for (const notif of list) {
-        const status = notif.isLive ? "🔴 **LIVE**" : "⚪ Offline";
+        const isYt = notif.platform === "youtube";
+        const status = notif.isLive ? `🔴 **LIVE (${isYt ? "YT" : "Twitch"})**` : `⚪ Offline (${isYt ? "YT" : "Twitch"})`;
         const ping = notif.pingRoleId ? `<@&${notif.pingRoleId}>` : "Kein Ping";
         const linked = notif.linkedDiscordUserId ? ` | 👤 <@${notif.linkedDiscordUserId}>` : "";
+        const url = isYt ? `https://youtube.com/${notif.channelName}` : `https://twitch.tv/${notif.channelName}`;
+
         embed.addFields({
           name: `${notif.displayName || notif.channelName} (${status})`,
-          value: `• Kanal: <#${notif.discordChannelId}>\n• Ping: ${ping}${linked}\n• Link: [twitch.tv/${notif.channelName}](https://twitch.tv/${notif.channelName})`,
+          value: `• Kanal: <#${notif.discordChannelId}>\n• Ping: ${ping}${linked}\n• Link: [Link](${url})`,
           inline: true,
         });
       }
@@ -169,7 +189,7 @@ const streamerCommand: Command = {
       await interaction.deferReply({ ephemeral: true });
       await streamNotificationService.checkAllStreams();
       await interaction.editReply({
-        content: "✅ Alle eingerichteten Streamer wurden erfolgreich auf ihren Live-Status geprüft!",
+        content: "✅ Alle eingerichteten Streamer (Twitch & YouTube) wurden erfolgreich auf ihren Live-Status geprüft!",
       });
       return;
     }

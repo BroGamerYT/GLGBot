@@ -13,9 +13,10 @@ export interface StreamNotification {
   id: string;
   guildId: string;
   platform: "twitch" | "youtube" | "kick";
-  channelName: string; // z.B. "derbrogameryt"
-  displayName?: string; // z.B. "DerBroGamerYT"
+  channelName: string; // z. B. "derbrogameryt" oder "@DerBroGamerYT"
+  displayName?: string; // z. B. "DerBroGamerYT"
   profileImageUrl?: string;
+  youtubeChannelId?: string;
   discordChannelId: string;
   pingRoleId?: string;
   linkedDiscordUserId?: string;
@@ -91,7 +92,7 @@ class StreamNotificationService {
     return this.notifications.filter((n) => n.guildId === guildId);
   }
 
-  // Fragt Twitch User- & Stream-Status über die offizielle Web-GQL-Schnittstelle ab
+  // Fragt Twitch User- & Stream-Status über die Web-GQL-Schnittstelle ab
   public async fetchTwitchUser(channelName: string): Promise<{
     exists: boolean;
     displayName: string;
@@ -146,44 +147,144 @@ class StreamNotificationService {
     }
   }
 
+  // Fragt YouTube Kanal- & Live-Status ab
+  public async fetchYouTubeUser(channelOrHandle: string, knownChannelId?: string): Promise<{
+    exists: boolean;
+    displayName: string;
+    channelId: string;
+    profileImageUrl: string;
+    stream: {
+      id: string;
+      title: string;
+      game: string;
+      previewImageUrl: string;
+    } | null;
+  }> {
+    try {
+      const clean = channelOrHandle.trim().replace(/^https?:\/\/(www\.)?youtube\.com\//i, "");
+      const handle = clean.startsWith("@") ? clean : (clean.startsWith("UC") ? clean : `@${clean}`);
+      
+      let channelId = knownChannelId || "";
+      let displayName = clean.replace(/^@/, "");
+      let profileImageUrl = "";
+
+      // Kanal-Info abrufen
+      const ytUrl = channelId ? `https://www.youtube.com/channel/${channelId}` : `https://www.youtube.com/${handle}`;
+      const res = await fetch(ytUrl, { headers: { "User-Agent": "Mozilla/5.0" } });
+      if (res.ok) {
+        const html = await res.text();
+        const chMatch = html.match(/channel_id=([a-zA-Z0-9_-]+)/) || html.match(/"channelId":"([a-zA-Z0-9_-]+)"/);
+        const titleMatch = html.match(/<meta property="og:title" content="([^"]+)">/);
+        const imageMatch = html.match(/<meta property="og:image" content="([^"]+)">/);
+        if (chMatch) channelId = chMatch[1];
+        if (titleMatch) displayName = titleMatch[1];
+        if (imageMatch) profileImageUrl = imageMatch[1];
+      }
+
+      if (!channelId) {
+        return { exists: false, displayName, channelId: "", profileImageUrl: "", stream: null };
+      }
+
+      // Live-Status prüfen
+      const liveUrl = `https://www.youtube.com/channel/${channelId}/live`;
+      const liveRes = await fetch(liveUrl, { headers: { "User-Agent": "Mozilla/5.0" }, redirect: "follow" });
+      const liveHtml = await liveRes.text();
+      const isLive = liveHtml.includes("\"isLive\":true") || liveHtml.includes("\"liveStreamabilityRenderer\"");
+
+      let stream = null;
+      if (isLive) {
+        const videoIdMatch = liveHtml.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
+        const streamTitleMatch = liveHtml.match(/<meta property="og:title" content="([^"]+)">/);
+        const videoId = videoIdMatch ? videoIdMatch[1] : "";
+        if (videoId) {
+          stream = {
+            id: videoId,
+            title: streamTitleMatch ? streamTitleMatch[1] : `${displayName} ist live auf YouTube!`,
+            game: "YouTube Live",
+            previewImageUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+          };
+        }
+      }
+
+      return {
+        exists: true,
+        displayName,
+        channelId,
+        profileImageUrl,
+        stream,
+      };
+    } catch (e) {
+      console.error(`[StreamNotification] Fehler beim Abrufen von YouTube (${channelOrHandle}):`, e);
+      return { exists: false, displayName: channelOrHandle, channelId: "", profileImageUrl: "", stream: null };
+    }
+  }
+
   // Benachrichtigung hinzufügen oder aktualisieren
   public async addOrUpdateNotification(params: {
     guildId: string;
+    platform?: "twitch" | "youtube";
     channelName: string;
+    displayName?: string;
+    profileImageUrl?: string;
+    channelId?: string;
     discordChannelId: string;
     pingRoleId?: string;
     linkedDiscordUserId?: string;
     customMessage?: string;
   }): Promise<{ success: boolean; notification?: StreamNotification; message?: string }> {
-    const cleanName = params.channelName.trim().toLowerCase().replace(/^https?:\/\/(www\.)?twitch\.tv\//i, "").replace(/[^a-z0-9_]/gi, "");
+    const platform = params.platform || "twitch";
+    const cleanName = params.channelName.trim();
     if (!cleanName) {
-      return { success: false, message: "Ungültiger Twitch-Name." };
+      return { success: false, message: "Ungültiger Kanalname." };
     }
 
-    const twitchInfo = await this.fetchTwitchUser(cleanName);
-    if (!twitchInfo.exists) {
-      return { success: false, message: `Der Twitch-Kanal "${cleanName}" konnte nicht gefunden werden.` };
+    let displayName = params.displayName || cleanName;
+    let profileImageUrl = params.profileImageUrl || "";
+    let youtubeChannelId = params.channelId;
+    let isLive = false;
+    let streamId: string | undefined = undefined;
+
+    if (platform === "twitch") {
+      const twitchInfo = await this.fetchTwitchUser(cleanName);
+      if (!twitchInfo.exists) {
+        return { success: false, message: `Der Twitch-Kanal "${cleanName}" konnte nicht gefunden werden.` };
+      }
+      displayName = twitchInfo.displayName;
+      profileImageUrl = twitchInfo.profileImageUrl;
+      isLive = twitchInfo.stream !== null;
+      streamId = twitchInfo.stream ? twitchInfo.stream.id : undefined;
+    } else if (platform === "youtube") {
+      const ytInfo = await this.fetchYouTubeUser(cleanName, youtubeChannelId);
+      if (!ytInfo.exists) {
+        return { success: false, message: `Der YouTube-Kanal "${cleanName}" konnte nicht gefunden werden.` };
+      }
+      displayName = ytInfo.displayName;
+      profileImageUrl = ytInfo.profileImageUrl;
+      youtubeChannelId = ytInfo.channelId;
+      isLive = ytInfo.stream !== null;
+      streamId = ytInfo.stream ? ytInfo.stream.id : undefined;
     }
 
     this.loadNotifications();
     const existingIndex = this.notifications.findIndex(
-      (n) => n.guildId === params.guildId && n.channelName.toLowerCase() === cleanName
+      (n) => n.guildId === params.guildId && n.platform === platform && n.channelName.toLowerCase() === cleanName.toLowerCase()
     );
 
     const notif: StreamNotification = {
       id: existingIndex >= 0 ? this.notifications[existingIndex].id : `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       guildId: params.guildId,
-      platform: "twitch",
+      platform,
       channelName: cleanName,
-      displayName: twitchInfo.displayName,
-      profileImageUrl: twitchInfo.profileImageUrl,
+      displayName,
+      profileImageUrl,
+      youtubeChannelId,
       discordChannelId: params.discordChannelId,
       pingRoleId: params.pingRoleId || undefined,
       linkedDiscordUserId: params.linkedDiscordUserId || undefined,
       customMessage: params.customMessage || undefined,
       lastNotified: existingIndex >= 0 ? this.notifications[existingIndex].lastNotified : undefined,
-      isLive: twitchInfo.stream !== null,
-      currentStreamId: twitchInfo.stream ? twitchInfo.stream.id : undefined,
+      isLive,
+      currentStreamId: streamId,
     };
 
     if (existingIndex >= 0) {
@@ -216,7 +317,7 @@ class StreamNotificationService {
     if (this.pollerInterval) return;
     this.client = client;
 
-    console.log("📺 [StreamNotification] Twitch-Stream Poller gestartet (Intervall: 60 Sekunden)");
+    console.log("📺 [StreamNotification] Live-Stream Poller (Twitch & YouTube) gestartet (Intervall: 60 Sekunden)");
 
     // Initialer Durchlauf nach 10 Sekunden
     setTimeout(async () => {
@@ -229,7 +330,7 @@ class StreamNotificationService {
     }, 60000);
   }
 
-  // Prüft alle eingetragenen Benachrichtigungen
+  // Prüft alle eingetragenen Benachrichtigungen (Twitch & YouTube)
   public async checkAllStreams() {
     if (!this.client) return;
     this.loadNotifications();
@@ -241,27 +342,48 @@ class StreamNotificationService {
         const guild = this.client.guilds.cache.get(notif.guildId);
         if (!guild) continue;
 
-        const twitchInfo = await this.fetchTwitchUser(notif.channelName);
-        if (!twitchInfo.exists) continue;
+        let isNowLive = false;
+        let streamData: any = null;
+        let fetchedDisplayName = notif.displayName;
+        let fetchedAvatar = notif.profileImageUrl;
 
-        // Metadaten aktualisieren
-        if (twitchInfo.displayName) notif.displayName = twitchInfo.displayName;
-        if (twitchInfo.profileImageUrl) notif.profileImageUrl = twitchInfo.profileImageUrl;
+        if (notif.platform === "youtube") {
+          const ytInfo = await this.fetchYouTubeUser(notif.channelName, notif.youtubeChannelId);
+          if (!ytInfo.exists) continue;
+          isNowLive = ytInfo.stream !== null;
+          streamData = ytInfo.stream;
+          if (ytInfo.displayName) fetchedDisplayName = ytInfo.displayName;
+          if (ytInfo.profileImageUrl) fetchedAvatar = ytInfo.profileImageUrl;
+        } else {
+          // Twitch
+          const twitchInfo = await this.fetchTwitchUser(notif.channelName);
+          if (!twitchInfo.exists) continue;
+          isNowLive = twitchInfo.stream !== null;
+          streamData = twitchInfo.stream;
+          if (twitchInfo.displayName) fetchedDisplayName = twitchInfo.displayName;
+          if (twitchInfo.profileImageUrl) fetchedAvatar = twitchInfo.profileImageUrl;
+        }
 
-        const isNowLive = twitchInfo.stream !== null;
+        if (fetchedDisplayName) notif.displayName = fetchedDisplayName;
+        if (fetchedAvatar) notif.profileImageUrl = fetchedAvatar;
 
         // Fall 1: Streamer geht LIVE
-        if (isNowLive && (!notif.isLive || notif.currentStreamId !== twitchInfo.stream?.id)) {
-          console.log(`🔴 [StreamNotification] ${notif.displayName} ist jetzt LIVE auf Twitch!`);
+        if (isNowLive && (!notif.isLive || notif.currentStreamId !== streamData?.id)) {
+          const platformLabel = notif.platform === "youtube" ? "YouTube" : "Twitch";
+          console.log(`🔴 [StreamNotification] ${notif.displayName} ist jetzt LIVE auf ${platformLabel}!`);
           notif.isLive = true;
-          notif.currentStreamId = twitchInfo.stream?.id;
+          notif.currentStreamId = streamData?.id;
           notif.lastNotified = new Date().toISOString();
 
-          await this.sendLiveAlert(guild, notif, twitchInfo);
+          await this.sendLiveAlert(guild, notif, {
+            displayName: notif.displayName || notif.channelName,
+            profileImageUrl: notif.profileImageUrl || "",
+            stream: streamData,
+          });
 
           // Falls ein Discord-Mitglied verknüpft ist: Live-Rolle vergeben & Live-Kanal erstellen
           if (notif.linkedDiscordUserId) {
-            await this.handleLinkedMemberLive(guild, notif, twitchInfo);
+            await this.handleLinkedMemberLive(guild, notif, streamData);
           }
 
           this.saveNotifications();
@@ -289,16 +411,19 @@ class StreamNotificationService {
   public async sendLiveAlert(
     guild: any, 
     notif: StreamNotification, 
-    twitchInfo: { displayName: string; profileImageUrl: string; stream: any }
+    streamInfo: { displayName: string; profileImageUrl: string; stream: any }
   ) {
     const channel = guild.channels.cache.get(notif.discordChannelId);
     if (!channel || !channel.isTextBased()) return;
 
-    const stream = twitchInfo.stream;
-    const streamUrl = `https://twitch.tv/${notif.channelName}`;
-    const streamTitle = stream?.title || `${notif.displayName} ist live auf Twitch!`;
-    const gameName = stream?.game || "Just Chatting";
-    const viewers = stream?.viewersCount || 0;
+    const isYoutube = notif.platform === "youtube";
+    const stream = streamInfo.stream;
+    const streamUrl = isYoutube 
+      ? `https://youtube.com/watch?v=${stream?.id}`
+      : `https://twitch.tv/${notif.channelName}`;
+
+    const streamTitle = stream?.title || `${notif.displayName} ist jetzt live!`;
+    const gameName = stream?.game || (isYoutube ? "YouTube Live" : "Just Chatting");
     const previewUrl = stream?.previewImageUrl ? `${stream.previewImageUrl}?t=${Date.now()}` : "";
 
     // Ping festlegen
@@ -310,26 +435,32 @@ class StreamNotificationService {
     }
 
     const streamerName = notif.displayName || notif.channelName;
-    const defaultMsg = `📢 **${streamerName}** ist jetzt live auf Twitch!`;
+    const defaultMsg = isYoutube
+      ? `📢 **${streamerName}** ist jetzt live auf YouTube!`
+      : `📢 **${streamerName}** ist jetzt live auf Twitch!`;
+
     const content = `${ping}${notif.customMessage ? notif.customMessage.replace("{streamer}", streamerName).replace("{game}", gameName) : defaultMsg}`;
 
     const embed = new EmbedBuilder()
-      .setColor(0x9146ff) // Twitch Lila
+      .setColor(isYoutube ? 0xff0000 : 0x9146ff) // YouTube Rot oder Twitch Lila
       .setAuthor({
-        name: `${notif.displayName} ist jetzt LIVE!`,
+        name: `${streamerName} ist jetzt LIVE auf ${isYoutube ? "YouTube" : "Twitch"}!`,
         iconURL: notif.profileImageUrl || undefined,
         url: streamUrl,
       })
       .setTitle(streamTitle)
       .setURL(streamUrl)
-      .setDescription(`Schaut jetzt live vorbei und seid im Chat dabei!`)
+      .setDescription(`Schaut jetzt live vorbei und seid im Stream dabei!`)
       .addFields(
-        { name: "🎮 Spiel / Kategorie", value: `**${gameName}**`, inline: true },
-        { name: "👥 Zuschauer", value: `${viewers}`, inline: true },
-        { name: "🔗 Zum Stream", value: `[Hier zuschauen](${streamUrl})`, inline: true }
+        { name: "🎮 Kategorie", value: `**${gameName}**`, inline: true },
+        { name: "🔗 Zum Stream", value: `[Hier klicken zum Stream](${streamUrl})`, inline: true }
       )
-      .setFooter({ text: "GLGBot Live-Alerts | Twitch" })
+      .setFooter({ text: `GLGBot Live-Alerts | ${isYoutube ? "YouTube" : "Twitch"}` })
       .setTimestamp();
+
+    if (stream?.viewersCount) {
+      embed.addFields({ name: "👥 Zuschauer", value: `${stream.viewersCount}`, inline: true });
+    }
 
     if (notif.profileImageUrl) {
       embed.setThumbnail(notif.profileImageUrl);
@@ -346,7 +477,7 @@ class StreamNotificationService {
   }
 
   // Verknüpftes Mitglied: Rolle & Kanal erzeugen
-  private async handleLinkedMemberLive(guild: any, notif: StreamNotification, twitchInfo: any) {
+  private async handleLinkedMemberLive(guild: any, notif: StreamNotification, streamData: any) {
     try {
       const member: GuildMember | null = await guild.members.fetch(notif.linkedDiscordUserId!).catch(() => null);
       if (!member) return;
@@ -359,12 +490,13 @@ class StreamNotificationService {
         }
       }
 
-      // Kanal anlegen via liveStreamService.startLive
-      const streamUrl = `https://twitch.tv/${notif.channelName}`;
+      const isYoutube = notif.platform === "youtube";
+      const streamUrl = isYoutube ? `https://youtube.com/watch?v=${streamData?.id}` : `https://twitch.tv/${notif.channelName}`;
+
       await liveStreamService.startLive(member, {
         url: streamUrl,
-        title: twitchInfo.stream?.title,
-        game: twitchInfo.stream?.game,
+        title: streamData?.title,
+        game: streamData?.game,
       });
     } catch (e) {
       console.error("[StreamNotification] Fehler bei verknüpftem Mitglied (Live):", e);
