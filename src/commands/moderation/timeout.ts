@@ -98,10 +98,19 @@ const timeoutCommand: Command = {
         .addFields(
           { name: "Fall-ID", value: `#${modCase.id}`, inline: true },
           { name: "Dauer", value: durationLabel, inline: true },
-          { name: "Moderator", value: `<@${interaction.user.id}>`, inline: true },
-          { name: "Begründung", value: reason, inline: false }
-        )
-        .setTimestamp();
+          { name: "Moderator", value: `<@${interaction.user.id}>`, inline: true }
+        );
+
+      if (durationSeconds > 0 && modCase.xpLost) {
+        embed.addFields({
+          name: "📉 XP-Abzug",
+          value: `-${modCase.xpLost} XP (Neues Level: **${modCase.newLevel ?? 1}**)`,
+          inline: true,
+        });
+      }
+
+      embed.addFields({ name: "Begründung", value: reason, inline: false });
+      embed.setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
     } catch (error: any) {

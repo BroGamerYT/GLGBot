@@ -12,3 +12,4 @@ deploy.tar.gz
 data/
 data_from_server/
 .env.from_server
+*.tsbuildinfo

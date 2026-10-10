@@ -41,15 +41,25 @@ const rankCommand: Command = {
       .setThumbnail(targetUser.displayAvatarURL())
       .addFields(
         { name: "🏆 Rang", value: `#${rank}`, inline: true },
-        { name: "⭐ Level", value: `${progress.level}`, inline: true },
+        { name: "⭐ Level", value: progress.isMaxLevel ? `${progress.level} 👑 MAX` : `${progress.level}`, inline: true },
         { name: "✨ Gesamt-XP", value: `${stats.xp.toLocaleString("de-DE")} XP`, inline: true },
         {
-          name: `Fortschritt zu Level ${progress.level + 1}`,
-          value: `\`[${progressBar}]\` **${progress.progressPercent}%** (${progress.currentXp} / ${progress.requiredXp} XP)`,
+          name: progress.isMaxLevel ? "👑 Maximales Level erreicht!" : `Fortschritt zu Level ${progress.level + 1}`,
+          value: progress.isMaxLevel
+            ? `\`[${"█".repeat(12)}]\` **100% (MAX LEVEL ${progress.level})**`
+            : `\`[${progressBar}]\` **${progress.progressPercent}%** (${progress.currentXp} / ${progress.requiredXp} XP)`,
           inline: false,
         },
         { name: "💬 Chat-Nachrichten", value: `${stats.messagesCount.toLocaleString("de-DE")}`, inline: true },
-        { name: "🎙️ Voice-Zeit", value: statsService.formatMinutes(stats.voiceMinutes), inline: true }
+        { name: "🎙️ Voice-Zeit", value: statsService.formatMinutes(stats.voiceMinutes), inline: true },
+        {
+          name: "📊 Woher stammen die XP?",
+          value:
+            `• 💬 **Chat:** ${stats.messagesCount.toLocaleString("de-DE")} Nachrichten (~${(stats.messagesCount * 20).toLocaleString("de-DE")} XP)\n` +
+            `• 🎙️ **Voice:** ${statsService.formatMinutes(stats.voiceMinutes)} (~${(stats.voiceMinutes * 5).toLocaleString("de-DE")} XP)\n` +
+            `• 👑 **Stufen-Cap:** Level ${progress.level} / ${statsService.getConfig(interaction.guild.id).maxLevel || 25}`,
+          inline: false,
+        }
       )
       .setFooter({ text: "GermanyLanGame Level-System" })
       .setTimestamp();

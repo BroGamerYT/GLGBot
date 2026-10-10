@@ -1,14 +1,33 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
-  LifeBuoy, Newspaper, Rocket, KeyRound, ScrollText, Shield, Mic, Radio, Bell, Gift, Terminal, Wrench, ChevronRight,
+  LifeBuoy,
+  Newspaper,
+  Rocket,
+  KeyRound,
+  ScrollText,
+  Shield,
+  Mic,
+  Radio,
+  Bell,
+  Gift,
+  Terminal,
+  Wrench,
+  ChevronRight,
+  Trophy,
+  Ticket,
+  FileText,
+  Sparkles,
+  ShieldAlert,
 } from "lucide-react";
 
-export const metadata = { title: "Hilfe | GLGBot Panel" };
+export const metadata = { title: "Hilfe & Befehle | GLGBot Panel" };
 
 const SECTIONS = [
   { id: "schnellstart", title: "Schnellstart", icon: Rocket },
   { id: "dashboard", title: "Dashboard & Login", icon: KeyRound },
+  { id: "level", title: "Level & Talk-Partner", icon: Trophy },
+  { id: "tickets", title: "Support-Tickets", icon: Ticket },
   { id: "regeln", title: "Regeln & Freischaltung", icon: ScrollText },
   { id: "rollen", title: "Rollen & Benachrichtigungen", icon: Shield },
   { id: "voice", title: "Voice-Manager", icon: Mic },
@@ -16,6 +35,8 @@ const SECTIONS = [
   { id: "alerts", title: "Stream-Alerts", icon: Bell },
   { id: "freegames", title: "Free-Games", icon: Gift },
   { id: "news", title: "Game-News", icon: Newspaper },
+  { id: "audit", title: "Silent Audit-Logs", icon: FileText },
+  { id: "moderation", title: "Moderations-Suite", icon: ShieldAlert },
   { id: "befehle", title: "Alle Befehle", icon: Terminal },
   { id: "probleme", title: "Probleme & Lösungen", icon: Wrench },
 ];
@@ -68,36 +89,68 @@ function Steps({ items }: { items: ReactNode[] }) {
 
 const COMMANDS: { group: string; items: [string, string, string][] }[] = [
   {
-    group: "Für alle",
+    group: "Community & Ranglisten (Für alle)",
     items: [
-      ["/ping", "Zeigt, wie schnell der Bot antwortet.", "Alle"],
-      ["/free-games list", "Zeigt dir alle gerade kostenlosen Spiele (nur für dich sichtbar).", "Alle"],
-      ["/voice lock | unlock", "Eigene Lobby sperren / wieder öffnen.", "Lobby-Besitzer"],
-      ["/voice hide | unhide", "Eigene Lobby verstecken / wieder zeigen.", "Lobby-Besitzer"],
-      ["/voice name | limit | bitrate", "Name, Personenlimit (0–99) oder Tonqualität ändern.", "Lobby-Besitzer"],
-      ["/voice permit | reject", "Jemanden reinlassen bzw. rauswerfen und sperren.", "Lobby-Besitzer"],
-      ["/voice transfer", "Lobby an jemanden in der Lobby übergeben.", "Lobby-Besitzer"],
-      ["/voice claim", "Lobby übernehmen, wenn der Besitzer gegangen ist.", "Alle in der Lobby"],
-      ["/twitch-live start | stop", "Sich selbst als live melden bzw. Live-Status beenden.", "Alle"],
+      ["/help", "Zeigt die strukturierte Hilfe-Übersicht und Links zum Webinterface & Support.", "Alle"],
+      ["/rank [mitglied]", "Zeigt dein Level, aktuelle XP, Server-Rang und Fortschrittsbalken an.", "Alle"],
+      ["/leaderboard [kategorie]", "Zeigt die Top 10 Rangliste (Gesamt-XP, Voice-Minuten, Chat-Nachrichten).", "Alle"],
+      ["/voice-stats [mitglied]", "Zeigt deine Voice-Aktivität, Online-Dauer und Top Talk-Partner.", "Alle"],
+      ["/top-voice", "Rangliste der aktivsten Gesprächs-Duos und Voice-Nutzer auf dem Server.", "Alle"],
+      ["/suggest [vorschlag]", "Reicht einen Server-Vorschlag mit Abstimmungs-Buttons im Feedback-Kanal ein.", "Alle"],
+      ["/free-games list", "Zeigt alle aktuell kostenlosen Spiele (ephemeral, nur für dich sichtbar).", "Alle"],
+      ["/ping", "Prüft die Latenz und Erreichbarkeit des Bots.", "Alle"],
+      ["/twitch-live start | stop", "Sich selbst als live melden bzw. Live-Status vorzeitig beenden.", "Alle"],
     ],
   },
   {
-    group: "Für Admins",
+    group: "VoiceMaster Lobbys (Lobby-Besitzer)",
     items: [
-      ["/setup-rules post", "Legt #regeln und #berechtigungen an und postet Regeln + Rollen-Panel neu.", "Administrator"],
-      ["/setup-rules lock bestaetigen:True", "Regel-Sperre einschalten: nur Freigeschaltete sehen den Server.", "Administrator"],
-      ["/setup-rules unlock", "Regel-Sperre wieder aufheben.", "Administrator"],
-      ["/setup-roles auto", "Erstellt fehlende Rollen (Gast, bn.live, bn.free, Live) und #free-games.", "Rollen verwalten"],
-      ["/setup-roles set", "Rollen und Free-Games-Kanal von Hand zuweisen.", "Rollen verwalten"],
-      ["/setup-roles panel | status", "Rollen-Panel in einen Kanal posten / Einstellungen anzeigen.", "Rollen verwalten"],
-      ["/setup-voice set | status | disable", "Join-to-Create-Kanal festlegen, anzeigen, abschalten.", "Kanäle verwalten"],
-      ["/voice-panel", "Steuerungs-Panel für Lobbys in den aktuellen Kanal posten.", "Kanäle verwalten"],
-      ["/setup-live set | status | disable", "Live-System einrichten (Live-Rolle, Kategorie, Kanal-Art).", "Kanäle verwalten"],
-      ["/streamer add | edit | remove", "Streamer für Live-Alerts hinzufügen, ändern, entfernen.", "Kanäle verwalten"],
-      ["/streamer list | check", "Alle Streamer anzeigen / sofort auf Live-Status prüfen.", "Kanäle verwalten"],
-      ["/free-games post", "Neue Gratis-Spiele sofort posten (erneut:True = alle nochmal, ohne Ping).", "Server verwalten"],
-      ["/free-games einstellungen", "Stores an/aus (Epic, Steam, GOG, andere, Epic-Vorschau).", "Server verwalten"],
-      ["/dm", "Private Nachricht im Namen des Servers an ein Mitglied senden.", "Nachrichten verwalten"],
+      ["/voice lock | unlock", "Eigene Lobby für andere sperren / wieder entsperren.", "Lobby-Besitzer"],
+      ["/voice hide | unhide", "Eigene Lobby unsichtbar machen / wieder sichtbar schalten.", "Lobby-Besitzer"],
+      ["/voice name [name]", "Lobby umbenennen (auch Spielname wählbar).", "Lobby-Besitzer"],
+      ["/voice limit [anzahl]", "Personenlimit der Lobby ändern (0 = unbegrenzt, bis 99).", "Lobby-Besitzer"],
+      ["/voice bitrate [kbps]", "Audioqualität der Sprachlobby anpassen.", "Lobby-Besitzer"],
+      ["/voice permit [user]", "Einem Mitglied gezielt Zutritt zur gesperrten Lobby gewähren.", "Lobby-Besitzer"],
+      ["/voice reject [user]", "Jemanden aus der Lobby werfen und den Wiedereintritt sperren.", "Lobby-Besitzer"],
+      ["/voice transfer [user]", "Lobby-Besitz an eine andere Person in der Lobby übergeben.", "Lobby-Besitzer"],
+      ["/voice claim", "Lobby übernehmen, wenn der bisherige Besitzer den Kanal verlassen hat.", "Alle in Lobby"],
+    ],
+  },
+  {
+    group: "Moderation & Fallverwaltung",
+    items: [
+      ["/warn [user] [grund]", "Verwarnt ein Mitglied mit automatischer DM und speichert Fall-ID.", "Mitglieder kicken"],
+      ["/timeout [user] [dauer] [grund]", "Schaltet ein Mitglied für 1m bis 1w stumm (Discord Timeout).", "Stummschalten"],
+      ["/kick [user] [grund]", "Kickt ein Mitglied vom Discord-Server.", "Mitglieder kicken"],
+      ["/ban [user] [grund] [delete_days]", "Bannt ein Mitglied dauerhaft und löscht optional Nachrichten (0-7 Tage).", "Bannen"],
+      ["/unban [user_id] [grund]", "Hebt den Bann eines Nutzers anhand der Discord-ID auf.", "Bannen"],
+      ["/cases view [id]", "Zeigt Details zu einem gespeicherten Moderationsfall an.", "Nachrichten verwalten"],
+      ["/cases user [user]", "Listet alle bisherigen Verwarnungen und Strafen eines Mitglieds auf.", "Nachrichten verwalten"],
+      ["/cases delete [id]", "Löscht einen Moderationsfall aus der Datenbank.", "Administrator"],
+      ["/clear [anzahl] [user]", "Löscht 1 bis 100 Nachrichten (optional nur von einem bestimmten Nutzer).", "Nachrichten verwalten"],
+      ["/dm [user] [nachricht]", "Sendet eine offizielle DM im Namen des Servers (mit Log).", "Nachrichten verwalten"],
+    ],
+  },
+  {
+    group: "Administration & Server-Setup",
+    items: [
+      ["/setup-tickets panel", "Postet das interaktive Support-Ticket-Panel in den aktuellen Kanal.", "Kanäle verwalten"],
+      ["/setup-logs set [channel]", "Richtet den Silent-Audit-Log Kanal ein (stille Benachrichtigungen).", "Server verwalten"],
+      ["/setup-logs toggle [modul]", "Schaltet einzelne Audit-Kategorien (Rollen, Kanäle, Server, etc.) an/aus.", "Server verwalten"],
+      ["/backup create [name]", "Erstellt ein vollständiges Snapshot-Backup (Rollen, Kanäle, Berechtigungen).", "Administrator"],
+      ["/backup list", "Zeigt alle gespeicherten Server-Backups mit Datum und Größe an.", "Administrator"],
+      ["/backup restore [backup_id]", "Stellt Rollen und Kanalstrukturen aus einem Backup wieder her.", "Administrator"],
+      ["/setup-rules post", "Legt #regeln und #berechtigungen an und postet Regeln + Rollen-Panel.", "Administrator"],
+      ["/setup-rules lock bestaetigen:True", "Aktiviert die Regel-Sperre: nur freigeschaltete Gäste sehen Kanäle.", "Administrator"],
+      ["/setup-rules unlock", "Hebt die Regel-Sperre wieder auf.", "Administrator"],
+      ["/setup-roles auto", "Erstellt automatisch alle benötigten Rollen und den #free-games Kanal.", "Rollen verwalten"],
+      ["/setup-roles set", "Weist Gast-, Live- und Benachrichtigungs-Rollen manuell zu.", "Rollen verwalten"],
+      ["/setup-voice set | status | disable", "Richtet den Join-to-Create VoiceMaster Kanal ein.", "Kanäle verwalten"],
+      ["/voice-panel", "Postet das interaktive Steuerungs-Panel für Lobbys in den Kanal.", "Kanäle verwalten"],
+      ["/setup-live set | status | disable", "Richtet das automatische Live-Streamer System ein.", "Kanäle verwalten"],
+      ["/streamer add | edit | remove | check", "Verwaltet Streamer (Twitch/YouTube) und prüft Live-Status.", "Kanäle verwalten"],
+      ["/free-games post | einstellungen", "Postet Gratis-Spiele sofort und konfiguriert unterstützte Stores.", "Server verwalten"],
+      ["/sticky set [nachricht] | remove", "Fixiert eine angeheftete Nachricht am Ende des aktuellen Kanals.", "Nachrichten verwalten"],
     ],
   },
 ];
@@ -105,12 +158,33 @@ const COMMANDS: { group: string; items: [string, string, string][] }[] = [
 export default function HelpPage() {
   return (
     <div className="max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
-          <LifeBuoy className="w-8 h-8 text-sky-400" />
-          Hilfe & Anleitung
-        </h1>
-        <p className="text-gray-400 text-sm mt-1">Alles, was GLGBot kann - und wie du es einrichtest.</p>
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
+            <LifeBuoy className="w-8 h-8 text-sky-400" />
+            Hilfe & Dokumentation
+          </h1>
+          <p className="text-gray-400 text-sm mt-1">
+            Vollständige Anleitung, alle 30+ Slash-Befehle und Systemkonfiguration für GLGBot.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Link
+            href="/changelog"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-discord-card hover:bg-discord-dark border border-discord-border text-sm text-gray-300 hover:text-white transition-all"
+          >
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span>Changelog</span>
+          </Link>
+          <Link
+            href="/stats"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-discord-card hover:bg-discord-dark border border-discord-border text-sm text-gray-300 hover:text-white transition-all"
+          >
+            <Trophy className="w-4 h-4 text-yellow-400" />
+            <span>Ranglisten</span>
+          </Link>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-[220px_1fr] gap-8">
@@ -119,7 +193,11 @@ export default function HelpPage() {
           <div className="sticky top-6 space-y-1">
             <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold px-3 mb-2">Inhalt</p>
             {SECTIONS.map((s) => (
-              <a key={s.id} href={`#${s.id}`} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-discord-card transition-all">
+              <a
+                key={s.id}
+                href={`#${s.id}`}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-discord-card transition-all"
+              >
                 <s.icon className="w-4 h-4" />
                 {s.title}
               </a>
@@ -134,78 +212,130 @@ export default function HelpPage() {
             <Steps
               items={[
                 <>
-                  <strong className="text-white">Bot-Rolle nach oben schieben.</strong> In Discord unter <em>Server-Einstellungen → Rollen</em> muss die Rolle des Bots{" "}
-                  <strong>über</strong> der Gast-, Live- und den Benachrichtigungs-Rollen stehen. Sonst darf der Bot diese Rollen nicht vergeben.
+                  <strong className="text-white">Bot-Rolle nach oben schieben:</strong> In Discord unter{" "}
+                  <em>Server-Einstellungen → Rollen</em> muss die Rolle des Bots <strong>über</strong> allen Rollen
+                  stehen, die er verwalten soll (Gast, Live, Benachrichtigungs-Rollen).
                 </>,
                 <>
-                  <strong className="text-white">Rollen anlegen:</strong> Unter <Link href="/roles" className="text-discord-blurple hover:underline">Rollen & Rechte</Link> auf
-                  „Rollen automatisch erstellen“ klicken (oder <Cmd>/setup-roles auto</Cmd>).
+                  <strong className="text-white">Rollen & Support einrichten:</strong> Im Dashboard unter{" "}
+                  <Link href="/roles" className="text-discord-blurple hover:underline">Rollen & Rechte</Link> auf
+                  „Rollen automatisch erstellen“ klicken (oder <Cmd>/setup-roles auto</Cmd>) und unter{" "}
+                  <Link href="/tickets" className="text-discord-blurple hover:underline">Support-Tickets</Link> das
+                  Ticket-Panel erstellen.
                 </>,
                 <>
-                  <strong className="text-white">Regeln posten:</strong> Unter <Link href="/rules" className="text-discord-blurple hover:underline">Regeln</Link> Text prüfen und
-                  „In Discord posten“ klicken. Dabei entstehen #regeln und #berechtigungen.
+                  <strong className="text-white">Regeln posten:</strong> Unter{" "}
+                  <Link href="/rules" className="text-discord-blurple hover:underline">Regeln</Link> den Text prüfen
+                  und „In Discord posten“ anklicken. Dabei entstehen #regeln und #berechtigungen.
                 </>,
                 <>
-                  <strong className="text-white">Regel-Sperre aktivieren</strong> (optional): Danach sehen neue Mitglieder nur #regeln, bis sie die Regeln akzeptieren.
+                  <strong className="text-white">Voice & Audit-Logs:</strong> Unter{" "}
+                  <Link href="/voice" className="text-discord-blurple hover:underline">Voice-Manager</Link> den Join-to-Create
+                  Kanal festlegen und unter <Link href="/logs" className="text-discord-blurple hover:underline">Audit-Logs</Link>{" "}
+                  den geschützten Logging-Kanal aktivieren.
                 </>,
                 <>
-                  <strong className="text-white">Voice einrichten:</strong> Unter <Link href="/voice" className="text-discord-blurple hover:underline">Voice-Manager</Link> den
-                  „Join to Create“-Kanal auswählen.
-                </>,
-                <>
-                  <strong className="text-white">Live & Free-Games:</strong> Unter <Link href="/live" className="text-discord-blurple hover:underline">Live-Streamer</Link> Streamer
-                  eintragen und unter <Link href="/free-games" className="text-discord-blurple hover:underline">Free-Games</Link> die Stores auswählen.
+                  <strong className="text-white">Live & Free-Games:</strong> Unter{" "}
+                  <Link href="/live" className="text-discord-blurple hover:underline">Live-Streamer</Link> Twitch/YouTube
+                  eintragen und unter <Link href="/free-games" className="text-discord-blurple hover:underline">Free-Games</Link>{" "}
+                  die gewünschten Spiele-Stores aktivieren.
                 </>,
               ]}
             />
           </Section>
 
           {/* Dashboard */}
-          <Section id="dashboard" title="Dashboard & Login" icon={KeyRound}>
+          <Section id="dashboard" title="Dashboard & Öffentliche Seiten" icon={KeyRound}>
             <p>
-              Das Dashboard ist nur nach dem Login mit Discord erreichbar. Reinkommen der <strong className="text-white">Server-Owner</strong> und alle Mitglieder mit der
-              Berechtigung <strong className="text-white">Administrator</strong> oder <strong className="text-white">Server verwalten</strong>.
+              Das Dashboard bietet getrennte Bereiche für Admins und für die allgemeine Community:
             </p>
+            <ul className="list-disc list-inside space-y-1.5 pl-1">
+              <li>
+                <strong className="text-white">Öffentlich erreichbar (ohne Login):</strong> Alle Mitglieder können{" "}
+                <Link href="/hilfe" className="text-discord-blurple hover:underline">/hilfe</Link>,{" "}
+                <Link href="/changelog" className="text-discord-blurple hover:underline">/changelog</Link> und die{" "}
+                <Link href="/stats" className="text-discord-blurple hover:underline">/stats</Link> Ranglisten frei im Browser
+                aufrufen.
+              </li>
+              <li>
+                <strong className="text-white">Admin-Bereich (mit Login):</strong> Der Zugriff auf Ticket-Chats,
+                Server-Backups, Logs und Bot-Konfiguration ist durch Discord-OAuth geschützt. Reinkommen der Server-Owner
+                sowie Mitglieder mit Administrator-Rechten oder in <Cmd>DASHBOARD_USER_IDS</Cmd>.
+              </li>
+            </ul>
+          </Section>
+
+          {/* Level & Talk-Partner */}
+          <Section id="level" title="Level-System & Talk-Partner Tracking" icon={Trophy}>
             <p>
-              Weitere Personen kannst du in der <code>.env</code> freischalten: <code>DASHBOARD_ROLE_IDS</code> (Rollen-IDs) oder <code>DASHBOARD_USER_IDS</code>{" "}
-              (Nutzer-IDs), jeweils mit Komma getrennt. Ein Login gilt 24 Stunden, abmelden kannst du unten in der Seitenleiste.
+              GLGBot belohnt aktive Community-Mitglieder im Chat und in Sprachkanälen mit XP und errechnet daraus
+              automatisch Level und Server-Ränge:
             </p>
-            <Note type="tip">
-              Eine Discord-ID bekommst du, indem du in Discord unter <em>Einstellungen → Erweitert</em> den <strong>Entwicklermodus</strong> einschaltest und dann per Rechtsklick
-              auf eine Person oder Rolle „ID kopieren“ wählst.
-            </Note>
+            <ul className="list-disc list-inside space-y-1.5 pl-1">
+              <li>
+                <strong className="text-white">Text-Chat XP:</strong> Jede Nachricht bringt zufällig 10–20 XP (mit 60
+                Sekunden Cooldown zum Schutz vor Spam).
+              </li>
+              <li>
+                <strong className="text-white">Voice-XP:</strong> Jede aktive Minute im Sprachkanal (nicht stummgestellt,
+                nicht taub, nicht im AFK-Kanal) belohnt mit 5 XP.
+              </li>
+              <li>
+                <strong className="text-white">Steilere XP-Kurve:</strong> Die Formel lautet{" "}
+                <code className="text-xs bg-discord-dark px-1.5 py-0.5 rounded text-indigo-300">400 × Level^1.55 + 100</code>.
+                Höhere Stufen erfordern kontinuierliche Aktivität und sind eine echte Auszeichnung.
+              </li>
+              <li>
+                <strong className="text-white">Talk-Partner Tracking:</strong> Der Bot misst minütlich, wer mit wem in
+                Sprachkanälen redet. Mit <Cmd>/voice-stats</Cmd> oder im Web-Dashboard unter Rangliste kannst du deine
+                persönlichen Top Talk-Partner und die serverweiten Top-Duos ansehen!
+              </li>
+            </ul>
+            <div className="flex gap-2 pt-1">
+              <Link
+                href="/stats"
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-discord-blurple/20 text-indigo-300 hover:bg-discord-blurple/30 font-medium transition-colors"
+              >
+                <Trophy className="w-3.5 h-3.5" />
+                Zur Live-Rangliste & Talk-Duos
+              </Link>
+            </div>
+          </Section>
+
+          {/* Support-Tickets */}
+          <Section id="tickets" title="Support-Ticket System" icon={Ticket}>
+            <p>
+              Mit dem integrierten Ticket-System können Mitglieder per Knopfdruck private Support-Räume öffnen:
+            </p>
+            <ul className="list-disc list-inside space-y-1.5 pl-1">
+              <li>
+                <strong className="text-white">Ticket-Panel:</strong> Unter <Link href="/tickets" className="text-discord-blurple hover:underline">Support-Tickets</Link>{" "}
+                kann mit einem Klick das Panel in #🎫・support gepostet werden.
+              </li>
+              <li>
+                <strong className="text-white">Echtzeit Live-Sync im Web:</strong> Admins sehen offene Tickets im Webinterface
+                mit 2-Sekunden Live-Sync. Eingehende Nachrichten, Embeds und Bilder aus Discord erscheinen sofort im Browser,
+                und Antworten können direkt aus dem Webmodal in den Discord-Kanal gesendet werden.
+              </li>
+              <li>
+                <strong className="text-white">Ticket schließen & Transkript:</strong> Beim Schließen wird ein vollständiges
+                Text-Transkript gespeichert und der Kanal nach 5 Sekunden aufgeräumt.
+              </li>
+            </ul>
           </Section>
 
           {/* Regeln */}
           <Section id="regeln" title="Regeln & Freischaltung" icon={ScrollText}>
             <p>
-              Der Bot postet eure Regeln schön formatiert in <strong className="text-white">#regeln</strong> - mit einem grünen Button <strong>„Regeln akzeptieren“</strong>. Wer
-              klickt, bekommt die <strong className="text-white">Gast-Rolle</strong> und sieht danach alle Kanäle, auch <strong className="text-white">#berechtigungen</strong> mit
-              den Benachrichtigungs-Buttons.
+              Der Bot postet eure Regeln schön formatiert in <strong className="text-white">#regeln</strong> - mit einem
+              grünen Button <strong>„Regeln akzeptieren“</strong>. Wer klickt, bekommt die{" "}
+              <strong className="text-white">Gast-Rolle</strong> und sieht danach alle freigegebenen Kanäle.
             </p>
-            <p className="font-semibold text-white">Regeln bearbeiten</p>
-            <p>
-              Auf der Seite{" "}
-              <Link href="/rules" className="text-discord-blurple hover:underline">Regeln</Link> kannst du Überschrift, Einleitung, jede einzelne Regel (Emoji, Titel, Text),
-              Reihenfolge und Schlusswort ändern. Unter „Vorschau“ siehst du, wie es in Discord aussieht. Nach dem Speichern auf <strong>„In Discord posten“</strong> klicken - die
-              alte Regel-Nachricht des Bots wird dabei ersetzt.
-            </p>
-            <p>Platzhalter im Text:</p>
-            <ul className="list-disc list-inside space-y-1 pl-1">
-              <li><Cmd>{"{server}"}</Cmd> - der Servername</li>
-              <li><Cmd>{"{@mops4ever}"}</Cmd> - wird zur anklickbaren Erwähnung dieses Mitglieds (Benutzername, Anzeigename oder Nickname)</li>
-              <li><Cmd>{"{permissions}"}</Cmd> - Link zum #berechtigungen-Kanal</li>
-            </ul>
             <p className="font-semibold text-white">Regel-Sperre</p>
             <p>
-              Ist die Sperre aktiv, sehen neue Mitglieder <strong>nur #regeln</strong>, bis sie die Regeln akzeptieren. Beim Einschalten bekommen alle, die schon auf dem Server
-              sind, automatisch die Gast-Rolle - es wird also niemand ausgesperrt. Aufheben geht jederzeit mit einem Klick.
+              Ist die Sperre aktiv, sehen neue Mitglieder <strong>nur #regeln</strong>, bis sie die Regeln akzeptieren.
+              Beim Einschalten bekommen alle, die schon auf dem Server sind, automatisch die Gast-Rolle.
             </p>
-            <Note type="info">
-              <strong>Pop-up beim Beitreten:</strong> Ein Bot darf beim Beitreten kein eigenes Fenster öffnen. Discord hat dafür aber das <strong>Regel-Screening</strong>:
-              <em> Server-Einstellungen → Community aktivieren → Onboarding/Sicherheitseinrichtung → Mitgliedschaftsregeln</em>. Bestätigt jemand dieses Pop-up, vergibt der Bot die
-              Gast-Rolle automatisch. Zusätzlich schickt der Bot jedem neuen Mitglied eine Willkommens-DM mit einem Link zu #regeln.
-            </Note>
           </Section>
 
           {/* Rollen */}
@@ -225,21 +355,18 @@ export default function HelpPage() {
                 </div>
               ))}
             </div>
-            <p>
-              Welche Discord-Rolle welche Aufgabe hat, stellst du unter <Link href="/roles" className="text-discord-blurple hover:underline">Rollen & Rechte</Link> ein. Dort legst du
-              auch den Free-Games-Kanal fest.
-            </p>
           </Section>
 
           {/* Voice */}
           <Section id="voice" title="Voice-Manager (Join to Create)" icon={Mic}>
             <p>
-              Betritt jemand den <strong className="text-white">„Join to Create“-Kanal</strong>, erstellt der Bot sofort eine eigene Lobby
-              („🔊・Lobby von Name“) und verschiebt die Person hinein. Ist die Lobby leer, wird sie automatisch gelöscht.
+              Betritt jemand den <strong className="text-white">„Join to Create“-Kanal</strong>, erstellt der Bot sofort
+              eine eigene Lobby („🔊・Lobby von Name“) und verschiebt die Person hinein. Ist die Lobby leer, wird sie
+              automatisch gelöscht.
             </p>
             <p>
-              Der Besitzer steuert seine Lobby über das <strong className="text-white">Steuerungs-Panel</strong> im Chat der Lobby oder mit <Cmd>/voice …</Cmd>: umbenennen
-              (auch auf das gerade gespielte Spiel), Personenlimit, sperren, verstecken, Leute reinlassen oder rauswerfen, eigener Textkanal und Besitz übergeben.
+              Der Besitzer steuert seine Lobby über das Steuerungs-Panel im Voice-Chat oder mit <Cmd>/voice …</Cmd>:
+              umbenennen, Personenlimit, sperren, verstecken, Bitrate und Besitz übertragen.
             </p>
             <Note type="warn">
               Discord erlaubt pro Kanal nur <strong>2 Umbenennungen in 10 Minuten</strong>. Wer öfter umbenennt, muss kurz warten.
@@ -249,90 +376,81 @@ export default function HelpPage() {
           {/* Live */}
           <Section id="live" title="Live-System (temporäre Live-Rolle & Kanal)" icon={Radio}>
             <p>
-              Wer live ist, bekommt automatisch die <strong className="text-white">Live-Rolle</strong> und einen eigenen Kanal <strong className="text-white">„🔴・Name ist live“</strong> in
-              der Kategorie „🔴 Live Streams“. Endet der Stream, verschwinden Rolle und Kanal wieder.
+              Wer live ist, bekommt automatisch die <strong className="text-white">Live-Rolle</strong> und einen eigenen Kanal{" "}
+              <strong className="text-white">„🔴・Name ist live“</strong> in der Kategorie „🔴 Live Streams“. Endet der Stream,
+              verschwinden Rolle und Kanal wieder.
             </p>
-            <p>Der Bot erkennt „live“ auf vier Wegen:</p>
-            <ul className="list-disc list-inside space-y-1 pl-1">
-              <li><strong className="text-white">Discord-Status</strong> zeigt „Streamt“ (Twitch/YouTube mit Discord verknüpft) - wenn „Auto-Erkennung“ an ist</li>
-              <li><strong className="text-white">Stream-Alert</strong> mit verknüpftem Discord-Mitglied meldet „live“ (siehe unten)</li>
-              <li><Cmd>/twitch-live start</Cmd> - selbst melden, beenden mit <Cmd>/twitch-live stop</Cmd></li>
-              <li>Ein Admin vergibt die Live-Rolle von Hand</li>
-            </ul>
-            <p>
-              Rolle und Kanal bleiben, <strong>solange mindestens einer dieser Wege „live“ meldet</strong>. Wechselt z. B. dein Discord-Status, während du laut Twitch noch live bist,
-              bleibt alles bestehen.
-            </p>
+            <p>Der Bot erkennt „live“ über Twitch/YouTube Stream-Alerts, Discord-Status („Streamt“) oder <Cmd>/twitch-live start</Cmd>.</p>
           </Section>
 
           {/* Alerts */}
           <Section id="alerts" title="Stream-Alerts (Twitch & YouTube)" icon={Bell}>
             <p>
-              Unter <Link href="/live" className="text-discord-blurple hover:underline">Live-Streamer</Link> oder mit <Cmd>/streamer add</Cmd> trägst du Twitch- oder
-              YouTube-Kanäle ein. Der Bot prüft jede Minute und postet einen Alert mit Titel, Spiel und Vorschaubild, sobald jemand live geht.
+              Unter <Link href="/live" className="text-discord-blurple hover:underline">Live-Streamer</Link> oder mit{" "}
+              <Cmd>/streamer add</Cmd> trägst du Kanäle ein. Der Bot prüft jede Minute und postet einen Alert mit Titel,
+              Spiel und Vorschaubild, sobald jemand live geht.
             </p>
-            <p>Eigener Text mit Platzhaltern:</p>
-            <ul className="list-disc list-inside space-y-1 pl-1">
-              <li><Cmd>{"{streamer}"}</Cmd> Name · <Cmd>{"{game}"}</Cmd> Spiel · <Cmd>{"{title}"}</Cmd> Stream-Titel · <Cmd>{"{url}"}</Cmd> Link</li>
-              <li><Cmd>{"{ping}"}</Cmd> bestimmt, wo die Ping-Rolle steht (sonst ganz vorne)</li>
-            </ul>
-            <p className="font-semibold text-white">Nur ein Alert pro Stream</p>
-            <ul className="list-disc list-inside space-y-1 pl-1">
-              <li>Kurze Abbrüche oder Neustarts des Streams lösen keinen zweiten Alert aus.</li>
-              <li>Als offline gilt ein Stream erst nach <strong>5 Minuten</strong> ohne Signal.</li>
-              <li>Pro Streamer höchstens <strong>ein Alert in 30 Minuten</strong>.</li>
-              <li>Angekündigte (geplante) YouTube-Streams zählen nicht als live.</li>
-            </ul>
-            <Note type="tip">
-              Verknüpfst du einen Streamer mit einem <strong>Discord-Mitglied</strong>, bekommt diese Person beim Stream-Start automatisch die Live-Rolle und ihren Live-Kanal.
-            </Note>
           </Section>
 
           {/* Free-Games */}
           <Section id="freegames" title="Free-Games" icon={Gift}>
             <p>
-              Der Bot prüft <strong className="text-white">alle 30 Minuten</strong>, ob es Spiele komplett kostenlos gibt, und postet neue in den Free-Games-Kanal - mit Bild, altem
-              Preis, Enddatum und einem Button „Kostenlos sichern“.
-            </p>
-            <ul className="list-disc list-inside space-y-1 pl-1">
-              <li><strong className="text-white">Epic Games</strong> kommt direkt von Epic (optional mit Vorschau „Nächste Woche gratis“).</li>
-              <li><strong className="text-white">Steam, GOG</strong> und weitere Stores kommen von GamerPower.</li>
-              <li>Nur Vollversionen - keine DLCs oder Ingame-Items. Jedes Spiel wird nur einmal gepostet.</li>
-              <li>Mehrere Spiele kommen gesammelt in <strong>einer</strong> Nachricht - nur die erste macht einen Ton, weitere gehen lautlos raus.</li>
-              <li>Die Buttons <strong>„In Steam öffnen“</strong> / <strong>„Im Epic Launcher öffnen“</strong> öffnen direkt die App (dein Browser fragt einmal kurz nach).</li>
-              <li><strong>Key-Verlosungen</strong> (Alienware Arena, IndieGala & Co. - dort braucht man ein Konto) sind standardmäßig ausgeblendet.</li>
-            </ul>
-            <p>
-              Welche Stores gemeldet werden, stellst du unter <Link href="/free-games" className="text-discord-blurple hover:underline">Free-Games</Link> ein. Dort siehst du auch
-              alle aktuellen Angebote und kannst sofort posten.
+              Der Bot prüft <strong className="text-white">alle 30 Minuten</strong>, ob es Spiele komplett kostenlos gibt,
+              und postet neue in den Free-Games-Kanal - mit Bild, altem Preis, Enddatum und Buttons für Steam / Epic Launcher.
             </p>
           </Section>
 
           {/* Game-News */}
           <Section id="news" title="Game-News (Updates & Treiber)" icon={Newspaper}>
             <p>
-              Unter <Link href="/news" className="text-discord-blurple hover:underline">Game-News</Link> wählst du Spiele und Treiber aus. Der Bot prüft alle{" "}
-              <strong className="text-white">15 Minuten</strong> und postet neue Beiträge in den gewählten Kanal - optional mit Ping-Rolle.
+              Unter <Link href="/news" className="text-discord-blurple hover:underline">Game-News</Link> wählst du Spiele und
+              Treiber aus. Der Bot postet neue Patchnotes und Treiberversionen (NVIDIA, AMD, Intel) automatisch.
             </p>
-            <ul className="list-disc list-inside space-y-1 pl-1">
-              <li><strong className="text-white">Spiele:</strong> Ankündigungen und Patchnotes von Steam (z. B. GTA V, CS2, Rust). Mit „Nur Patchnotes“ kommen nur Updates.</li>
-              <li><strong className="text-white">Minecraft:</strong> neue Versionen der Java Edition, auf Wunsch auch Snapshots.</li>
-              <li><strong className="text-white">Grafikkarten:</strong> NVIDIA GeForce, AMD Radeon und Intel Arc.</li>
-              <li><strong className="text-white">CPU / Chipsatz:</strong> AMD Ryzen Chipsatz-Treiber (AM4 & AM5).</li>
-              <li><strong className="text-white">Eigene Steam-Spiele:</strong> Steam-Store-Link oder App-ID einfügen, „Suchen“ und hinzufügen.</li>
+          </Section>
+
+          {/* Silent Audit-Logs */}
+          <Section id="audit" title="Silent Audit-Logs (Stille Benachrichtigungen)" icon={FileText}>
+            <p>
+              GLGBot überwacht sicherheitsrelevante Ereignisse auf dem Server und dokumentiert sie in einem internen
+              Admin-Log-Kanal (<Cmd>#🛡️・audit-logs</Cmd>):
+            </p>
+            <ul className="list-disc list-inside space-y-1.5 pl-1">
+              <li>
+                <strong className="text-white">Stille Benachrichtigungen:</strong> Alle Log-Nachrichten werden mit dem
+                Discord-Flag <Cmd>SuppressNotifications</Cmd> versendet. Es gibt keine störenden Pings oder Benachrichtigungstöne.
+              </li>
+              <li>
+                <strong className="text-white">Erfasser-Tracking:</strong> Der Bot ermittelt über das Discord-Audit-Log,{" "}
+                <em>welcher Moderator oder Admin</em> eine Rolle vergeben, einen Kanal gelöscht oder die Servereinstellungen
+                geändert hat.
+              </li>
+              <li>
+                <strong className="text-white">Gefilterte Kategorien:</strong> Rollen, Kanäle, Servereinstellungen und
+                Moderation können im Dashboard einzeln an- oder abgewählt werden.
+              </li>
             </ul>
+          </Section>
+
+          {/* Moderations-Suite */}
+          <Section id="moderation" title="Moderations-Suite & Fall-Management" icon={ShieldAlert}>
             <p>
-              Mit <strong>„Rollen & Kanäle anlegen“</strong> erstellt der Bot <strong>bn.gamenews</strong> + <strong>#📰・game-news</strong> für Spiele und{" "}
-              <strong>bn.treiber</strong> + <strong>#🖥️・treiber-news</strong> für Treiber - getrennt, jeder Kanal nur mit der passenden Rolle sichtbar. Ein Klick auf eine Kachel zeigt, <strong>was enthalten ist</strong>, und die letzten echten Beiträge.
+              Vollständige Moderationswerkzeuge mit integriertem Fall-Tracking und Revisionssicherheit:
             </p>
-            <p>
-              Beim Hinzufügen wird nichts Altes gepostet - nur was ab dann neu erscheint. Mit dem <strong>Senden-Symbol</strong> kannst du den neuesten Beitrag sofort zum
-              Testen posten (ohne Ping).
-            </p>
-            <Note type="info">
-              Quellen mit <strong>Beta</strong>-Kennzeichnung (AMD, Intel) liest der Bot direkt von den Hersteller-Webseiten. Ändern die ihre Seite, kann die Meldung ausfallen,
-              bis der Bot angepasst ist.
-            </Note>
+            <ul className="list-disc list-inside space-y-1.5 pl-1">
+              <li>
+                <strong className="text-white">Strafen aussprechen:</strong> <Cmd>/warn</Cmd>, <Cmd>/timeout</Cmd>,{" "}
+                <Cmd>/kick</Cmd> und <Cmd>/ban</Cmd> benachrichtigen das betroffene Mitglied automatisch per DM über den Grund
+                und die Laufzeit.
+              </li>
+              <li>
+                <strong className="text-white">Fall-Verwaltung:</strong> Mit <Cmd>/cases user [user]</Cmd> sieht das Team
+                sofort die gesamte Vorgeschichte eines Spielers.
+              </li>
+              <li>
+                <strong className="text-white">Chat-Bereinigung:</strong> <Cmd>/clear 50</Cmd> bereinigt Spam blitzschnell
+                (optional gefiltert nach einem bestimmten Nutzer).
+              </li>
+            </ul>
           </Section>
 
           {/* Befehle */}
@@ -373,27 +491,19 @@ export default function HelpPage() {
               ],
               [
                 "Slash-Befehle tauchen nicht auf",
-                "Nach einem Update müssen die Befehle bei Discord neu registriert werden. Das macht sync_server.bat automatisch (Option 1 → „J“). Danach Discord einmal neu laden (Strg+R).",
+                "Nach einem Update müssen die Befehle bei Discord neu registriert werden. Das macht der Bot beim Neustart oder über sync_server.bat. Danach Discord einmal mit Strg+R neu laden.",
               ],
               [
                 "Im Dashboard steht „Der Bot ist nicht erreichbar“",
-                "Der Bot läuft nicht oder ist nicht auf dem neuesten Stand. Auf dem Server mit „pm2 status“ prüfen und mit „pm2 restart discord-bot“ neu starten.",
+                "Prüfe auf dem Server mit „pm2 status“, ob discord-bot und discord-web online sind. Bei Bedarf mit „pm2 restart all“ neu starten.",
               ],
               [
                 "Login: „Dir fehlen die Rechte“",
-                "Du brauchst auf dem Discord-Server Administrator oder „Server verwalten“ - oder deine ID muss in DASHBOARD_USER_IDS stehen.",
+                "Du brauchst auf dem Discord-Server Administrator oder „Server verwalten“ - oder deine ID muss in DASHBOARD_USER_IDS in der .env hinterlegt sein.",
               ],
               [
-                "Regel-Sperre lässt sich nicht aktivieren",
-                "Die Seite „Regeln“ zeigt den Grund an. Meist fehlt der Bot-Rolle „Kanäle ansehen“/„Rollen verwalten“ oder sie steht unter der Gast-Rolle.",
-              ],
-              [
-                "Ein Streamer wird nicht als live erkannt",
-                "Kanalnamen prüfen (Twitch: der Name aus der URL, YouTube: der @Handle). Mit /streamer check sofort prüfen. Twitch/YouTube können kurz nicht erreichbar sein - dann wird nichts geändert.",
-              ],
-              [
-                "Free-Games werden nicht gepostet",
-                "Unter „Rollen & Rechte“ muss ein Free-Games-Kanal gesetzt sein und der Bot muss dort schreiben dürfen. Unter „Free-Games“ prüfen, ob die Stores eingeschaltet sind.",
+                "Free-Games oder News werden nicht gepostet",
+                "Prüfe unter Rollen & Rechte, ob der jeweilige Kanal zugewiesen ist und der Bot dort Schreibrechte besitzt.",
               ],
             ].map(([q, a]) => (
               <details key={q} className="group rounded-xl bg-discord-dark border border-discord-border">

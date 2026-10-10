@@ -2,8 +2,9 @@ import fs from "fs";
 import path from "path";
 import { Guild, User, GuildMember, EmbedBuilder, Client } from "discord.js";
 import { auditLogService } from "./auditLogService";
+import { statsService } from "./statsService";
 
-export type ModAction = "WARN" | "TIMEOUT" | "KICK" | "BAN" | "UNBAN";
+export type ModAction = "WARN" | "TIMEOUT" | "KICK" | "BAN" | "UNBAN" | "PRISON" | "UNPRISON" | "BAD_NAME" | "BLACKLIST";
 
 export interface ModCase {
   id: number;
@@ -17,6 +18,8 @@ export interface ModCase {
   action: ModAction;
   reason: string;
   duration?: string;
+  xpLost?: number;
+  newLevel?: number;
   createdAt: string;
 }
 
@@ -95,6 +98,26 @@ class ModerationService {
       createdAt: new Date().toISOString(),
     };
 
+    // XP-Abzug für negative Aktionen ("jedes negative effekt macht minus level")
+    const statsConfig = statsService.getConfig(guild.id);
+    const PENALTIES: Partial<Record<ModAction, number>> = {
+      WARN: statsConfig.warnPenaltyXp ?? 250,
+      TIMEOUT: statsConfig.timeoutPenaltyXp ?? 500,
+      PRISON: statsConfig.prisonPenaltyXp ?? 1000,
+      BAD_NAME: statsConfig.badNamePenaltyXp ?? 400,
+      BLACKLIST: statsConfig.blacklistPenaltyXp ?? 300,
+      KICK: statsConfig.kickPenaltyXp ?? 1500,
+      BAN: statsConfig.banPenaltyXp ?? 5000,
+    };
+
+    const penalty = PENALTIES[action] || 0;
+    let xpResult: { oldLevel: number; newLevel: number; deducted: number; lostLevels: number } | null = null;
+    if (penalty > 0) {
+      xpResult = statsService.deductXp(guild.id, target.id, penalty);
+      newCase.xpLost = penalty;
+      newCase.newLevel = xpResult?.newLevel;
+    }
+
     this.cases[guild.id].unshift(newCase);
     this.saveCases();
 
@@ -109,6 +132,14 @@ class ModerationService {
           ? "MEMBER_KICK"
           : action === "BAN"
           ? "MEMBER_BAN"
+          : action === "PRISON"
+          ? "MEMBER_PRISON"
+          : action === "UNPRISON"
+          ? "MEMBER_UNPRISON"
+          : action === "BAD_NAME"
+          ? "MEMBER_NICK_MODERATED"
+          : action === "BLACKLIST"
+          ? "MEMBER_BLACKLIST_TRIGGER"
           : "MEMBER_UNBAN";
 
       await auditLogService.log(
@@ -130,6 +161,8 @@ class ModerationService {
             caseId,
             reason,
             duration: options.duration,
+            xpLost: penalty > 0 ? penalty : undefined,
+            newLevel: xpResult?.newLevel,
           },
         },
         options.client
@@ -143,6 +176,14 @@ class ModerationService {
           ? "verwarnt"
           : action === "TIMEOUT"
           ? `in den Timeout versetzt (${options.duration || "temporär"})`
+          : action === "PRISON"
+          ? "ins Gefängnis gesteckt"
+          : action === "UNPRISON"
+          ? "aus dem Gefängnis entlassen"
+          : action === "BAD_NAME"
+          ? "wegen unzulässigem Benutzernamen moderiert"
+          : action === "BLACKLIST"
+          ? "wegen verbotenem Begriff verwarnt"
           : action === "KICK"
           ? "vom Server gekickt"
           : action === "BAN"
@@ -150,15 +191,34 @@ class ModerationService {
           : "entbannt";
 
       const dmEmbed = new EmbedBuilder()
-        .setColor(action === "WARN" ? 0xfee75c : action === "TIMEOUT" ? 0xe67e22 : 0xed4245)
+        .setColor(
+          action === "WARN" || action === "BAD_NAME" || action === "BLACKLIST"
+            ? 0xfee75c
+            : action === "TIMEOUT"
+            ? 0xe67e22
+            : action === "UNPRISON" || action === "UNBAN"
+            ? 0x57f287
+            : 0xed4245
+        )
         .setTitle(`🛡️ Moderations-Mitteilung: ${guild.name}`)
         .setDescription(`Du wurdest auf **${guild.name}** ${actionText}.`)
         .addFields(
           { name: "Fall-ID", value: `#${caseId}`, inline: true },
           { name: "Moderator", value: moderator.tag || moderator.username, inline: true },
           { name: "Begründung", value: reason || "Keine Begründung angegeben", inline: false }
-        )
-        .setTimestamp();
+        );
+
+      if (penalty > 0 && xpResult) {
+        dmEmbed.addFields({
+          name: "📉 XP-Abzug (Minus-Level)",
+          value: `**-${penalty} XP** • Dein Level beträgt nun **Level ${xpResult.newLevel}**${
+            xpResult.lostLevels > 0 ? ` (⚠️ Du bist um **${xpResult.lostLevels} Level** abgestiegen!)` : ""
+          }`,
+          inline: false,
+        });
+      }
+
+      dmEmbed.setTimestamp();
 
       await target.send({ embeds: [dmEmbed] }).catch(() => {
         // Direct messages could be disabled

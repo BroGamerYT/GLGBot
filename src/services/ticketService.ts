@@ -16,6 +16,7 @@ import {
   AttachmentBuilder,
 } from "discord.js";
 import { auditLogService } from "./auditLogService";
+import { transcriptService, TranscriptMetadata } from "./transcriptService";
 
 export interface TicketConfig {
   categoryId?: string;
@@ -40,7 +41,7 @@ export interface TicketRecord {
   transcriptFile?: string;
 }
 
-const DATA_DIR = path.join(__dirname, "../../data");
+const DATA_DIR = path.resolve(process.cwd(), "data");
 const CONFIG_FILE = path.join(DATA_DIR, "ticket_config.json");
 const TICKETS_FILE = path.join(DATA_DIR, "tickets.json");
 const TRANSCRIPTS_DIR = path.join(DATA_DIR, "transcripts");
@@ -268,46 +269,109 @@ class TicketService {
     return ticketChannel;
   }
 
-  // Schließt ein Ticket, erstellt Transkript und löscht Kanal
+  // Schließt ein Ticket, erstellt vollständige Transkripte (TXT & HTML) und löscht Kanal
   public async closeTicket(channel: TextChannel, closedBy: User, client: Client) {
     const record = this.tickets.find((t) => t.channelId === channel.id);
+    const config = this.getConfig(channel.guild.id);
 
-    // 1. Transkript generieren & auf Festplatte speichern
-    const transcriptText = await this.generateTranscriptText(channel);
-    const transcriptFile = path.join(TRANSCRIPTS_DIR, `${channel.id}.txt`);
-    try {
-      fs.writeFileSync(transcriptFile, transcriptText, "utf-8");
-    } catch (e) {
-      console.error("[TicketService] Fehler beim Speichern des Transkripts:", e);
-    }
+    // 1. Nachrichten laden & vollständige Transkripte (TXT & HTML) generieren
+    const messages = await transcriptService.fetchAllMessages(channel);
+    const formattedMessages = transcriptService.formatMessages(messages, channel.guild);
+
+    const now = new Date();
+    const meta: TranscriptMetadata = {
+      channelName: channel.name,
+      channelId: channel.id,
+      guildName: channel.guild.name,
+      guildId: channel.guild.id,
+      guildIcon: channel.guild.iconURL(),
+      creatorTag: record?.creatorTag || "Unbekannt",
+      creatorId: record?.creatorId || "0",
+      closedByTag: closedBy.tag || closedBy.username,
+      closedById: closedBy.id,
+      createdAt: record ? new Date(record.createdAt).toLocaleString("de-DE") : now.toLocaleString("de-DE"),
+      closedAt: now.toLocaleString("de-DE"),
+    };
+
+    const textTranscript = transcriptService.generateTextTranscript(meta, formattedMessages);
+    const htmlTranscript = transcriptService.generateHtmlTranscript(meta, formattedMessages);
+
+    // Speichern auf Festplatte
+    transcriptService.saveTranscripts(channel.id, textTranscript, htmlTranscript);
 
     if (record) {
       record.status = "CLOSED";
-      record.closedAt = new Date().toISOString();
+      record.closedAt = now.toISOString();
       record.closedByTag = closedBy.tag || closedBy.username;
       record.transcriptFile = `${channel.id}.txt`;
       this.saveData();
     }
 
-    const transcriptBuffer = Buffer.from(transcriptText, "utf-8");
-    const attachment = new AttachmentBuilder(transcriptBuffer, {
-      name: `transcript-${channel.name}-${Date.now()}.txt`,
+    const htmlBuffer = Buffer.from(htmlTranscript, "utf-8");
+    const textBuffer = Buffer.from(textTranscript, "utf-8");
+
+    const htmlAttachment = new AttachmentBuilder(htmlBuffer, {
+      name: `transcript-${channel.name}.html`,
+    });
+    const txtAttachment = new AttachmentBuilder(textBuffer, {
+      name: `transcript-${channel.name}.txt`,
     });
 
-    // 2. Transkript an Ersteller per DM senden
+    // 2. Transkripte an Ersteller per DM senden
     if (record) {
       try {
         const creator = await client.users.fetch(record.creatorId).catch(() => null);
         if (creator) {
           const dmEmbed = new EmbedBuilder()
-            .setColor(0x57f287)
+            .setColor(0x5865f2)
             .setTitle(`Dein Ticket #${channel.name} wurde geschlossen`)
-            .setDescription(`Dein Support-Ticket auf **${channel.guild.name}** wurde von <@${closedBy.id}> geschlossen. Anbei findest du das Transkript des Chatverlaufs.`)
+            .setDescription(
+              `Dein Support-Ticket auf **${channel.guild.name}** wurde von <@${closedBy.id}> geschlossen.\n\n` +
+                `📄 **Anbei findest du dein vollständiges Transkript:**\n` +
+                `• 🌐 **.html**: Interaktives Discord-Transkript (im Browser wie in Discord ansehen)\n` +
+                `• 📜 **.txt**: Vollständiger Text-Verlauf inklusive aller Embeds, Mentions & Notizen`
+            )
             .setTimestamp();
 
-          await creator.send({ embeds: [dmEmbed], files: [attachment] }).catch(() => {});
+          await creator
+            .send({
+              embeds: [dmEmbed],
+              files: [htmlAttachment, txtAttachment],
+            })
+            .catch(() => {});
         }
       } catch {}
+    }
+
+    // 2b. Transkript an Transkript-Kanal senden (falls konfiguriert)
+    if (config?.transcriptChannelId) {
+      try {
+        const logChannel = channel.guild.channels.cache.get(config.transcriptChannelId) as TextChannel | undefined;
+        if (logChannel && logChannel.isTextBased()) {
+          const logEmbed = new EmbedBuilder()
+            .setColor(0x5865f2)
+            .setTitle(`📜 Ticket-Transkript: #${channel.name}`)
+            .setDescription(
+              `**Ticket:** #${channel.name}\n` +
+                `**Ersteller:** <@${record?.creatorId}> (${record?.creatorTag})\n` +
+                `**Geschlossen von:** <@${closedBy.id}>\n` +
+                `**Nachrichten:** ${formattedMessages.length}`
+            )
+            .setTimestamp();
+
+          await logChannel
+            .send({
+              embeds: [logEmbed],
+              files: [
+                new AttachmentBuilder(htmlBuffer, { name: `transcript-${channel.name}.html` }),
+                new AttachmentBuilder(textBuffer, { name: `transcript-${channel.name}.txt` }),
+              ],
+            })
+            .catch(() => {});
+        }
+      } catch (e) {
+        console.error("[TicketService] Fehler beim Senden in Transkript-Kanal:", e);
+      }
     }
 
     // 3. Im Audit-Log protokollieren
@@ -344,60 +408,90 @@ class TicketService {
 
   // Erstellt lesbaren Text-Export aller Nachrichten im Kanal
   public async generateTranscriptText(channel: TextChannel): Promise<string> {
-    const messages = await channel.messages.fetch({ limit: 100 });
-    const sorted = [...messages.values()].sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+    const record = this.tickets.find((t) => t.channelId === channel.id);
+    const messages = await transcriptService.fetchAllMessages(channel);
+    const formattedMessages = transcriptService.formatMessages(messages, channel.guild);
 
-    let text = `========================================================\n`;
-    text += `TRANSKRIPT FÜR TICKET #${channel.name}\n`;
-    text += `Server: ${channel.guild.name} (${channel.guild.id})\n`;
-    text += `Erstellt am: ${new Date().toLocaleString("de-DE")}\n`;
-    text += `========================================================\n\n`;
+    const now = new Date();
+    const meta: TranscriptMetadata = {
+      channelName: channel.name,
+      channelId: channel.id,
+      guildName: channel.guild.name,
+      guildId: channel.guild.id,
+      guildIcon: channel.guild.iconURL(),
+      creatorTag: record?.creatorTag || "Unbekannt",
+      creatorId: record?.creatorId || "0",
+      createdAt: record ? new Date(record.createdAt).toLocaleString("de-DE") : now.toLocaleString("de-DE"),
+      closedAt: now.toLocaleString("de-DE"),
+    };
 
-    for (const msg of sorted) {
-      const time = new Date(msg.createdTimestamp).toLocaleTimeString("de-DE");
-      const author = `${msg.author.tag || msg.author.username} (${msg.author.id})`;
-      text += `[${time}] ${author}:\n`;
-      if (msg.content) {
-        text += `  ${msg.content}\n`;
-      }
-      if (msg.attachments.size > 0) {
-        text += `  [Dateien/Anhänge: ${msg.attachments.map((a) => a.url).join(", ")}]\n`;
-      }
-      text += `\n`;
-    }
-
-    return text;
+    return transcriptService.generateTextTranscript(meta, formattedMessages);
   }
 
   public getTickets(guildId: string): TicketRecord[] {
     return this.tickets.filter((t) => t.guildId === guildId);
   }
 
-  public async getTranscript(channelId: string, guild?: Guild): Promise<string | null> {
-    const filePath = path.join(TRANSCRIPTS_DIR, `${channelId}.txt`);
-    if (fs.existsSync(filePath)) {
-      return fs.readFileSync(filePath, "utf-8");
+  public async getTranscript(channelId: string, guild?: Guild, format: "text" | "html" = "text"): Promise<string | null> {
+    const existing = transcriptService.getTranscript(channelId, format);
+    if (existing) {
+      return existing;
     }
     if (guild) {
       const ch = guild.channels.cache.get(channelId);
       if (ch && ch.isTextBased() && "messages" in ch) {
-        return this.generateTranscriptText(ch as TextChannel);
+        const textChannel = ch as TextChannel;
+        const messages = await transcriptService.fetchAllMessages(textChannel);
+        const formatted = transcriptService.formatMessages(messages, guild);
+        const record = this.tickets.find((t) => t.channelId === channelId);
+        const now = new Date();
+        const meta: TranscriptMetadata = {
+          channelName: textChannel.name,
+          channelId: textChannel.id,
+          guildName: guild.name,
+          guildId: guild.id,
+          guildIcon: guild.iconURL(),
+          creatorTag: record?.creatorTag || "Unbekannt",
+          creatorId: record?.creatorId || "0",
+          createdAt: record ? new Date(record.createdAt).toLocaleString("de-DE") : now.toLocaleString("de-DE"),
+          closedAt: now.toLocaleString("de-DE"),
+        };
+
+        if (format === "html") {
+          return transcriptService.generateHtmlTranscript(meta, formatted);
+        }
+        return transcriptService.generateTextTranscript(meta, formatted);
       }
     }
     return null;
   }
 
-  public async getLiveMessages(channel: TextChannel): Promise<{ author: string; content: string; time: string; isBot: boolean }[]> {
-    const messages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
+  public async getLiveMessages(channel: TextChannel): Promise<{ author: string; content: string; time: string; isBot: boolean; avatar?: string }[]> {
+    const messages = await channel.messages.fetch({ limit: 100 }).catch(() => null);
     if (!messages) return [];
     return [...messages.values()]
       .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
-      .map((m) => ({
-        author: m.author.tag || m.author.username,
-        content: m.content,
-        time: new Date(m.createdTimestamp).toLocaleString("de-DE"),
-        isBot: m.author.bot,
-      }));
+      .map((m) => {
+        let content = m.content || "";
+        if (m.embeds.length > 0) {
+          const emb = m.embeds[0];
+          const embText = [emb.title, emb.description].filter(Boolean).join("\n");
+          if (embText) {
+            content = content ? `${content}\n${embText}` : embText;
+          }
+        }
+        if (m.attachments.size > 0) {
+          const attachUrls = m.attachments.map((a) => a.url).join(" ");
+          content = content ? `${content}\n[Anhang: ${attachUrls}]` : `[Anhang: ${attachUrls}]`;
+        }
+        return {
+          author: m.author.tag || m.author.username,
+          avatar: m.author.displayAvatarURL(),
+          content: content || "(Kein Inhalt)",
+          time: new Date(m.createdTimestamp).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+          isBot: m.author.bot,
+        };
+      });
   }
 
   public async postPanel(guild: Guild, channelId: string): Promise<boolean> {

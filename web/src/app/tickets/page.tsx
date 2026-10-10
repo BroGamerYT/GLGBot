@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Ticket,
   MessageSquare,
@@ -44,6 +44,7 @@ interface TicketConfig {
 
 interface LiveMessage {
   author: string;
+  avatar?: string;
   content: string;
   time: string;
   isBot: boolean;
@@ -81,6 +82,8 @@ export default function TicketsPage() {
 
   const [activeTranscriptTicket, setActiveTranscriptTicket] = useState<TicketRecord | null>(null);
   const [transcriptContent, setTranscriptContent] = useState<string>("");
+  const [transcriptHtml, setTranscriptHtml] = useState<string | null>(null);
+  const [transcriptViewMode, setTranscriptViewMode] = useState<"html" | "text">("html");
   const [loadingTranscript, setLoadingTranscript] = useState(false);
 
   const [showSetupModal, setShowSetupModal] = useState(false);
@@ -126,10 +129,42 @@ export default function TicketsPage() {
     }
   };
 
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     fetchData();
     fetchGuildStructure();
+
+    // Alle 10s Ticket-Liste im Hintergrund aktualisieren
+    const listTimer = setInterval(fetchData, 10000);
+    return () => clearInterval(listTimer);
   }, []);
+
+  // Echtzeit-Polling alle 2 Sekunden, während das Chat-Fenster geöffnet ist
+  useEffect(() => {
+    if (!activeChatTicket) return;
+
+    const chatTimer = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/bot/tickets/messages?channelId=${activeChatTicket.channelId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setChatMessages(data.messages || []);
+        }
+      } catch (err) {
+        // Ignoriere Netzwerkflackern
+      }
+    }, 2000);
+
+    return () => clearInterval(chatTimer);
+  }, [activeChatTicket]);
+
+  // Sanftes Auto-Scrollen nach unten bei neuen Nachrichten
+  useEffect(() => {
+    if (activeChatTicket && chatMessages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatMessages, activeChatTicket]);
 
   const openLiveChat = async (ticket: TicketRecord) => {
     setActiveChatTicket(ticket);
@@ -209,11 +244,14 @@ export default function TicketsPage() {
     setActiveTranscriptTicket(ticket);
     setLoadingTranscript(true);
     setTranscriptContent("");
+    setTranscriptHtml(null);
     try {
       const res = await fetch(`/api/bot/tickets/transcript?channelId=${ticket.channelId}`);
       if (res.ok) {
         const data = await res.json();
         setTranscriptContent(data.transcript || "Kein Transkript vorhanden.");
+        setTranscriptHtml(data.htmlTranscript || null);
+        setTranscriptViewMode(data.htmlTranscript ? "html" : "text");
       }
     } catch (e) {
       console.error(e);
@@ -269,13 +307,16 @@ export default function TicketsPage() {
     }
   };
 
-  const downloadTranscript = () => {
-    if (!activeTranscriptTicket || !transcriptContent) return;
-    const blob = new Blob([transcriptContent], { type: "text/plain;charset=utf-8" });
+  const downloadTranscript = (format: "txt" | "html" = "txt") => {
+    if (!activeTranscriptTicket) return;
+    const content = format === "html" ? transcriptHtml : transcriptContent;
+    if (!content) return;
+    const mime = format === "html" ? "text/html;charset=utf-8" : "text/plain;charset=utf-8";
+    const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `transcript-${activeTranscriptTicket.channelName || activeTranscriptTicket.channelId}.txt`;
+    a.download = `transcript-${activeTranscriptTicket.channelName || activeTranscriptTicket.channelId}.${format}`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -547,9 +588,15 @@ export default function TicketsPage() {
                   <MessageSquare className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-base">
-                    #{activeChatTicket.channelName || activeChatTicket.channelId}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-white text-base">
+                      #{activeChatTicket.channelName || activeChatTicket.channelId}
+                    </h3>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-discord-green/20 text-discord-green border border-discord-green/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-discord-green animate-pulse" />
+                      Live-Sync (alle 2s)
+                    </span>
+                  </div>
                   <p className="text-xs text-gray-400">
                     Ticket von {activeChatTicket.creatorTag} • ID: {activeChatTicket.channelId}
                   </p>
@@ -593,20 +640,33 @@ export default function TicketsPage() {
                     }`}
                   >
                     <div className="flex items-center justify-between gap-4 mb-1">
-                      <span className="font-bold text-white flex items-center gap-1.5">
-                        {m.author}
-                        {m.isBot && (
-                          <span className="text-[10px] bg-discord-blurple px-1 rounded font-normal text-white">
-                            BOT / SUPPORT
-                          </span>
+                      <div className="flex items-center gap-2">
+                        {m.avatar && (
+                          <img
+                            src={m.avatar}
+                            alt=""
+                            className="w-4 h-4 rounded-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = "none";
+                            }}
+                          />
                         )}
-                      </span>
+                        <span className="font-bold text-white flex items-center gap-1.5">
+                          {m.author}
+                          {m.isBot && (
+                            <span className="text-[10px] bg-discord-blurple px-1 rounded font-normal text-white">
+                              BOT / SUPPORT
+                            </span>
+                          )}
+                        </span>
+                      </div>
                       <span className="text-[10px] text-gray-400">{m.time}</span>
                     </div>
                     <div className="whitespace-pre-wrap leading-relaxed">{m.content}</div>
                   </div>
                 ))
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Reply Input */}
@@ -657,29 +717,71 @@ export default function TicketsPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <div className="flex bg-discord-card p-0.5 rounded-lg border border-discord-border text-xs mr-1">
+                  <button
+                    onClick={() => setTranscriptViewMode("html")}
+                    disabled={!transcriptHtml}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                      transcriptViewMode === "html"
+                        ? "bg-discord-blurple text-white shadow-sm"
+                        : "text-gray-400 hover:text-white disabled:opacity-40"
+                    }`}
+                  >
+                    Discord-Ansicht
+                  </button>
+                  <button
+                    onClick={() => setTranscriptViewMode("text")}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                      transcriptViewMode === "text"
+                        ? "bg-discord-blurple text-white shadow-sm"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    Text-Ansicht
+                  </button>
+                </div>
+                {transcriptHtml && (
+                  <button
+                    onClick={() => downloadTranscript("html")}
+                    title="HTML-Transkript herunterladen"
+                    className="px-2.5 py-1.5 bg-discord-card hover:bg-discord-border border border-discord-border text-xs font-medium text-gray-200 rounded-lg flex items-center gap-1.5"
+                  >
+                    <Download className="w-3.5 h-3.5 text-discord-blurple" />
+                    HTML
+                  </button>
+                )}
                 <button
-                  onClick={downloadTranscript}
-                  className="px-3 py-1.5 bg-discord-blurple hover:bg-discord-blurple/80 text-xs font-semibold text-white rounded-lg flex items-center gap-1.5"
+                  onClick={() => downloadTranscript("txt")}
+                  title="TXT-Transkript herunterladen"
+                  className="px-2.5 py-1.5 bg-discord-blurple hover:bg-discord-blurple/80 text-xs font-semibold text-white rounded-lg flex items-center gap-1.5"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  Herunterladen
+                  TXT
                 </button>
                 <button
                   onClick={() => setActiveTranscriptTicket(null)}
-                  className="p-1.5 text-gray-400 hover:text-white"
+                  className="p-1.5 text-gray-400 hover:text-white ml-1"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 p-4 overflow-y-auto bg-discord-dark font-mono text-xs text-gray-300">
+            <div className="flex-1 overflow-hidden flex flex-col bg-discord-dark text-xs text-gray-300 min-h-[450px]">
               {loadingTranscript ? (
-                <div className="py-12 flex justify-center text-gray-400">
+                <div className="py-20 flex justify-center text-gray-400">
                   <div className="w-6 h-6 border-2 border-discord-blurple border-t-transparent rounded-full animate-spin" />
                 </div>
+              ) : transcriptViewMode === "html" && transcriptHtml ? (
+                <iframe
+                  srcDoc={transcriptHtml}
+                  title="Ticket Transkript Vorschau"
+                  className="w-full flex-1 border-0 min-h-[480px]"
+                />
               ) : (
-                <pre className="whitespace-pre-wrap">{transcriptContent}</pre>
+                <div className="p-4 font-mono overflow-y-auto flex-1">
+                  <pre className="whitespace-pre-wrap">{transcriptContent}</pre>
+                </div>
               )}
             </div>
           </div>

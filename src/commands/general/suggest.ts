@@ -50,7 +50,13 @@ const suggestCommand: Command = {
 
     if (sub === "neu") {
       const idea = interaction.options.getString("idee", true);
-      const targetChannel = interaction.channel as TextChannel;
+      let targetChannel = interaction.guild.channels.cache.find(
+        (c) => c.isTextBased() && (c.name.includes("vorschl") || c.name.includes("ideen"))
+      ) as TextChannel | undefined;
+
+      if (!targetChannel) {
+        targetChannel = interaction.channel as TextChannel;
+      }
 
       if (!targetChannel || !("send" in targetChannel)) {
         await interaction.reply({ content: "❌ Ungültiger Kanal.", ephemeral: true });
@@ -59,7 +65,7 @@ const suggestCommand: Command = {
 
       const item = await suggestionService.postSuggestion(targetChannel, interaction.user, idea);
       await interaction.reply({
-        content: `✅ Dein Vorschlag **#${item.id}** wurde erfolgreich eingereicht!`,
+        content: `✅ Dein Vorschlag **#${item.id}** wurde erfolgreich in <#${targetChannel.id}> eingereicht!`,
         ephemeral: true,
       });
     } else if (sub === "status") {

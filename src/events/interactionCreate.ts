@@ -7,6 +7,7 @@ import {
 } from "../handlers/voicePanelHandler";
 import { rolePanelService } from "../services/rolePanelService";
 import { ticketService } from "../services/ticketService";
+import { transcriptService } from "../services/transcriptService";
 import { suggestionService } from "../services/suggestionService";
 
 const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
@@ -97,13 +98,38 @@ const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
       if (interaction.customId === "btn_ticket_transcript") {
         if (!interaction.channel || !("guild" in interaction.channel)) return;
         await interaction.deferReply({ ephemeral: true });
-        const text = await ticketService.generateTranscriptText(interaction.channel as any);
-        const attachment = new AttachmentBuilder(Buffer.from(text, "utf-8"), {
-          name: `transcript-${(interaction.channel as any).name}.txt`,
+
+        const channel = interaction.channel as any;
+        const messages = await transcriptService.fetchAllMessages(channel);
+        const formatted = transcriptService.formatMessages(messages, channel.guild);
+
+        const record = ticketService.getTickets(channel.guild.id).find((t) => t.channelId === channel.id);
+        const now = new Date();
+        const meta = {
+          channelName: channel.name,
+          channelId: channel.id,
+          guildName: channel.guild.name,
+          guildId: channel.guild.id,
+          guildIcon: channel.guild.iconURL(),
+          creatorTag: record?.creatorTag || interaction.user.tag,
+          creatorId: record?.creatorId || interaction.user.id,
+          createdAt: record ? new Date(record.createdAt).toLocaleString("de-DE") : now.toLocaleString("de-DE"),
+          closedAt: now.toLocaleString("de-DE"),
+        };
+
+        const text = transcriptService.generateTextTranscript(meta, formatted);
+        const html = transcriptService.generateHtmlTranscript(meta, formatted);
+
+        const htmlAttachment = new AttachmentBuilder(Buffer.from(html, "utf-8"), {
+          name: `transcript-${channel.name}.html`,
         });
+        const txtAttachment = new AttachmentBuilder(Buffer.from(text, "utf-8"), {
+          name: `transcript-${channel.name}.txt`,
+        });
+
         await interaction.editReply({
-          content: "📜 Transkript erfolgreich erstellt:",
-          files: [attachment],
+          content: "📜 **Transkript erfolgreich erstellt!**\nDu kannst die `.html`-Datei direkt im Browser öffnen (Discord Dark-Theme) oder die `.txt`-Datei ansehen:",
+          files: [htmlAttachment, txtAttachment],
         });
         return;
       }

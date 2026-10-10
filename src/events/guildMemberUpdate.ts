@@ -4,6 +4,7 @@ import { liveStreamService } from "../services/liveStreamService";
 import { rulesService } from "../services/rulesService";
 import { auditLogService } from "../services/auditLogService";
 import { fetchAuditExecutor } from "../utils/auditExecutor";
+import { blacklistService } from "../services/blacklistService";
 
 const guildMemberUpdateEvent: BotEvent<Events.GuildMemberUpdate> = {
   name: Events.GuildMemberUpdate,
@@ -15,6 +16,14 @@ const guildMemberUpdateEvent: BotEvent<Events.GuildMemberUpdate> = {
 
       // Nickname Änderung
       if (oldM.nickname !== newM.nickname) {
+        // Prüfe auf verbotenen / anstößigen Nickname
+        if (newM.nickname && !newM.user.bot) {
+          const badCheck = blacklistService.isBadName(newM.guild.id, newM.nickname);
+          if (badCheck.isBad) {
+            await blacklistService.moderateBadName(newM.guild, newM, client.user || newM.user, client);
+          }
+        }
+
         const auditResult = await fetchAuditExecutor(newM.guild, AuditLogEvent.MemberUpdate, {
           targetId: newM.id,
           maxAgeMs: 5000,

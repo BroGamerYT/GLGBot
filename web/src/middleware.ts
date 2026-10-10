@@ -18,6 +18,26 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // Öffentliche Seiten & Read-Only APIs (ohne Discord-Login für Community-Mitglieder)
+  const isPublicPage =
+    pathname === "/login" ||
+    pathname.startsWith("/login/") ||
+    pathname === "/hilfe" ||
+    pathname.startsWith("/hilfe/") ||
+    pathname === "/changelog" ||
+    pathname.startsWith("/changelog/") ||
+    pathname === "/stats" ||
+    pathname.startsWith("/stats/") ||
+    pathname.startsWith("/go/");
+
+  const isPublicApi =
+    pathname.startsWith("/api/auth/") ||
+    (pathname.startsWith("/api/bot/stats") && (req.method === "GET" || req.method === "HEAD"));
+
+  if (isPublicPage || isPublicApi) {
+    return NextResponse.next();
+  }
+
   const session = await verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);
   if (session) return NextResponse.next();
 
@@ -31,7 +51,6 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Alles außer Login, Auth-API und statische Next.js-Dateien
-  // /go/… = öffentliche Weiterleitung aus Discord in Steam/Epic (siehe app/go)
-  matcher: ["/((?!login|api/auth|go/|_next/static|_next/image|favicon.ico).*)"],
+  // Statische Next.js-Dateien und Icons ausnehmen
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

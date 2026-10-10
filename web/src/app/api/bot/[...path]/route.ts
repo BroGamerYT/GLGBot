@@ -48,6 +48,16 @@ const ALLOWED = new Set([
   "GET stats",
   "GET stats/user",
   "POST stats/config",
+  "GET moderation/members",
+  "POST moderation/action",
+  "GET moderation/blacklist",
+  "POST moderation/blacklist",
+  "GET moderation/cases",
+  "GET moderation/roles",
+  "POST moderation/member-roles",
+  "POST moderation/member-nickname",
+  "POST moderation/adjust-xp",
+  "POST moderation/notes",
 ]);
 
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {

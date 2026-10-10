@@ -1,5 +1,7 @@
 import http from "http";
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 import { Client, EmbedBuilder } from "discord.js";
 import { freeGamesService } from "../services/freeGamesService";
 import { rulesService } from "../services/rulesService";
@@ -9,6 +11,9 @@ import { auditLogService } from "../services/auditLogService";
 import { backupService } from "../services/backupService";
 import { ticketService } from "../services/ticketService";
 import { statsService } from "../services/statsService";
+import { moderationService } from "../services/moderationService";
+import { prisonService } from "../services/prisonService";
+import { blacklistService } from "../services/blacklistService";
 
 /**
  * Interne Schnittstelle für das Web-Dashboard.
@@ -46,6 +51,21 @@ async function readBody(req: http.IncomingMessage): Promise<any> {
   }
   const raw = Buffer.concat(chunks).toString("utf-8");
   return raw ? JSON.parse(raw) : {};
+}
+
+const NOTES_FILE = path.join(__dirname, "../../data/admin_notes.json");
+function loadAdminNotes(): Record<string, string> {
+  try {
+    if (fs.existsSync(NOTES_FILE)) return JSON.parse(fs.readFileSync(NOTES_FILE, "utf-8"));
+  } catch {}
+  return {};
+}
+function saveAdminNotes(notes: Record<string, string>) {
+  try {
+    const dir = path.dirname(NOTES_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(NOTES_FILE, JSON.stringify(notes, null, 2), "utf-8");
+  } catch {}
 }
 
 export function startInternalApi(client: Client) {
@@ -374,8 +394,13 @@ export function startInternalApi(client: Client) {
           const channelId = params.get("channelId");
           if (!channelId) return send(res, 400, { error: "Keine channelId angegeben." });
 
-          const transcript = await ticketService.getTranscript(channelId, guild);
-          return send(res, 200, { transcript: transcript || "Kein Transkript verfügbar." });
+          const textTranscript = await ticketService.getTranscript(channelId, guild, "text");
+          const htmlTranscript = await ticketService.getTranscript(channelId, guild, "html");
+
+          return send(res, 200, {
+            transcript: textTranscript || "Kein Transkript verfügbar.",
+            htmlTranscript: htmlTranscript || null,
+          });
         }
         case "GET /tickets/messages": {
           const qs = (req.url || "").split("?")[1] || "";
@@ -438,12 +463,16 @@ export function startInternalApi(client: Client) {
           const topVoice = statsService.getTopVoice(guild.id, 20);
           const topDuos = statsService.getTopDuos(guild.id, 10);
           const config = statsService.getConfig(guild.id);
+          const textChannels = guild.channels.cache
+            .filter((c) => c.isTextBased())
+            .map((c) => ({ id: c.id, name: c.name }));
 
           return send(res, 200, {
             topLevels,
             topVoice,
             topDuos,
             config,
+            textChannels,
             memberCount: guild.memberCount,
           });
         }
@@ -455,15 +484,340 @@ export function startInternalApi(client: Client) {
 
           const profile = statsService.getUserProfile(guild.id, userId);
           const partners = statsService.getTopTalkPartners(guild.id, userId, 10);
-          return send(res, 200, { profile, partners });
+          const cases = moderationService.getCases(guild.id, userId);
+          const config = statsService.getConfig(guild.id);
+
+          const messagesCount = profile?.stats.messagesCount || 0;
+          const voiceMinutes = profile?.stats.voiceMinutes || 0;
+          const avgMsgXp = Math.round(((config.messageXpMin || 15) + (config.messageXpMax || 25)) / 2);
+          const estimatedChatXp = messagesCount * avgMsgXp;
+          const estimatedVoiceXp = voiceMinutes * (config.voiceXpPerMinute || 5);
+          const totalPenaltiesXp = cases.reduce((sum, c) => sum + (c.xpLost || 0), 0);
+
+          return send(res, 200, {
+            profile,
+            partners,
+            cases: cases.map((c) => ({
+              id: c.id,
+              action: c.action,
+              reason: c.reason,
+              xpLost: c.xpLost,
+              createdAt: c.createdAt,
+            })),
+            breakdown: {
+              messagesCount,
+              avgMsgXp,
+              estimatedChatXp,
+              voiceMinutes,
+              voiceXpPerMinute: config.voiceXpPerMinute || 5,
+              estimatedVoiceXp,
+              totalPenaltiesXp,
+              penaltyCasesCount: cases.length,
+            },
+          });
         }
         case "POST /stats/config": {
           const body = await readBody(req);
-          const updated = statsService.setConfig(guild.id, {
-            levelUpNotifications: typeof body.levelUpNotifications === "boolean" ? body.levelUpNotifications : true,
-            levelUpChannelId: body.levelUpChannelId || undefined,
-          });
+          const patch: any = {};
+
+          if (typeof body.levelUpNotifications === "boolean") patch.levelUpNotifications = body.levelUpNotifications;
+          if (body.levelUpChannelId !== undefined) patch.levelUpChannelId = body.levelUpChannelId || undefined;
+          if (body.levelUpMessage !== undefined) patch.levelUpMessage = String(body.levelUpMessage || "");
+
+          if (typeof body.maxLevel === "number") patch.maxLevel = Math.max(1, Math.min(100, Math.floor(body.maxLevel)));
+          if (typeof body.baseXp === "number") patch.baseXp = Math.max(50, Math.min(5000, Math.floor(body.baseXp)));
+          if (typeof body.exponent === "number") patch.exponent = Math.max(1.0, Math.min(3.0, Number(body.exponent)));
+
+          if (typeof body.messageXpMin === "number") patch.messageXpMin = Math.max(1, Math.floor(body.messageXpMin));
+          if (typeof body.messageXpMax === "number") patch.messageXpMax = Math.max(1, Math.floor(body.messageXpMax));
+          if (typeof body.messageCooldownSeconds === "number") patch.messageCooldownSeconds = Math.max(5, Math.floor(body.messageCooldownSeconds));
+
+          if (typeof body.voiceXpPerMinute === "number") patch.voiceXpPerMinute = Math.max(1, Math.floor(body.voiceXpPerMinute));
+
+          if (typeof body.warnPenaltyXp === "number") patch.warnPenaltyXp = Math.max(0, Math.floor(body.warnPenaltyXp));
+          if (typeof body.timeoutPenaltyXp === "number") patch.timeoutPenaltyXp = Math.max(0, Math.floor(body.timeoutPenaltyXp));
+          if (typeof body.prisonPenaltyXp === "number") patch.prisonPenaltyXp = Math.max(0, Math.floor(body.prisonPenaltyXp));
+          if (typeof body.badNamePenaltyXp === "number") patch.badNamePenaltyXp = Math.max(0, Math.floor(body.badNamePenaltyXp));
+          if (typeof body.blacklistPenaltyXp === "number") patch.blacklistPenaltyXp = Math.max(0, Math.floor(body.blacklistPenaltyXp));
+          if (typeof body.kickPenaltyXp === "number") patch.kickPenaltyXp = Math.max(0, Math.floor(body.kickPenaltyXp));
+          if (typeof body.banPenaltyXp === "number") patch.banPenaltyXp = Math.max(0, Math.floor(body.banPenaltyXp));
+
+          const updated = statsService.setConfig(guild.id, patch);
           return send(res, 200, { ok: true, config: updated });
+        }
+
+        // ---------------- Moderation & Admin-Panel ----------------
+        case "GET /moderation/members": {
+          await guild.members.fetch().catch(() => null);
+          const notes = loadAdminNotes();
+          const membersList = guild.members.cache.map((m) => {
+            const stats = statsService.getOrCreateUser(guild, m.user);
+            const isPrisoner = prisonService.isImprisoned(guild.id, m.id);
+            const prisonData = prisonService.getPrisonEntry(guild.id, m.id);
+            const badNameCheck = blacklistService.isBadName(guild.id, m.displayName);
+            const cases = moderationService.getCases(guild.id, m.id);
+
+            return {
+              userId: m.id,
+              tag: m.user.tag || m.user.username,
+              username: m.user.username,
+              displayName: m.displayName,
+              nickname: m.nickname,
+              avatar: m.user.displayAvatarURL(),
+              roles: m.roles.cache
+                .filter((r) => r.id !== guild.id)
+                .map((r) => ({ id: r.id, name: r.name, color: r.hexColor })),
+              joinedAt: m.joinedAt?.toISOString() || null,
+              createdAt: m.user.createdAt?.toISOString() || null,
+              voiceMinutes: stats.voiceMinutes || 0,
+              messagesCount: stats.messagesCount || 0,
+              adminNote: notes[m.id] || "",
+              isBot: m.user.bot,
+              isOwner: m.id === guild.ownerId,
+              isModeratable: m.moderatable,
+              xp: stats.xp,
+              level: stats.level,
+              casesCount: cases.length,
+              isImprisoned: isPrisoner,
+              prisonData: prisonData || null,
+              isTimedOut: m.isCommunicationDisabled(),
+              timeoutUntil: m.communicationDisabledUntil?.toISOString() || null,
+              badName: badNameCheck,
+            };
+          });
+
+          // Sortierung: Auffällige und Gefangene nach oben, danach nach XP
+          membersList.sort((a, b) => {
+            if (a.isImprisoned && !b.isImprisoned) return -1;
+            if (!a.isImprisoned && b.isImprisoned) return 1;
+            if (a.badName.isBad && !b.badName.isBad) return -1;
+            if (!a.badName.isBad && b.badName.isBad) return 1;
+            return b.xp - a.xp;
+          });
+
+          return send(res, 200, {
+            members: membersList,
+            total: membersList.length,
+            prisonersCount: prisonService.getPrisonList(guild.id).length,
+          });
+        }
+
+        case "POST /moderation/action": {
+          const body = await readBody(req);
+          const { action, targetId, reason = "Keine Begründung angegeben", duration = 300, deleteDays = 0 } = body;
+          if (!action || !targetId) {
+            return send(res, 400, { error: "Aktion und targetId sind erforderlich." });
+          }
+
+          const targetMember = await guild.members.fetch(targetId).catch(() => null);
+          const modName = by || "Web-Admin";
+          const modUser = (await client.users.fetch(guild.ownerId).catch(() => null)) || client.user!;
+
+          switch (action) {
+            case "warn": {
+              if (!targetMember) return send(res, 404, { error: "Mitglied nicht gefunden." });
+              const modCase = await moderationService.createCase(
+                guild,
+                modUser,
+                targetMember.user,
+                "WARN",
+                reason,
+                { client }
+              );
+              return send(res, 200, { ok: true, caseId: modCase.id, xpLost: modCase.xpLost, newLevel: modCase.newLevel });
+            }
+
+            case "timeout": {
+              if (!targetMember) return send(res, 404, { error: "Mitglied nicht gefunden." });
+              if (!targetMember.moderatable) return send(res, 403, { error: "Mitglied kann nicht moderiert werden (Rollenrechte)." });
+
+              const durationSeconds = Number(duration) || 300;
+              const durationMs = durationSeconds === 0 ? null : durationSeconds * 1000;
+              await targetMember.timeout(durationMs, reason);
+
+              const modCase = await moderationService.createCase(
+                guild,
+                modUser,
+                targetMember.user,
+                "TIMEOUT",
+                reason,
+                { duration: durationSeconds === 0 ? "Aufgehoben" : `${durationSeconds / 60}m`, client }
+              );
+              return send(res, 200, { ok: true, caseId: modCase.id, xpLost: modCase.xpLost, newLevel: modCase.newLevel });
+            }
+
+            case "prison": {
+              if (!targetMember) return send(res, 404, { error: "Mitglied nicht gefunden." });
+              const result = await prisonService.imprison(
+                guild,
+                targetMember,
+                reason,
+                { id: modUser.id, tag: modName, avatar: modUser.displayAvatarURL() },
+                client
+              );
+              if (!result.ok) return send(res, 400, { error: result.error });
+              return send(res, 200, { ok: true, xpPenalty: result.xpPenalty });
+            }
+
+            case "unprison": {
+              if (!targetMember) return send(res, 404, { error: "Mitglied nicht gefunden." });
+              const result = await prisonService.unprison(
+                guild,
+                targetMember,
+                { id: modUser.id, tag: modName },
+                client
+              );
+              if (!result.ok) return send(res, 400, { error: result.error });
+              return send(res, 200, { ok: true });
+            }
+
+            case "bad_name": {
+              if (!targetMember) return send(res, 404, { error: "Mitglied nicht gefunden." });
+              const result = await blacklistService.moderateBadName(guild, targetMember, modUser, client);
+              if (!result.ok) return send(res, 400, { error: result.error });
+              return send(res, 200, { ok: true, newNick: result.newNick });
+            }
+
+            case "kick": {
+              if (!targetMember) return send(res, 404, { error: "Mitglied nicht gefunden." });
+              if (!targetMember.kickable) return send(res, 403, { error: "Mitglied kann nicht gekickt werden (Rollenrechte)." });
+              await targetMember.kick(reason);
+              const modCase = await moderationService.createCase(
+                guild,
+                modUser,
+                targetMember.user,
+                "KICK",
+                reason,
+                { client }
+              );
+              return send(res, 200, { ok: true, caseId: modCase.id, xpLost: modCase.xpLost });
+            }
+
+            case "ban": {
+              const targetUser = targetMember?.user || (await client.users.fetch(targetId).catch(() => null));
+              if (!targetUser) return send(res, 404, { error: "Nutzer nicht gefunden." });
+              await guild.members.ban(targetId, {
+                reason,
+                deleteMessageSeconds: Math.min(7, Math.max(0, Number(deleteDays) || 0)) * 86400,
+              });
+              const modCase = await moderationService.createCase(
+                guild,
+                modUser,
+                targetUser,
+                "BAN",
+                reason,
+                { client }
+              );
+              return send(res, 200, { ok: true, caseId: modCase.id, xpLost: modCase.xpLost });
+            }
+
+            case "unban": {
+              await guild.members.unban(targetId, reason);
+              const targetUser = (await client.users.fetch(targetId).catch(() => null)) || ({ id: targetId, tag: targetId } as any);
+              const modCase = await moderationService.createCase(
+                guild,
+                modUser,
+                targetUser,
+                "UNBAN",
+                reason,
+                { client }
+              );
+              return send(res, 200, { ok: true, caseId: modCase.id });
+            }
+
+            default:
+              return send(res, 400, { error: `Unbekannte Moderations-Aktion: ${action}` });
+          }
+        }
+
+        case "GET /moderation/blacklist": {
+          return send(res, 200, { config: blacklistService.getConfig(guild.id) });
+        }
+
+        case "POST /moderation/blacklist": {
+          const body = await readBody(req);
+          const updated = blacklistService.setConfig(guild.id, body);
+          return send(res, 200, { ok: true, config: updated });
+        }
+
+        case "GET /moderation/cases": {
+          const cases = moderationService.getCases(guild.id);
+          return send(res, 200, { cases, total: cases.length });
+        }
+
+        case "GET /moderation/roles": {
+          const roles = guild.roles.cache
+            .filter((r) => r.id !== guild.id && !r.managed)
+            .map((r) => ({
+              id: r.id,
+              name: r.name,
+              color: r.hexColor,
+              position: r.position,
+            }))
+            .sort((a, b) => b.position - a.position);
+          return send(res, 200, { roles });
+        }
+
+        case "POST /moderation/member-roles": {
+          const body = await readBody(req);
+          const { userId, roleId, action } = body; // action: "add" | "remove"
+          if (!userId || !roleId || !action) {
+            return send(res, 400, { error: "userId, roleId und action (add/remove) erforderlich." });
+          }
+          const member = await guild.members.fetch(userId).catch(() => null);
+          if (!member) return send(res, 404, { error: "Mitglied nicht gefunden." });
+          const role = guild.roles.cache.get(roleId);
+          if (!role) return send(res, 404, { error: "Rolle nicht gefunden." });
+
+          if (action === "add") {
+            await member.roles.add(role, `Benutzerverwaltung Webinterface durch ${by || "Admin"}`);
+          } else {
+            await member.roles.remove(role, `Benutzerverwaltung Webinterface durch ${by || "Admin"}`);
+          }
+          return send(res, 200, { ok: true, action, roleId });
+        }
+
+        case "POST /moderation/member-nickname": {
+          const body = await readBody(req);
+          const { userId, nickname } = body;
+          if (!userId) return send(res, 400, { error: "userId erforderlich." });
+          const member = await guild.members.fetch(userId).catch(() => null);
+          if (!member) return send(res, 404, { error: "Mitglied nicht gefunden." });
+
+          await member.setNickname(nickname ? String(nickname).slice(0, 32) : null, `Benutzerverwaltung durch ${by || "Admin"}`);
+          return send(res, 200, { ok: true, nickname: member.nickname });
+        }
+
+        case "POST /moderation/adjust-xp": {
+          const body = await readBody(req);
+          const { userId, amount, mode } = body; // mode: "add" | "deduct" | "set"
+          if (!userId || typeof amount !== "number") {
+            return send(res, 400, { error: "userId und numerischer amount erforderlich." });
+          }
+          const member = await guild.members.fetch(userId).catch(() => null);
+          if (!member) return send(res, 404, { error: "Mitglied nicht gefunden." });
+          const stats = statsService.getOrCreateUser(guild, member.user);
+
+          if (mode === "add") {
+            stats.xp += Math.abs(amount);
+          } else if (mode === "deduct") {
+            stats.xp = Math.max(0, stats.xp - Math.abs(amount));
+          } else if (mode === "set") {
+            stats.xp = Math.max(0, amount);
+          }
+          const prog = statsService.calculateLevelProgress(stats.xp);
+          stats.level = prog.level;
+          return send(res, 200, { ok: true, xp: stats.xp, level: stats.level });
+        }
+
+        case "POST /moderation/notes": {
+          const body = await readBody(req);
+          const { userId, note } = body;
+          if (!userId) return send(res, 400, { error: "userId erforderlich." });
+          const notes = loadAdminNotes();
+          notes[userId] = String(note || "").trim();
+          saveAdminNotes(notes);
+          return send(res, 200, { ok: true, userId, note: notes[userId] });
         }
 
         default:

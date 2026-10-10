@@ -22,18 +22,65 @@ export interface UserStats {
 }
 
 export interface GuildStatsConfig {
-  levelUpChannelId?: string; // empty = post in current channel or silent
+  // Leveling Grenzen & Kurve
+  maxLevel: number; // Standard: 25 ("es geht bis 25 level")
+  baseXp: number; // Standard: 350
+  exponent: number; // Standard: 1.65 (sorgt für progressiv steilere Anforderungen)
+
+  // Text-Chat Belohnungen
+  messageXpMin: number; // Standard: 15
+  messageXpMax: number; // Standard: 25
+  messageCooldownSeconds: number; // Standard: 60
+
+  // Sprachkanal (Voice) Belohnungen
+  voiceXpPerMinute: number; // Standard: 5
+
+  // Strafen / Abzüge ("jedes negative effekt macht minus level")
+  warnPenaltyXp: number; // Standard: 250
+  timeoutPenaltyXp: number; // Standard: 500
+  prisonPenaltyXp: number; // Standard: 1000
+  badNamePenaltyXp: number; // Standard: 400
+  blacklistPenaltyXp: number; // Standard: 300
+  kickPenaltyXp: number; // Standard: 1500
+  banPenaltyXp: number; // Standard: 5000
+
+  // Benachrichtigungen
+  levelUpChannelId?: string; // leer = im aktuellen Kanal oder stumm
   levelUpNotifications: boolean;
+  levelUpMessage?: string;
 }
+
+export const DEFAULT_STATS_CONFIG: GuildStatsConfig = {
+  maxLevel: 25,
+  baseXp: 350,
+  exponent: 1.65,
+
+  messageXpMin: 15,
+  messageXpMax: 25,
+  messageCooldownSeconds: 60,
+
+  voiceXpPerMinute: 5,
+
+  warnPenaltyXp: 250,
+  timeoutPenaltyXp: 500,
+  prisonPenaltyXp: 1000,
+  badNamePenaltyXp: 400,
+  blacklistPenaltyXp: 300,
+  kickPenaltyXp: 1500,
+  banPenaltyXp: 5000,
+
+  levelUpNotifications: true,
+};
 
 export interface LevelProgress {
   level: number;
   currentXp: number;
   requiredXp: number;
   progressPercent: number;
+  isMaxLevel: boolean;
 }
 
-const DATA_DIR = path.join(__dirname, "../../data");
+const DATA_DIR = path.resolve(process.cwd(), "data");
 const STATS_FILE = path.join(DATA_DIR, "user_stats.json");
 const CONFIG_FILE = path.join(DATA_DIR, "stats_config.json");
 
@@ -83,9 +130,10 @@ class StatsService {
 
   public getConfig(guildId: string): GuildStatsConfig {
     if (!this.config[guildId]) {
-      this.config[guildId] = {
-        levelUpNotifications: true,
-      };
+      this.config[guildId] = { ...DEFAULT_STATS_CONFIG };
+    } else {
+      // Fehlende Felder mit Defaults ergänzen
+      this.config[guildId] = { ...DEFAULT_STATS_CONFIG, ...this.config[guildId] };
     }
     return this.config[guildId];
   }
@@ -96,18 +144,21 @@ class StatsService {
     return this.config[guildId];
   }
 
-  // XP benötigt für ein Level
-  public getXpForLevel(level: number): number {
-    return Math.floor(100 * Math.pow(level, 1.4)) + 50;
+  // XP benötigt für ein Level (steigende Kurve bis Level 25)
+  public getXpForLevel(level: number, cfg?: GuildStatsConfig): number {
+    const baseXp = cfg?.baseXp ?? DEFAULT_STATS_CONFIG.baseXp;
+    const exponent = cfg?.exponent ?? DEFAULT_STATS_CONFIG.exponent;
+    return Math.floor(baseXp * Math.pow(level, exponent)) + 100;
   }
 
-  // Level aus Gesamt-XP berechnen
-  public calculateLevelProgress(totalXp: number): LevelProgress {
+  // Level aus Gesamt-XP berechnen (maximal bis maxLevel, z. B. 25)
+  public calculateLevelProgress(totalXp: number, cfg?: GuildStatsConfig): LevelProgress {
+    const maxLevel = cfg?.maxLevel ?? DEFAULT_STATS_CONFIG.maxLevel;
     let level = 1;
     let xpRemaining = totalXp;
 
-    while (true) {
-      const needed = this.getXpForLevel(level);
+    while (level < maxLevel) {
+      const needed = this.getXpForLevel(level, cfg);
       if (xpRemaining >= needed) {
         xpRemaining -= needed;
         level++;
@@ -116,14 +167,16 @@ class StatsService {
       }
     }
 
-    const requiredXp = this.getXpForLevel(level);
-    const progressPercent = Math.min(100, Math.floor((xpRemaining / requiredXp) * 100));
+    const isMax = level >= maxLevel;
+    const requiredXp = this.getXpForLevel(level, cfg);
+    const progressPercent = isMax ? 100 : Math.min(100, Math.floor((xpRemaining / requiredXp) * 100));
 
     return {
       level,
-      currentXp: xpRemaining,
+      currentXp: isMax ? requiredXp : xpRemaining,
       requiredXp,
       progressPercent,
+      isMaxLevel: isMax,
     };
   }
 
@@ -155,15 +208,17 @@ class StatsService {
     return this.stats[guild.id][user.id];
   }
 
-  // Text-Chat XP hinzufügen (1x alle 60 Sek.)
+  // Text-Chat XP hinzufügen (dynamisch nach Config)
   public addMessageXp(guild: Guild, user: User): { leveledUp: boolean; oldLevel: number; newLevel: number; totalXp: number } | null {
     if (user.bot) return null;
 
+    const cfg = this.getConfig(guild.id);
     const stats = this.getOrCreateUser(guild, user);
     const now = Date.now();
 
-    // Cooldown: 60 Sekunden für XP-Gewinn
-    const canEarnXp = !stats.lastMessageTimestamp || now - stats.lastMessageTimestamp >= 60000;
+    // Cooldown aus Konfiguration
+    const cooldownMs = (cfg.messageCooldownSeconds ?? 60) * 1000;
+    const canEarnXp = !stats.lastMessageTimestamp || now - stats.lastMessageTimestamp >= cooldownMs;
     stats.messagesCount += 1;
 
     let leveledUp = false;
@@ -171,10 +226,12 @@ class StatsService {
 
     if (canEarnXp) {
       stats.lastMessageTimestamp = now;
-      const earnedXp = Math.floor(Math.random() * 11) + 15; // 15-25 XP
+      const minXp = cfg.messageXpMin ?? 15;
+      const maxXp = Math.max(minXp, cfg.messageXpMax ?? 25);
+      const earnedXp = Math.floor(Math.random() * (maxXp - minXp + 1)) + minXp;
       stats.xp += earnedXp;
 
-      const progress = this.calculateLevelProgress(stats.xp);
+      const progress = this.calculateLevelProgress(stats.xp, cfg);
       if (progress.level > oldLevel) {
         leveledUp = true;
         stats.level = progress.level;
@@ -190,6 +247,36 @@ class StatsService {
     };
   }
 
+  // Zieht XP ab (bei Verwarnung, Timeout, Gefängnis, Blacklist, schlechtem Namen)
+  // Berechnet automatisch das neue Level (Minus-Level möglich!)
+  public deductXp(
+    guildId: string,
+    userId: string,
+    amount: number
+  ): { oldLevel: number; newLevel: number; oldXp: number; newXp: number; lostLevels: number; deducted: number } | null {
+    if (!this.stats[guildId] || !this.stats[guildId][userId]) {
+      return null;
+    }
+    const cfg = this.getConfig(guildId);
+    const user = this.stats[guildId][userId];
+    const oldXp = user.xp;
+    const oldLevel = user.level;
+
+    user.xp = Math.max(0, user.xp - amount);
+    const progress = this.calculateLevelProgress(user.xp, cfg);
+    user.level = progress.level;
+
+    this.scheduleSave();
+    return {
+      oldLevel,
+      newLevel: user.level,
+      oldXp,
+      newXp: user.xp,
+      lostLevels: Math.max(0, oldLevel - user.level),
+      deducted: oldXp - user.xp,
+    };
+  }
+
   // Startet den minütlichen Voice- & Talk-Partner Tracker
   public startVoiceTracker(client: Client) {
     if (this.trackerInterval) return;
@@ -197,6 +284,7 @@ class StatsService {
     this.trackerInterval = setInterval(() => {
       for (const guild of client.guilds.cache.values()) {
         const afkChannelId = guild.afkChannelId;
+        const cfg = this.getConfig(guild.id);
 
         // Finde alle aktiven Sprachkanäle
         const voiceChannels = guild.channels.cache.filter(
@@ -214,13 +302,14 @@ class StatsService {
 
           if (members.length === 0) continue;
 
-          // 1. Jedem aktiven Mitglied 1 Minute Voice + 10 XP geben
+          // 1. Jedem aktiven Mitglied 1 Minute Voice + konfigurierte Voice-XP geben
+          const voiceXp = cfg.voiceXpPerMinute ?? 5;
           for (const member of members) {
             const stats = this.getOrCreateUser(guild, member.user);
             stats.voiceMinutes += 1;
-            stats.xp += 10;
+            stats.xp += voiceXp;
 
-            const progress = this.calculateLevelProgress(stats.xp);
+            const progress = this.calculateLevelProgress(stats.xp, cfg);
             if (progress.level > stats.level) {
               stats.level = progress.level;
             }
@@ -265,9 +354,11 @@ class StatsService {
     const user = guildStats[userId];
     if (!user) return null;
 
+    const cfg = this.getConfig(guildId);
     const all = Object.values(guildStats).sort((a, b) => b.xp - a.xp);
     const rank = all.findIndex((u) => u.userId === userId) + 1;
-    const progress = this.calculateLevelProgress(user.xp);
+    const progress = this.calculateLevelProgress(user.xp, cfg);
+    user.level = progress.level;
 
     return {
       stats: user,
@@ -279,7 +370,13 @@ class StatsService {
   // Top 10 nach Level / XP
   public getTopLevels(guildId: string, limit = 10): (UserStats & { rank: number })[] {
     const guildStats = this.stats[guildId] || {};
+    const cfg = this.getConfig(guildId);
     return Object.values(guildStats)
+      .map((u) => {
+        const prog = this.calculateLevelProgress(u.xp, cfg);
+        u.level = prog.level;
+        return u;
+      })
       .sort((a, b) => b.xp - a.xp)
       .slice(0, limit)
       .map((u, idx) => ({ ...u, rank: idx + 1 }));

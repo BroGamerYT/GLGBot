@@ -3,6 +3,7 @@ import { BotEvent } from "../types";
 import { securityService } from "../services/securityService";
 import { stickyService } from "../services/stickyService";
 import { statsService } from "../services/statsService";
+import { blacklistService } from "../services/blacklistService";
 
 const messageCreateEvent: BotEvent<Events.MessageCreate> = {
   name: Events.MessageCreate,
@@ -13,6 +14,10 @@ const messageCreateEvent: BotEvent<Events.MessageCreate> = {
     // Phishing- & Scam-Schutz
     const isPhishing = await securityService.handlePhishingMessage(message, client);
     if (isPhishing) return;
+
+    // Wortfilter & Blacklist-Schutz (zieht bei Verstoß XP ab)
+    const isBlacklisted = await blacklistService.handleMessage(message, client);
+    if (isBlacklisted) return;
 
     // Sticky Messages aktualisieren
     await stickyService.handleMessage(message);
@@ -57,10 +62,15 @@ const messageCreateEvent: BotEvent<Events.MessageCreate> = {
       if (res && res.leveledUp) {
         const cfg = statsService.getConfig(message.guild.id);
         if (cfg.levelUpNotifications) {
+          const isMax = res.newLevel >= (cfg.maxLevel ?? 25);
           const levelEmbed = new EmbedBuilder()
-            .setColor(0xfee75c)
-            .setTitle("🎉 Level-Up!")
-            .setDescription(`Herzlichen Glückwunsch <@${message.author.id}>! Du hast **Level ${res.newLevel}** erreicht! 🚀`)
+            .setColor(isMax ? 0xffac33 : 0xfee75c)
+            .setTitle(isMax ? "👑 MAXIMALES LEVEL ERREICHT!" : "🎉 Level-Up!")
+            .setDescription(
+              isMax
+                ? `Wahnsinn <@${message.author.id}>! Du hast das **MAX-LEVEL ${res.newLevel}** erreicht! 👑🔥`
+                : `Herzlichen Glückwunsch <@${message.author.id}>! Du hast **Level ${res.newLevel}** erreicht! 🚀`
+            )
             .setTimestamp();
 
           const targetChannel = cfg.levelUpChannelId

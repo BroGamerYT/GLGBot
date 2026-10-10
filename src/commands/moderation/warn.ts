@@ -59,6 +59,7 @@ const warnCommand: Command = {
       .addFields(
         { name: "Fall-ID", value: `#${modCase.id}`, inline: true },
         { name: "Moderator", value: `<@${interaction.user.id}>`, inline: true },
+        { name: "📉 XP-Abzug", value: `-${modCase.xpLost || 250} XP (Neues Level: **${modCase.newLevel ?? 1}**)`, inline: true },
         { name: "Begründung", value: reason, inline: false }
       )
       .setTimestamp();
