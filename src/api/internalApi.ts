@@ -14,6 +14,7 @@ import { statsService } from "../services/statsService";
 import { moderationService } from "../services/moderationService";
 import { prisonService } from "../services/prisonService";
 import { blacklistService } from "../services/blacklistService";
+import { setupService, SETUP_MODULES, MODULE_INFO } from "../services/setupService";
 
 /**
  * Interne Schnittstelle für das Web-Dashboard.
@@ -108,6 +109,37 @@ export function startInternalApi(client: Client) {
           return send(res, 200, { ok: true, bot: client.user?.tag, guild: guild.name });
 
         // ---------------- Free-Games ----------------
+        // ---------------- Komplett-Einrichtung ----------------
+        case "GET /setup": {
+          if (!isLoggedIn) return send(res, 401, { error: "Bitte einloggen." });
+          const me = guild.members.me;
+          return send(res, 200, {
+            modules: SETUP_MODULES.map((id) => ({ id, ...MODULE_INFO[id] })),
+            status: setupService.getStatus(guild),
+            running: setupService.isRunning(guild.id),
+            botPermissions: {
+              administrator: !!me?.permissions.has(PermissionFlagsBits.Administrator),
+              manageRoles: !!me?.permissions.has(PermissionFlagsBits.ManageRoles),
+              manageChannels: !!me?.permissions.has(PermissionFlagsBits.ManageChannels),
+            },
+          });
+        }
+        case "POST /setup/run": {
+          const actor = await getActor();
+          if (!actor || (actor.id !== guild.ownerId && !actor.permissions.has(PermissionFlagsBits.Administrator))) {
+            return send(res, 403, { error: "Die Komplett-Einrichtung dürfen nur der Owner und Administratoren starten." });
+          }
+          const body = await readBody(req);
+          const wanted = Array.isArray(body?.modules) ? body.modules.map(String) : [];
+          try {
+            const results = await setupService.run(guild, wanted);
+            console.log(`[Setup] ${by || actor.user.tag} hat eingerichtet: ${results.map((r) => `${r.label}${r.ok ? "" : " (Fehler)"}`).join(", ")}`);
+            return send(res, 200, { ok: true, results, status: setupService.getStatus(guild) });
+          } catch (e: any) {
+            return send(res, 400, { error: e?.message || "Einrichtung fehlgeschlagen." });
+          }
+        }
+
         case "GET /free-games": {
           const games = await freeGamesService.fetchAll();
           return send(res, 200, { games, settings: freeGamesService.getSettings(guild.id) });

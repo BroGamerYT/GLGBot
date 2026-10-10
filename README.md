@@ -72,10 +72,16 @@ bot.example.com {
 Caddy holt das SSL-Zertifikat automatisch. `DASHBOARD_URL` muss genau dieser Adresse entsprechen.
 
 ### 6. Im Discord einrichten
-Mit Admin-Rechten im Dashboard einloggen oder im Discord:
-* `/setup-roles auto` – legt alle Rollen (`Gast`, `bn.live`, `bn.free`, `bn.gamenews`, `bn.treiber` …) und Kanäle an
-* `/setup-rules post` – Regel- und Berechtigungskanal, danach optional `/setup-rules lock`
-* `/setup-voice set`, `/setup-live set`, `/setup-tickets`, `/setup-logs` – je nachdem, was du nutzen willst
+Am einfachsten: im Dashboard auf **„Server einrichten“** gehen, Bereiche ankreuzen und auf *Einrichten* klicken –
+oder im Discord `/setup-all` eingeben. Der Bot legt dann alles Fehlende an:
+
+* Rollen `Gast`, `bn.live`, `bn.free`, `bn.gamenews`, `bn.treiber`, `Live` + Kanäle `#free-games`, `#game-news`, `#treiber-news`
+* `#regeln` mit Bestätigungs-Button und `#berechtigungen` mit Rollen-Panel
+* Join-to-Create-Sprachkanal mit Steuerungs-Panel, Live-Kategorie mit `#stream-alerts`
+* `#support` mit Ticket-Button, geschützter Audit-Log-Kanal, Gefängnis-Rolle & -Kanal
+* optional die Regel-Sperre (neue Mitglieder sehen nur `#regeln`, bis sie akzeptieren)
+
+Einzelne Bereiche lassen sich weiterhin auch mit `/setup-roles`, `/setup-rules`, `/setup-voice`, `/setup-live`, `/setup-tickets` und `/setup-logs` einrichten.
 
 ### Updates
 ```bash
@@ -105,6 +111,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | Dashboard-Bereich | Pfad | Zugriff | Beschreibung |
 | :--- | :--- | :--- | :--- |
 | **Server-Übersicht** | `/` | 🔒 Admin | Live-Zähler für Mitglieder, Kanäle, Rollen und Schnellaktionen. |
+| **Server einrichten** | `/setup` | 🔒 Admin | Bereiche ankreuzen, ein Klick legt alle fehlenden Rollen & Kanäle an (Vorhandenes wird nur verknüpft). |
 | **Benutzerverwaltung** | `/users` | 🔒 Admin | Mitgliederliste mit Nickname-Änderung, Rollen-Zuweisung, XP-Korrektur und Admin-Notizen. |
 | **Moderation & Knast** | `/moderation` | 🔒 Admin | Warns, Timeouts, Kicks, Bans, Gefängnis-System (`/knast`), Bad-Name-Filter und Schimpfwort-Blacklist. |
 | **Support-Tickets** | `/tickets` | 🔒 Admin | Live-Chat mit 2s Polling, Transkripte mit Embeds/Avataren und Support-Kategorie-Setup. |
@@ -117,8 +124,8 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | **Audit-Logs** | `/logs` | 🔒 Admin | Stille Protokollierung von Server-Aktionen (`SuppressNotifications`). |
 | **Server-Backups** | `/backups` | 🔒 Admin | 1-Klick JSON-Snapshots aller Rollen, Kanäle und Einstellungen mit Wiederherstellung. |
 | **Server-Regeln** | `/rules` | 🔒 Admin | Regel-Editor mit Vorschau, 1-Klick-Veröffentlichung und Regel-Sperre (Server erst nach Bestätigung sichtbar). |
-| **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 32 Slash-Befehle mit Beschreibungen. |
-| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.5.0. |
+| **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 33 Slash-Befehle mit Beschreibungen. |
+| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.6.0. |
 
 ---
 
@@ -211,7 +218,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 
 ---
 
-## 💻 Befehlsübersicht (32 Slash-Befehle)
+## 💻 Befehlsübersicht (33 Slash-Befehle)
 
 | Befehl | Beschreibung | Berechtigung |
 |---|---|---|
@@ -242,6 +249,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | `/setup-live set \| status \| disable` | Live-Rolle, Kategorie und Kanal-Art einrichten. | Kanäle verwalten |
 | `/streamer add \| edit \| remove \| list \| check` | Twitch-/YouTube-Alerts verwalten. | Kanäle verwalten |
 | `/setup-roles set \| panel \| auto \| status` | Rollen & Rollen-Panel einrichten (`auto` legt alle Rollen und Kanäle an). | Rollen verwalten |
+| `/setup-all [bereich] [regel_sperre]` | Alle fehlenden Rollen & Kanäle auf einmal einrichten. | Administrator |
 | `/setup-rules post \| lock \| unlock` | Regeln posten, Regel-Sperre an/aus. | Administrator |
 | `/setup-tickets` | Ticket-Panel posten. | Administrator |
 | `/setup-logs` | Audit-Log-Kanal einrichten. | Administrator |

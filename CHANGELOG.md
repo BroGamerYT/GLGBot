@@ -6,6 +6,11 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.6.0] - 2026-10-11
+
+### Hinzugefügt
+* **Server einrichten (Dashboard `/setup`) & `/setup-all`:** Bereiche ankreuzen - ein Klick legt alle fehlenden Rollen & Kanäle an (Rollen & Benachrichtigungen, Regeln, Join-to-Create mit Steuerungs-Panel, Live-Kategorie mit `#stream-alerts`, Support-Tickets, Audit-Log, Gefängnis, optional Regel-Sperre). Vorhandenes wird erkannt und nur verknüpft, der Status jedes Bereichs ist sichtbar. Nur für Owner & Administratoren.
+
 ## [2.5.0] - 2026-10-11
 
 ### Hinzugefügt

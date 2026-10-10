@@ -42,10 +42,33 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.5.0",
+    version: "v2.6.0",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Server einrichten per Knopfdruck",
+    description:
+      "Neue Dashboard-Seite „Server einrichten“ und der Befehl /setup-all: Bereiche ankreuzen, ein Klick legt alle fehlenden Rollen und Kanäle an.",
+    highlights: [
+      {
+        icon: CheckCircle2,
+        title: "Alles auf einmal",
+        description:
+          "Rollen & Benachrichtigungen, Regeln, Join-to-Create mit Steuerungs-Panel, Live-Kategorie mit #stream-alerts, Support-Tickets, Audit-Log, Gefängnis und optional die Regel-Sperre.",
+      },
+      {
+        icon: FolderTree,
+        title: "Nichts doppelt",
+        description:
+          "Vorhandene Rollen und Kanäle werden erkannt und nur verknüpft. Die Seite zeigt für jeden Bereich, ob er schon eingerichtet ist.",
+      },
+    ],
+  },
+  {
+    version: "v2.5.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Open Source – für jeden Server nutzbar",
     description:
       "Der Bot ist jetzt öffentlich auf GitHub (MIT-Lizenz) und lässt sich auf jedem Discord-Server einsetzen. Alles Server-Spezifische wird über die .env bzw. den config-Ordner eingestellt.",

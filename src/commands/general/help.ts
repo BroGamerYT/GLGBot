@@ -79,6 +79,7 @@ const helpCommand: Command = {
         {
           name: "⚙️ Administration & Backups",
           value:
+            "`/setup-all` • Richtet alle fehlenden Rollen & Kanäle auf einmal ein\n" +
             "`/backup create|list|restore` • Vollständige Rollen- & Kanal-Snapshots\n" +
             "`/setup-rules post|lock|unlock` • Regeln posten & Server bis zur Bestätigung sperren\n" +
             "`/setup-roles` • Erstellt das Rollenauswahl-Panel im Chat\n" +

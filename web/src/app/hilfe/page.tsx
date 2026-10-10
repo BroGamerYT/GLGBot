@@ -136,6 +136,7 @@ const COMMANDS: { group: string; items: [string, string, string][] }[] = [
   {
     group: "Administration & Server-Setup",
     items: [
+      ["/setup-all [bereich] [regel_sperre]", "Richtet alle fehlenden Rollen & Kanäle auf einmal ein (wie die Dashboard-Seite „Server einrichten“).", "Administrator"],
       ["/setup-tickets panel", "Postet das interaktive Support-Ticket-Panel in den aktuellen Kanal.", "Kanäle verwalten"],
       ["/setup-logs set [channel]", "Richtet den Silent-Audit-Log Kanal ein (stille Benachrichtigungen).", "Server verwalten"],
       ["/setup-logs toggle [modul]", "Schaltet einzelne Audit-Kategorien (Rollen, Kanäle, Server, etc.) an/aus.", "Server verwalten"],

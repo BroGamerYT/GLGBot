@@ -58,6 +58,8 @@ const ALLOWED = new Set([
   "POST moderation/member-nickname",
   "POST moderation/adjust-xp",
   "POST moderation/notes",
+  "GET setup",
+  "POST setup/run",
 ]);
 
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {
