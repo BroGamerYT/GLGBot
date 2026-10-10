@@ -5,11 +5,12 @@
     "platform": "twitch",
     "channelName": "derbrogameryt",
     "displayName": "DerBroGamerYT",
-    "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/e674e09dd1f6e78f-profile_image-150x150.png",
+    "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/e674e09dd1f6e78f-profile_image-300x300.png",
     "discordChannelId": "1131340278201073765",
     "pingRoleId": "1558464175183765684",
     "linkedDiscordUserId": "202880081159389184",
-    "isLive": false
+    "isLive": false,
+    "lastNotified": "2026-10-10T13:29:21.619Z"
   },
   {
     "id": "notif_deven89030",
@@ -19,6 +20,7 @@
     "displayName": "deven89030",
     "discordChannelId": "1131340278201073765",
     "pingRoleId": "1558464175183765684",
+    "linkedDiscordUserId": "1408846780476686370",
     "isLive": false
   },
   {
@@ -30,6 +32,7 @@
     "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/c557590c-b699-42e7-bd95-cd82781c0294-profile_image-150x150.png",
     "discordChannelId": "1131340278201073765",
     "pingRoleId": "1558464175183765684",
+    "linkedDiscordUserId": "339132665540116481",
     "isLive": false
   },
   {
@@ -41,6 +44,7 @@
     "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/fd699c1b-57df-418d-83fb-44bce91adb39-profile_image-150x150.png",
     "discordChannelId": "1131340278201073765",
     "pingRoleId": "1558464175183765684",
+    "linkedDiscordUserId": "439924893920919564",
     "isLive": false
   },
   {
