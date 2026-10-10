@@ -48,6 +48,9 @@ export async function POST(req: Request) {
       categoryId: body.categoryId || undefined,
       channelType: body.channelType || "voice",
       autoRole: body.autoRole ?? true,
+      pingRoleId: body.pingRoleId || undefined,
+      silent: Boolean(body.silent),
+      customMessage: body.customMessage || undefined,
     };
 
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(allConfig, null, 2), "utf-8");

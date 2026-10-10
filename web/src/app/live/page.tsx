@@ -55,6 +55,9 @@ export default function LiveStreamerPage() {
   const [categoryId, setCategoryId] = useState("");
   const [channelType, setChannelType] = useState<"voice" | "text">("voice");
   const [autoRole, setAutoRole] = useState(true);
+  const [globalPingRoleId, setGlobalPingRoleId] = useState("1558464175183765684");
+  const [globalSilent, setGlobalSilent] = useState(false);
+  const [globalCustomMessage, setGlobalCustomMessage] = useState("");
 
   // Stream-Benachrichtigungen
   const [streamers, setStreamers] = useState<StreamNotification[]>([]);
@@ -106,6 +109,9 @@ export default function LiveStreamerPage() {
         if (liveRes?.categoryId) setCategoryId(liveRes.categoryId);
         if (liveRes?.channelType) setChannelType(liveRes.channelType);
         if (typeof liveRes?.autoRole === "boolean") setAutoRole(liveRes.autoRole);
+        if (liveRes?.pingRoleId !== undefined) setGlobalPingRoleId(liveRes.pingRoleId || "");
+        if (typeof liveRes?.silent === "boolean") setGlobalSilent(liveRes.silent);
+        if (liveRes?.customMessage) setGlobalCustomMessage(liveRes.customMessage);
 
         if (Array.isArray(streamerRes)) {
           setStreamers(streamerRes);
@@ -192,6 +198,9 @@ export default function LiveStreamerPage() {
           categoryId: categoryId || undefined,
           channelType,
           autoRole,
+          pingRoleId: globalPingRoleId || undefined,
+          silent: globalSilent,
+          customMessage: globalCustomMessage || undefined,
         }),
       });
 
@@ -1054,7 +1063,118 @@ export default function LiveStreamerPage() {
               ))}
             </select>
             <p className="text-xs text-gray-400 mt-1.5">
-              Fallback-Kanal für allgemeine Live-Alerts.
+              Fallback-Kanal für allgemeine Live-Alerts (z. B. <code>#🔴・stream-alerts</code>).
+            </p>
+          </div>
+
+          {/* Benachrichtigungs-Ping / Rolle (Rollen-Ping) */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-200 mb-2 flex items-center gap-2">
+              <Bell className="w-4 h-4 text-purple-400" />
+              Stream-Benachrichtigungs Ping (Rollen-Ping)
+            </label>
+            <select
+              value={globalPingRoleId}
+              onChange={(e) => setGlobalPingRoleId(e.target.value)}
+              className="w-full bg-discord-dark border border-discord-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-all font-medium"
+            >
+              <option value="">— Kein Ping (ohne Erwähnung) —</option>
+              <option value="1558464175183765684">🔴 Live-Stream Alerts (bn.live) [Empfohlen]</option>
+              <option value="@everyone">@everyone (Ganzen Server pingen)</option>
+              <option value="@here">@here (Alle Online-Mitglieder pingen)</option>
+              {roles
+                .filter((r: any) => r.id !== "1558464175183765684")
+                .map((r: any) => (
+                  <option key={r.id} value={r.id}>
+                    @{r.name}
+                  </option>
+                ))}
+            </select>
+            <p className="text-xs text-gray-400 mt-1.5">
+              Wählt aus, welche Rolle bei Live-Stream Starts gepingt wird (Standard: <code>@🔴 Live-Stream Alerts (bn.live)</code>).
+            </p>
+          </div>
+
+          {/* Lautlos-Modus (@silent) Schalter */}
+          <div className="bg-discord-dark p-4 rounded-xl border border-discord-border flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-sm font-semibold text-white flex items-center gap-2">
+                <span>🔕 Lautlose Benachrichtigung (@silent)</span>
+                {globalSilent ? (
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300 font-bold border border-yellow-500/30">
+                    Stumm (ohne Ton)
+                  </span>
+                ) : (
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-discord-green/20 text-discord-green font-bold border border-discord-green/30">
+                    Laut (mit Ton & Push-Alarm)
+                  </span>
+                )}
+              </span>
+              <p className="text-xs text-gray-400">
+                {globalSilent
+                  ? "Aktiviert: Der Alert wird als stille Nachricht (@silent) ohne Ton gesendet."
+                  : "Deaktiviert: Alle Mitglieder mit der Stream-Alert Rolle erhalten einen lauten Ping mit Ton!"}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={globalSilent}
+                onChange={(e) => setGlobalSilent(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-discord-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+            </label>
+          </div>
+
+          {/* Eigener Benachrichtigungstext (Global) */}
+          <div className="space-y-2 border-t border-discord-border pt-4">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-semibold text-gray-200 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-yellow-400" />
+                Standard-Benachrichtigungstext (Optional)
+              </label>
+              {globalCustomMessage && (
+                <button
+                  type="button"
+                  onClick={() => setGlobalCustomMessage("")}
+                  className="text-xs text-gray-400 hover:text-red-400 underline"
+                >
+                  Auf Standard zurücksetzen
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-gray-400 mr-1">Variablen:</span>
+              {[
+                { tag: "{streamer}", desc: "Name des Streamers" },
+                { tag: "{game}", desc: "Spiel / Kategorie" },
+                { tag: "{title}", desc: "Stream-Titel" },
+                { tag: "{url}", desc: "Direktlink zum Stream" },
+                { tag: "{ping}", desc: "Rollen-Ping" },
+              ].map((v) => (
+                <button
+                  key={v.tag}
+                  type="button"
+                  onClick={() => setGlobalCustomMessage((prev) => `${prev} ${v.tag}`.trim())}
+                  title={v.desc}
+                  className="px-2 py-0.5 rounded bg-discord-dark border border-discord-border text-xs font-mono text-purple-300 hover:text-white hover:border-purple-500 transition-colors"
+                >
+                  + {v.tag}
+                </button>
+              ))}
+            </div>
+
+            <textarea
+              value={globalCustomMessage}
+              onChange={(e) => setGlobalCustomMessage(e.target.value)}
+              rows={2}
+              placeholder="z. B. 📢 {ping}**{streamer}** ist jetzt live auf {url}!"
+              className="w-full bg-discord-dark border border-discord-border rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-red-500 font-mono"
+            />
+            <p className="text-[11px] text-gray-400">
+              Leer lassen für Standard: <code>📢 **&#123;streamer&#125;** ist jetzt live!</code> mit vorangestelltem Rollen-Ping.
             </p>
           </div>
 

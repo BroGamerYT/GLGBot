@@ -17,6 +17,9 @@ interface GuildLiveConfig {
   categoryId?: string;
   channelType: "voice" | "text";
   autoRole?: boolean;
+  pingRoleId?: string;
+  silent?: boolean;
+  customMessage?: string;
 }
 
 interface LiveConfig {
@@ -153,7 +156,10 @@ class LiveStreamService {
     announcementChannelId?: string,
     categoryId?: string,
     channelType: "voice" | "text" = "voice",
-    autoRole: boolean = true
+    autoRole: boolean = true,
+    pingRoleId?: string,
+    silent: boolean = false,
+    customMessage?: string
   ) {
     this.config[guildId] = {
       liveRoleId,
@@ -161,8 +167,12 @@ class LiveStreamService {
       categoryId,
       channelType,
       autoRole,
+      pingRoleId,
+      silent,
+      customMessage,
     };
     this.saveConfig();
+    return this.config[guildId];
   }
 
   public disableConfig(guildId: string) {
@@ -489,30 +499,64 @@ class LiveStreamService {
         console.log(`[LiveStream] Live-Textkanal erstellt für ${member.user.tag}`);
       }
 
-      // Ankündigung in den konfigurierten Ankündigungskanal mit Rollen-Ping senden (ohne Silent, mit Sound!)
+      // Ankündigung in den konfigurierten Ankündigungskanal senden (mit anpassbarem Rollen-Ping und Silent-Einstellung)
       if (cfg.announcementChannelId && !this.wasRecentlyAnnounced(member.guild.id, member.id)) {
         const announceChannel = member.guild.channels.cache.get(cfg.announcementChannelId);
         if (announceChannel && announceChannel.isTextBased()) {
           const rolesCfgPath = path.join(DATA_DIR, "role_panel_config.json");
-          let pingRoleId = "";
-          try {
-            if (fs.existsSync(rolesCfgPath)) {
-              const rolesData = JSON.parse(fs.readFileSync(rolesCfgPath, "utf-8"));
-              pingRoleId = rolesData[member.guild.id]?.streamAlertRoleId || "";
-            }
-          } catch {}
+          let pingRoleId = cfg.pingRoleId;
+          if (pingRoleId === undefined) {
+            try {
+              if (fs.existsSync(rolesCfgPath)) {
+                const rolesData = JSON.parse(fs.readFileSync(rolesCfgPath, "utf-8"));
+                pingRoleId = rolesData[member.guild.id]?.streamAlertRoleId || "";
+              }
+            } catch {}
+          }
 
-          const pingText = pingRoleId ? `<@&${pingRoleId}> ` : "";
+          let pingText = "";
+          let allowedRoles: string[] | undefined = undefined;
+          if (pingRoleId) {
+            if (pingRoleId === "@everyone") {
+              pingText = "@everyone ";
+            } else if (pingRoleId === "@here") {
+              pingText = "@here ";
+            } else {
+              pingText = `<@&${pingRoleId}> `;
+              allowedRoles = [pingRoleId];
+            }
+          }
+
+          const isSilent = Boolean(cfg.silent);
+          let messageContent = "";
+          if (cfg.customMessage && cfg.customMessage.trim().length > 0) {
+            const hasPingPlaceholder = /{ping}|{role}|{everyone}|{here}/i.test(cfg.customMessage);
+            const replaced = cfg.customMessage
+              .replace(/{streamer}/gi, member.displayName)
+              .replace(/{game}/gi, streamGame)
+              .replace(/{title}/gi, streamTitle)
+              .replace(/{url}/gi, streamUrl || "")
+              .replace(/{ping}|{role}/gi, pingText.trim());
+            messageContent = hasPingPlaceholder ? replaced : `${pingText}${replaced}`;
+          } else {
+            messageContent = `${pingText}📢 **${member.displayName}** ist jetzt live!`;
+          }
+
+          if (isSilent && !messageContent.startsWith("@silent")) {
+            messageContent = `@silent ${messageContent}`;
+          }
+
           await (announceChannel as any)
             .send({
-              content: `${pingText}📢 **${member.displayName}** ist jetzt live!`,
+              content: messageContent,
               embeds: [embed],
-              allowedMentions: pingRoleId ? { roles: [pingRoleId] } : undefined,
+              flags: isSilent ? [MessageFlags.SuppressNotifications] : undefined,
+              allowedMentions: allowedRoles ? { roles: allowedRoles } : undefined,
             })
             .catch((e: any) => console.error("[LiveStream] Konnte Ankündigung nicht senden:", e));
 
           this.markAnnounced(member.guild.id, member.id);
-          console.log(`[LiveStream] Stream-Alert in #${(announceChannel as any).name} gesendet mit Rollen-Ping.`);
+          console.log(`[LiveStream] Stream-Alert in #${(announceChannel as any).name} gesendet (Silent: ${isSilent}, Ping: ${pingRoleId || "keiner"}).`);
         }
       }
 

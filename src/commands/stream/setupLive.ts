@@ -52,6 +52,24 @@ const setupLiveCommand: Command = {
             .setDescription("Vergibt die Live-Rolle automatisch, wenn jemand in Discord streamt (Twitch/YouTube).")
             .setRequired(false)
         )
+        .addRoleOption((opt) =>
+          opt
+            .setName("ping_rolle")
+            .setDescription("Rolle, die bei Stream-Ankündigungen gepingt werden soll (z. B. @bn.live).")
+            .setRequired(false)
+        )
+        .addBooleanOption((opt) =>
+          opt
+            .setName("lautlos")
+            .setDescription("Lautlose Benachrichtigung (@silent / ohne Ping-Ton).")
+            .setRequired(false)
+        )
+        .addStringOption((opt) =>
+          opt
+            .setName("nachricht")
+            .setDescription("Eigener Benachrichtigungstext ({streamer}, {game}, {url}, {ping}).")
+            .setRequired(false)
+        )
     )
     .addSubcommand((sub) =>
       sub
@@ -78,6 +96,9 @@ const setupLiveCommand: Command = {
       const category = interaction.options.getChannel("kategorie", false);
       const channelType = (interaction.options.getString("kanal_art", false) || "voice") as "voice" | "text";
       const autoRole = interaction.options.getBoolean("auto_rolle", false) ?? true;
+      const pingRole = interaction.options.getRole("ping_rolle", false);
+      const silent = interaction.options.getBoolean("lautlos", false) ?? false;
+      const customMessage = interaction.options.getString("nachricht", false) || undefined;
 
       liveStreamService.setConfig(
         interaction.guildId,
@@ -85,7 +106,10 @@ const setupLiveCommand: Command = {
         announceChannel ? announceChannel.id : undefined,
         category ? category.id : undefined,
         channelType,
-        autoRole
+        autoRole,
+        pingRole ? pingRole.id : undefined,
+        silent,
+        customMessage
       );
 
       const embed = new EmbedBuilder()
@@ -97,12 +121,18 @@ const setupLiveCommand: Command = {
         .addFields(
           { name: "🎭 Live-Rolle", value: `<@&${role.id}>`, inline: true },
           { name: "📢 Ankündigungskanal", value: announceChannel ? `<#${announceChannel.id}>` : "*Keine automatische Nachricht*", inline: true },
+          { name: "🔔 Ping-Rolle", value: pingRole ? `<@&${pingRole.id}>` : "*Kein Ping*", inline: true },
+          { name: "🔕 Lautlos (@silent)", value: silent ? "✅ Ja (ohne Ton)" : "❌ Nein (laut mit Ton)", inline: true },
           { name: "📁 Ziel-Kategorie", value: category ? `<#${category.id}>` : "*Automatisch ('🔴 Live Streams')*", inline: true },
           { name: "📡 Kanal-Art", value: channelType === "voice" ? "🔊 Sprachkanal (mit Link-Status)" : "💬 Textkanal", inline: true },
           { name: "🤖 Auto-Erkennung", value: autoRole ? "✅ Aktiv (bei Twitch/YouTube-Stream)" : "❌ Deaktiviert (nur manuelle Rolle)", inline: true }
         )
         .setFooter({ text: "BroBot Creator & Streamer Suite" })
         .setTimestamp();
+
+      if (customMessage) {
+        embed.addFields({ name: "💬 Eigener Text", value: `\`\`\`${customMessage.slice(0, 1000)}\`\`\``, inline: false });
+      }
 
       await interaction.reply({ embeds: [embed] });
       return;
@@ -125,12 +155,18 @@ const setupLiveCommand: Command = {
         .addFields(
           { name: "🎭 Live-Rolle", value: `<@&${config.liveRoleId}>`, inline: true },
           { name: "📢 Ankündigungskanal", value: config.announcementChannelId ? `<#${config.announcementChannelId}>` : "*Keiner hinterlegt*", inline: true },
+          { name: "🔔 Ping-Rolle", value: config.pingRoleId ? `<@&${config.pingRoleId}>` : "*Keine (Standard: bn.live)*", inline: true },
+          { name: "🔕 Lautlos (@silent)", value: config.silent ? "✅ Ja (ohne Ton)" : "❌ Nein (laut mit Ton)", inline: true },
           { name: "📁 Ziel-Kategorie", value: config.categoryId ? `<#${config.categoryId}>` : "*Automatisch ('🔴 Live Streams')*", inline: true },
           { name: "📡 Kanal-Art", value: config.channelType === "voice" ? "🔊 Sprachkanal" : "💬 Textkanal", inline: true },
           { name: "🤖 Auto-Erkennung", value: config.autoRole ? "✅ Aktiv" : "❌ Aus", inline: true }
         )
         .setFooter({ text: "BroBot Creator & Streamer Suite" })
         .setTimestamp();
+
+      if (config.customMessage) {
+        embed.addFields({ name: "💬 Eigener Text", value: `\`\`\`${config.customMessage.slice(0, 1000)}\`\`\``, inline: false });
+      }
 
       await interaction.reply({ embeds: [embed] });
       return;
