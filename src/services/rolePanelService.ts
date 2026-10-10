@@ -6,8 +6,11 @@ import {
   ActionRowBuilder, 
   ButtonBuilder, 
   ButtonStyle, 
-  GuildMember 
+  GuildMember,
+  Guild,
+  ChannelType
 } from "discord.js";
+import { liveStreamService } from "./liveStreamService";
 
 export interface RolePanelConfig {
   [guildId: string]: {
@@ -74,6 +77,127 @@ class RolePanelService {
   public getConfig(guildId: string) {
     this.loadConfig();
     return this.config[guildId] || null;
+  }
+
+  // --- AUTOMATISCHES ERSTELLEN & ZUWEISEN FEHLENDER ROLLEN & KANÄLE ---
+  public async ensureAndAutoSetupRoles(guild: Guild) {
+    const roles = await guild.roles.fetch();
+    const channels = await guild.channels.fetch();
+
+    // 1. Gast-Rolle
+    let guestRole = roles.find((r) => 
+      r.name.toLowerCase() === "gast" || 
+      r.name.toLowerCase() === "gäste" ||
+      r.name.toLowerCase().includes("gast")
+    );
+    let guestCreated = false;
+    if (!guestRole) {
+      guestRole = await guild.roles.create({
+        name: "Gast",
+        color: 0x2ECC71, // Grün
+        reason: "Automatisch erstellt von GLGBot (Regel-Bestätigung)",
+      });
+      guestCreated = true;
+      console.log(`[RolePanel] Gast-Rolle neu erstellt: ${guestRole.name} (${guestRole.id})`);
+    }
+
+    // 2. Live-Stream Alert Rolle (bn.live)
+    let streamAlertRole = roles.find((r) => 
+      r.name.toLowerCase() === "bn.live" || 
+      r.name.toLowerCase().includes("live-stream alert") ||
+      r.name.toLowerCase().includes("stream alert")
+    );
+    let streamAlertCreated = false;
+    if (!streamAlertRole) {
+      streamAlertRole = await guild.roles.create({
+        name: "🔴 Live-Stream Alerts (bn.live)",
+        color: 0xE91E63, // Magenta
+        mentionable: true,
+        reason: "Automatisch erstellt von GLGBot (Live-Stream Alerts)",
+      });
+      streamAlertCreated = true;
+      console.log(`[RolePanel] Stream-Alert Rolle neu erstellt: ${streamAlertRole.name} (${streamAlertRole.id})`);
+    }
+
+    // 3. Free-Games Alert Rolle (bn.free)
+    let freeGamesRole = roles.find((r) => 
+      r.name.toLowerCase() === "bn.free" || 
+      r.name.toLowerCase().includes("free-game") ||
+      r.name.toLowerCase().includes("free game")
+    );
+    let freeGamesCreated = false;
+    if (!freeGamesRole) {
+      freeGamesRole = await guild.roles.create({
+        name: "🎮 Free-Games Alerts (bn.free)",
+        color: 0x0078F2, // Epic Blau
+        mentionable: true,
+        reason: "Automatisch erstellt von GLGBot (Gratis-Spiele Alerts)",
+      });
+      freeGamesCreated = true;
+      console.log(`[RolePanel] Free-Games Rolle neu erstellt: ${freeGamesRole.name} (${freeGamesRole.id})`);
+    }
+
+    // 4. Live-Streamer Rolle (@Live)
+    let liveRole = roles.find((r) => 
+      r.name.toLowerCase() === "live" || 
+      r.name.toLowerCase() === "🔴 live"
+    );
+    let liveCreated = false;
+    if (!liveRole) {
+      liveRole = await guild.roles.create({
+        name: "🔴 Live",
+        color: 0x9146FF, // Twitch Lila
+        mentionable: false,
+        reason: "Automatisch erstellt von GLGBot (Live-Streamer Status)",
+      });
+      liveCreated = true;
+      console.log(`[RolePanel] Live-Streamer Rolle neu erstellt: ${liveRole.name} (${liveRole.id})`);
+    }
+
+    // 5. Free-Games Textkanal (#free-games)
+    let freeGamesChannel = channels.find((c) => 
+      c && c.isTextBased() && (c.name.toLowerCase().includes("free-game") || c.name.toLowerCase().includes("gratis-spiel"))
+    );
+    let channelCreated = false;
+    if (!freeGamesChannel) {
+      freeGamesChannel = await guild.channels.create({
+        name: "🎮・free-games",
+        type: ChannelType.GuildText,
+        topic: "Wöchentliche 100% kostenlose PC-Spiele & Giveaways | Benachrichtigungen mit @bn.free",
+        reason: "Automatisch erstellt von GLGBot (Free-Games Alerts)",
+      });
+      channelCreated = true;
+      console.log(`[RolePanel] Free-Games Textkanal neu erstellt: ${freeGamesChannel.name} (${freeGamesChannel.id})`);
+    }
+
+    // 6. Konfigurationen speichern
+    this.setConfig(
+      guild.id,
+      guestRole.id,
+      streamAlertRole.id,
+      freeGamesRole.id,
+      freeGamesChannel.id
+    );
+
+    // Live-Stream System Konfiguration anpassen
+    const existingLiveCfg = liveStreamService.getConfig(guild.id);
+    const streamChannel = channels.find((c) => c && c.isTextBased() && c.name.toLowerCase().includes("stream"));
+    liveStreamService.setConfig(
+      guild.id,
+      liveRole.id,
+      existingLiveCfg?.announcementChannelId || (streamChannel ? streamChannel.id : undefined),
+      existingLiveCfg?.categoryId,
+      existingLiveCfg?.channelType || "voice",
+      true
+    );
+
+    return {
+      guestRole: { id: guestRole.id, name: guestRole.name, created: guestCreated },
+      streamAlertRole: { id: streamAlertRole.id, name: streamAlertRole.name, created: streamAlertCreated },
+      freeGamesRole: { id: freeGamesRole.id, name: freeGamesRole.name, created: freeGamesCreated },
+      liveRole: { id: liveRole.id, name: liveRole.name, created: liveCreated },
+      freeGamesChannel: { id: freeGamesChannel.id, name: freeGamesChannel.name, created: channelCreated },
+    };
   }
 
   // --- EMBED & BUTTON BUILDER ---

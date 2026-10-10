@@ -56,6 +56,11 @@ const setupRolesCommand: Command = {
     )
     .addSubcommand((sub) =>
       sub
+        .setName("auto")
+        .setDescription("Erstellt und weist fehlende Rollen (@Gast, bn.live, bn.free, Live) & Kanäle automatisch zu!")
+    )
+    .addSubcommand((sub) =>
+      sub
         .setName("status")
         .setDescription("Zeigt die aktuelle Rollen- und Benachrichtigungskonfiguration an.")
     ),
@@ -121,6 +126,48 @@ const setupRolesCommand: Command = {
         content: `✅ Das Berechtigungs- & Benachrichtigungs-Panel wurde erfolgreich in <#${channel.id}> gepostet!`,
         ephemeral: true,
       });
+      return;
+    }
+
+    if (sub === "auto") {
+      await interaction.deferReply();
+      const result = await rolePanelService.ensureAndAutoSetupRoles(interaction.guild);
+
+      const embed = new EmbedBuilder()
+        .setColor(0x57f287)
+        .setTitle("⚡ Rollen & Kanäle automatisch eingerichtet!")
+        .setDescription("Alle für den Bot benötigten Rollen und Kanäle wurden geprüft, bei Bedarf neu erstellt und automatisch zugewiesen:")
+        .addFields(
+          { 
+            name: "📜 Gast-Rolle (Regeln)", 
+            value: `<@&${result.guestRole.id}> ${result.guestRole.created ? "*(Neu erstellt)*" : "*(Vorhanden & Verknüpft)*"}`, 
+            inline: false 
+          },
+          { 
+            name: "🔴 Live-Stream Alerts (bn.live)", 
+            value: `<@&${result.streamAlertRole.id}> ${result.streamAlertRole.created ? "*(Neu erstellt)*" : "*(Vorhanden & Verknüpft)*"}`, 
+            inline: false 
+          },
+          { 
+            name: "🎮 Free-Games Alerts (bn.free)", 
+            value: `<@&${result.freeGamesRole.id}> ${result.freeGamesRole.created ? "*(Neu erstellt)*" : "*(Vorhanden & Verknüpft)*"}`, 
+            inline: false 
+          },
+          { 
+            name: "🔴 Live-Streamer Rolle (@Live)", 
+            value: `<@&${result.liveRole.id}> ${result.liveRole.created ? "*(Neu erstellt)*" : "*(Vorhanden & Verknüpft)*"}`, 
+            inline: false 
+          },
+          { 
+            name: "🎁 Free-Games Kanal", 
+            value: `<#${result.freeGamesChannel.id}> ${result.freeGamesChannel.created ? "*(Neu erstellt)*" : "*(Vorhanden & Verknüpft)*"}`, 
+            inline: false 
+          }
+        )
+        .setFooter({ text: "Tipp: Nutze '/setup-roles panel', um das Rollen-Auswahl-Panel im Regel- oder Rollenkanal zu posten!" })
+        .setTimestamp();
+
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 

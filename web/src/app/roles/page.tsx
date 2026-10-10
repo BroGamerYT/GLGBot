@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ShieldCheck, Save, Send, CheckCircle2, AlertCircle, RefreshCw, Gamepad2, Radio, UserCheck, Sparkles } from "lucide-react";
+import { ShieldCheck, Save, Send, CheckCircle2, AlertCircle, RefreshCw, Gamepad2, Radio, UserCheck, Sparkles, Zap } from "lucide-react";
 
 export default function RolesManagerPage() {
   const [data, setData] = useState<any>(null);
@@ -13,6 +13,7 @@ export default function RolesManagerPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [autoSettingUp, setAutoSettingUp] = useState(false);
   const [postingPanel, setPostingPanel] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
@@ -36,6 +37,33 @@ export default function RolesManagerPage() {
     }
     load();
   }, []);
+
+  const handleAutoSetup = async () => {
+    setAutoSettingUp(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/action/auto-setup-roles", { method: "POST" });
+      const json = await res.json();
+      if (res.ok && json.data) {
+        const guildRes = await fetch("/api/discord/guild").then((r) => r.json());
+        setData(guildRes);
+        if (json.data.guestRole?.id) setRulesRoleId(json.data.guestRole.id);
+        if (json.data.streamAlertRole?.id) setStreamAlertRoleId(json.data.streamAlertRole.id);
+        if (json.data.freeGamesRole?.id) setFreeGamesRoleId(json.data.freeGamesRole.id);
+        if (json.data.freeGamesChannel?.id) setFreeGamesChannelId(json.data.freeGamesChannel.id);
+        setMessage({
+          text: "⚡ Alle benötigten Rollen (@Gast, bn.live, bn.free) & der #free-games Kanal wurden automatisch erstellt & verknüpft!",
+          type: "success",
+        });
+      } else {
+        setMessage({ text: `❌ Fehler: ${json.error || "Auto-Setup fehlgeschlagen"}`, type: "error" });
+      }
+    } catch (e: any) {
+      setMessage({ text: `❌ Fehler: ${e.message}`, type: "error" });
+    } finally {
+      setAutoSettingUp(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,6 +159,26 @@ export default function RolesManagerPage() {
             Konfiguriere Verifikations-Rollen (Regeln gelesen) und Benachrichtigungs-Rollen (bn.live, bn.free) mit 1-Klick Discord-Buttons.
           </p>
         </div>
+
+        {/* 1-Klick Auto Setup Button */}
+        <button
+          type="button"
+          onClick={handleAutoSetup}
+          disabled={autoSettingUp}
+          className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all self-start sm:self-auto disabled:opacity-50"
+        >
+          {autoSettingUp ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              Erstelle Rollen...
+            </>
+          ) : (
+            <>
+              <Zap className="w-4 h-4 fill-black" />
+              Rollen automatisch erstellen & zuweisen
+            </>
+          )}
+        </button>
       </div>
 
       {/* Alert Messages */}
