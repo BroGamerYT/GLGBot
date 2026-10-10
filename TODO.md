@@ -234,6 +234,31 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
+### 20. 🏗️ 1-Klick Server-Templates & Auto-Setup Wizard
+
+> **Ziel:** Richtet auf neuen oder bestehenden Discord-Servern in 15 Sekunden eine komplette, professionelle und sichere Server-Struktur ein.
+
+* [ ] **Vordefinierte Server-Typen (JSON-Templates in `src/templates/`):**
+  * [ ] 🎮 **Gaming Clan / E-Sport:** Infos (Regeln, News), Community (Chat, Clips, Memes), Talk (VoiceMaster, AFK), Spiele-Lobbys.
+  * [ ] 🌐 **Multi-Gaming Community:** Spiele-Kategorien getrennt nach Games (CS2, Valorant, LoL, GTA) mit Auto-Rollen / Reaction Roles.
+  * [ ] 💻 **Coding / Dev / Tech:** Projekte, Dev-Talk nach Sprachen (JS/TS, Python, C++, Rust), Bug-Reports, Helpdesk.
+  * [ ] 🌸 **Anime / Manga / Hangout:** Lobby, Anime-Talk, Fan-Art, Musik, Mini-Games.
+  * [ ] 🔴 **Content Creator / Streamer:** Live-Alerts, Sub-Lounge, Giveaways, Fan-Chat, Kooperationen.
+* [ ] **Wählbare Emoji- & Design-Stile:**
+  * [ ] **Modern mit Emojis:** `💬・hauptchat`, `📢・news`, `🔊・talk-1`
+  * [ ] **Clean / Minimalistisch:** `hauptchat`, `news`, `talk-1` (kleingeschrieben, ohne Emojis)
+  * [ ] **Aesthetic / Symbole:** `〢・chat`, `〢・news`, `〢・voice`
+  * [ ] **Box / Bold:** `「💬」chat`, `「📢」news`, `「🔊」voice`
+* [ ] **Automatisches Berechtigungs-Hardening (Wasserdichte Sicherheit):**
+  * [ ] Sichere Rollen-Hierarchie (`@Inhaber`, `@Admin`, `@Mod`, `@VIP`, `@Member`, `@Gast`).
+  * [ ] Vollständige Permission Overwrites (Ankündigungen nur lesbar für `@everyone`, geschützte Mod-Logs, sichere VoiceMaster-Berechtigungen).
+  * [ ] Nutzung der bestehenden Backup-Engine (`backupService.ts`) zum schnellen, fehlerfreien Ausrollen.
+* [ ] **Bedienung via Web & Discord:**
+  * [ ] **Web-Dashboard (`/templates`):** Interaktiver 3-Schritte-Assistent (Typ wählen -> Stil wählen -> Vorschau prüfen -> „Server einrichten“).
+  * [ ] **Discord Slash-Command:** `/server-setup template:<typ> style:<stil> [wipe:true|false]` mit Sicherheits-Bestätigungs-Button.
+
+---
+
 ## 📊 Abgeschlossene Meilensteine (History)
 
 * [x] **v2.3.0 (Aktuell live):**

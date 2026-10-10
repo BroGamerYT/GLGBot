@@ -238,5 +238,6 @@ CREATE TABLE server_backups (
   * [ ] Globale Discord Slash-Commands (`applicationCommands`) für automatische Verfügbarkeit auf allen Servern.
   * [ ] Strikte Mandantentrennung aller Konfigurationsdateien, Cases und Stats (`data/guilds/<guildId>/*`).
   * [ ] Multi-Guild Server-Switcher im Web-Dashboard („Bot einladen“ + Guild-Wechsel per Dropdown).
+  * [ ] **1-Klick Server-Templates & Auto-Setup Wizard:** Vollständige Einrichtung (Gaming Clan, Multi-Gaming, Coding, Anime, Creator) mit Emoji-Stilen & Berechtigungs-Hardening via `backupService.ts`.
   * [ ] Eigene Custom Commands & Text-Reaktionen im Web konfigurierbar.
   * [ ] Live-Web-Chat / Admin-Konsole und geplante Ankündigungen (`/announcements`).
