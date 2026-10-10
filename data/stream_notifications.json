@@ -41,5 +41,16 @@
     "discordChannelId": "1131340278201073765",
     "pingRoleId": "1522884114108125344",
     "isLive": false
+  },
+  {
+    "id": "notif_floslist",
+    "guildId": "548842540074401802",
+    "platform": "twitch",
+    "channelName": "floslist",
+    "displayName": "FlosList",
+    "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/c29b8e09-aff0-4de4-8801-dec6b2cee3d3-profile_image-70x70.png",
+    "discordChannelId": "1131340278201073765",
+    "linkedDiscordUserId": "175241556566081536",
+    "isLive": false
   }
 ]
