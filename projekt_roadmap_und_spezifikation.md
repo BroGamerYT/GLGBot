@@ -153,9 +153,11 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
   - [x] PM2 Daemon mit `systemd` Autostart bei Reboot.
   - [x] Caddy Reverse Proxy mit automatischem Let's Encrypt SSL.
   - [x] All-in-One Desktop Launcher & Synchronisations-Skript (`start.bat`).
-- [ ] **Sub-Bot-Verwaltung:**
-  - [ ] Prozess-Trennung: Haupt-Bot läuft unabhängig von rechenintensiven Sub-Bots.
-  - [ ] Musik-Bot Worker angebunden an Lavalink für latenzfreies Streaming.
+- [ ] **Sub-Bot- & Musik-Architektur (Konfigurierbar für Public Release):**
+  - [ ] **Modus A (Sub-Bot Worker):** Prozess-Trennung – Haupt-Bot läuft unabhängig vom rechenintensiven Musik-Worker (`discord-music` mit eigenem Token).
+  - [ ] **Modus B (Embedded / All-in-One):** Musik-Engine läuft direkt im Haupt-Bot (für einfache Installationen).
+  - [ ] **Quellen:** Lokale MP3-Dateien & Soundboard, Spotify (Meta-Auflösung), YouTube (`yt-dlp` / Lavalink), Web-Radio.
+  - [ ] **Web-Player:** Live-Player mit Queue und MP3-Upload im Dashboard (`/music`).
 - [ ] **System- & Status-Monitoring:**
   - [ ] Live-Anzeige der Bot-Latenz (Gateway-Ping), RAM-Auslastung und Uptime im Dashboard.
   - [ ] Benachrichtigung des Admins, falls ein Worker offline geht.

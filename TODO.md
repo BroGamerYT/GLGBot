@@ -102,6 +102,40 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
+## 🎧 Großes Feature: Hybrides Musik- & Audio-System (Sub-Bot & All-in-One wählbar)
+
+> **Architektur-Ziel:** Für eine spätere Veröffentlichung konfigurierbar machen:
+> * **Modus A (Sub-Bot Worker):** Dedizierter Bot-Account („GLG Music“) mit eigenem Token – maximale Performance ohne Last für den Haupt-Bot.
+> * **Modus B (Embedded / All-in-One):** Direkt im Haupt-Bot integriert – kein 2. Bot nötig, perfekt für einfache Server oder Ein-Klick-Setup.
+
+* [ ] **Konfiguration & Modus-Auswahl (`config/music.json` / `.env`):**
+  * [ ] Schalter `MUSIC_MODE: "subbot" | "embedded" | "disabled"`.
+  * [ ] Im Sub-Bot-Modus: Eigener Token (`MUSIC_BOT_TOKEN`), eigener PM2-Prozess `discord-music`, Befehle werden durchgereicht oder direkt vom Sub-Bot registriert.
+  * [ ] Im Embedded-Modus: Haupt-Bot verbindet sich selbst in den Voice-Kanal.
+* [ ] **Audio-Engine & Quellen:**
+  * [ ] **📁 Lokale Dateien & Soundboard:**
+    * [ ] Musik-Verzeichnis auf dem Server (`data/music/`).
+    * [ ] Wiedergabe lokaler MP3/WAV/FLAC-Dateien (`/play local:<dateiname>`).
+    * [ ] Soundboard-Modus für kurze Sounds & Memes (`/soundboard <sound>`).
+  * [ ] **🎵 Spotify-Unterstützung:**
+    * [ ] Erkennung von Tracks, Alben und Playlists (`spotify.com/track/...`, `.../playlist/...`).
+    * [ ] Metadaten-Auflösung via Spotify Web API (Titel + Artist).
+    * [ ] Automatische Hintergrund-Suche des passenden Audio-Streams via YouTube / SoundCloud.
+  * [ ] **🎥 YouTube & Web-Streams:**
+    * [ ] Audio-Streaming via `yt-dlp` / Play-DL (mit Cookie/Proxy-Option gegen Bot-Sperren) oder Lavalink-Node.
+  * [ ] **📻 24/7 Web-Radio:**
+    * [ ] Direkte MP3/AAC-Livestreams (z. B. I Love Radio, BigFM, Lofi Girl 24/7) ohne Rate-Limits (`/radio <sender>`).
+* [ ] **Discord Slash-Commands:**
+  * [ ] `/play <query_oder_link>` (sucht Song oder spielt Link ab).
+  * [ ] `/skip`, `/stop`, `/pause`, `/resume`, `/queue`, `/nowplaying`, `/volume <1-100>`, `/loop`.
+  * [ ] Interaktives Embed mit Steuerungs-Buttons (`⏮️`, `⏯️`, `⏭️`, `⏹️`, `🔀`, `🔁`).
+* [ ] **Web-Dashboard Musik-Zentrale (`/music`):**
+  * [ ] Live-Anzeige des aktuellen Tracks mit Cover, Fortschrittsbalken und Queue-Liste.
+  * [ ] Web-Controls (Play/Pause, Skip, Lautstärke per Slider).
+  * [ ] Datei-Uploader: Eigene MP3s direkt im Browser hochladen und der Server-Bibliothek hinzufügen.
+
+---
+
 ## 📊 Abgeschlossene Meilensteine (History)
 
 * [x] **v2.3.0 (Aktuell live):**
