@@ -208,10 +208,17 @@ CREATE TABLE server_backups (
 
 ---
 
-## 4. Nächste Meilensteine zur Umsetzung
+## 4. Meilensteine & Roadmap-Status
 
-1. **Sprint 1:** Bot-Basis aufsetzen + Auto-Move Voice + Free-Games Cronjob.
-2. **Sprint 2:** Stream-Alerts (Twitch/YouTube) + Rollen-Vergabe bei Live-Start.
-3. **Sprint 3:** Logging-Engine + Backup/Restore-Logik (JSON-Export).
-4. **Sprint 4:** Next.js Dashboard mit Discord OAuth2 + Embed-Builder.
-5. **Sprint 5:** Anti-Nuke-Schutz + Ticketsystem mit Web-Transkripten.
+* [x] **Sprint 1:** Bot-Basis aufsetzen + Auto-Move Voice + Free-Games Cronjob.
+* [x] **Sprint 2:** Stream-Alerts (Twitch/YouTube) + Rollen-Vergabe bei Live-Start & Konfigurierbare Benachrichtigungen (`@silent`, Pings).
+* [x] **Sprint 3:** Logging-Engine + Backup/Restore-Logik (JSON-Export).
+* [x] **Sprint 4:** Next.js Dashboard mit Discord OAuth2 + Embed-Builder.
+* [x] **Sprint 5:** Anti-Nuke-Schutz + Ticketsystem mit Web-Transkripten.
+* [x] **Sprint 6:** XP- & Levelsystem v2.3.0 (25 Level, quadratische XP-Kurve, Aktivitätsaufschlüsselung Chat vs. Voice).
+* [ ] **Sprint 7 (Aktuell in Arbeit – siehe [TODO.md](file:///c:/Users/domin/Desktop/DiscordBot/TODO.md)):**
+  * [ ] Öffentliches Free Games & Game News Showcase ohne Login (Read-Only für Gäste, Admin-Controls geschützt).
+  * [ ] Game Release Kalender (`/releases` im Chat & Web mit Timeline, Countdowns und Plattform-Badges).
+  * [ ] Automatische Level-Rollen-Belohnungen (Zuweisung von Meilenstein-Rollen im Dashboard & Level-Up).
+  * [ ] Live-Streamer Widget auf der Dashboard-Startseite (`glgbot.brogameryt.de`).
+  * [ ] Tägliches Belohnungssystem (`/daily`), Giveaways (`/giveaway`) und TeamSpeak/Game-Server Status.
