@@ -1,0 +1,88 @@
+import { Events, Message, EmbedBuilder, MessageFlags } from "discord.js";
+import { BotEvent } from "../types";
+import { securityService } from "../services/securityService";
+import { stickyService } from "../services/stickyService";
+import { statsService } from "../services/statsService";
+import { blacklistService } from "../services/blacklistService";
+
+const messageCreateEvent: BotEvent<Events.MessageCreate> = {
+  name: Events.MessageCreate,
+  execute: async (client, message: Message) => {
+    // Ignoriere Nachrichten von Bots
+    if (message.author.bot) return;
+
+    // Phishing- & Scam-Schutz
+    const isPhishing = await securityService.handlePhishingMessage(message, client);
+    if (isPhishing) return;
+
+    // Wortfilter & Blacklist-Schutz (zieht bei Verstoß XP ab)
+    const isBlacklisted = await blacklistService.handleMessage(message, client);
+    if (isBlacklisted) return;
+
+    // Sticky Messages aktualisieren
+    await stickyService.handleMessage(message);
+
+    // Entferne führendes @silent, falls die Nachricht lautlos gesendet wurde
+    let content = message.content.trim().toLowerCase();
+    const isSilent = content.startsWith("@silent") || message.flags.has(MessageFlags.SuppressNotifications);
+
+    if (content.startsWith("@silent")) {
+      content = content.replace(/^@silent\s*/, "").trim();
+    }
+
+    // Reagiere auf !ping, /ping oder ping (auch wenn @silent davor stand)
+    if (content === "!ping" || content === "/ping" || content === "ping") {
+      const sent = await message.reply({
+        content: "🏓 Berechne Ping...",
+        flags: isSilent ? [MessageFlags.SuppressNotifications] : undefined,
+      });
+
+      const roundtrip = sent.createdTimestamp - message.createdTimestamp;
+      const wsPing = client.ws.ping;
+
+      const embed = new EmbedBuilder()
+        .setColor(0x5865f2)
+        .setTitle("🏓 Pong! (Text-Befehl)")
+        .addFields(
+          { name: "🌐 WebSocket-Latenz", value: `\`${wsPing}ms\``, inline: true },
+          { name: "⚡ Roundtrip-Latenz", value: `\`${roundtrip}ms\``, inline: true }
+        )
+        .setFooter({ text: isSilent ? "🤫 Lautlos empfangen & geantwortet (@silent)" : "Tipp: Funktioniert auch als Slash-Befehl /ping!" })
+        .setTimestamp();
+
+      await sent.edit({
+        content: null,
+        embeds: [embed],
+      });
+    }
+
+    // Level-System: XP für Nachricht gutschreiben
+    if (message.guild) {
+      const res = statsService.addMessageXp(message.guild, message.author);
+      if (res && res.leveledUp) {
+        const cfg = statsService.getConfig(message.guild.id);
+        if (cfg.levelUpNotifications) {
+          const isMax = res.newLevel >= (cfg.maxLevel ?? 25);
+          const levelEmbed = new EmbedBuilder()
+            .setColor(isMax ? 0xffac33 : 0xfee75c)
+            .setTitle(isMax ? "👑 MAXIMALES LEVEL ERREICHT!" : "🎉 Level-Up!")
+            .setDescription(
+              isMax
+                ? `Wahnsinn <@${message.author.id}>! Du hast das **MAX-LEVEL ${res.newLevel}** erreicht! 👑🔥`
+                : `Herzlichen Glückwunsch <@${message.author.id}>! Du hast **Level ${res.newLevel}** erreicht! 🚀`
+            )
+            .setTimestamp();
+
+          const targetChannel = cfg.levelUpChannelId
+            ? (message.guild.channels.cache.get(cfg.levelUpChannelId) as any)
+            : message.channel;
+          if (targetChannel && "send" in targetChannel) {
+            targetChannel.send({ embeds: [levelEmbed] }).catch(() => null);
+          }
+        }
+      }
+    }
+  },
+};
+
+export default messageCreateEvent;

@@ -1,0 +1,31 @@
+{
+  "name": "glgbot",
+  "version": "2.5.0",
+  "description": "Discord-Bot (TypeScript, discord.js v14) mit Web-Dashboard: VoiceMaster, Live-Streamer, Level, Moderation, Tickets, Free-Games & Game-News",
+  "main": "dist/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "deploy-commands": "tsx src/deploy-commands.ts"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "typescript",
+    "discordjs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.27.0",
+    "dotenv": "^18.0.7",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

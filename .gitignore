@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+.next/
+web/.next/
+web/node_modules/
+deploy.tar.gz
+
+# Laufzeit-Daten (Einstellungen & Live-Status) - gehoeren nicht ins Repo und nicht in den Upload
+data/
+data_from_server/
+.env.from_server
+*.tsbuildinfo
+
+# Persönliche Einstellungen (eigene Regeln, eigene Banner, Server-Zugang)
+/config/
+/server_config.ini
