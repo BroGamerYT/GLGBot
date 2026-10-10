@@ -187,16 +187,29 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-## 🌐 Priorität 4: Public Release & Multi-Guild Architektur
+## 🌐 Priorität 4: Public Release & 1-Bot-in-1-CT Multi-Guild Architektur
 
-> **Ziel:** Ermöglicht es anderen Servern, den GLGBot per Klick einzuladen und für ihre eigene Community unabhängig zu nutzen.
+> **Architektur-Konzept:** **Ein einziger Bot-Prozess im Proxmox-Container (CT 109)** bedient unbegrenzt viele Discord-Server gleichzeitig.
+> * **Ressourcen:** Minimaler RAM-Verbrauch (~200 MB) für beliebig viele Server.
+> * **Zentrale Wartung:** 1x `git pull` & `pm2 restart` aktualisiert alle Server simultan.
+> * **1-Klick-Onboarding:** Jeder Server-Besitzer kann den Bot per Invite-Link einladen, ohne eigene Server/Tokens zu benötigen.
 
-### 16. 🔄 Multi-Guild Server-Switcher im Web-Dashboard
-* [ ] Dropdown-Menü in der oberen Dashboard-Navigationsleiste mit allen Servern des eingeloggten Discord-Admins.
-* [ ] Server-Kacheln auf einer Übersicht-Seite (`/dashboard/servers`):
-  * [ ] Bereits aktivierte Server verwalten.
-  * [ ] Nicht aktivierte Server mit einem 1-Klick-Link **„➕ Bot einladen“** (mit vorkonfigurierten OAuth2-Berechtigungen) hinzufügen.
-* [ ] Vollständige Mandantentrennung aller Konfigurationsdateien und Datenbank-Einträge pro `guildId`.
+### 16. 🏛️ Multi-Guild Datenisolation & Globale Commands (1 Bot -> N Server)
+* [ ] **Globale Discord Slash-Commands:**
+  * [ ] Umstellung von `applicationGuildCommands(clientId, guildId)` auf globale Registrierung `applicationCommands(clientId)`.
+  * [ ] Befehle sind nach Einladung des Bots automatisch auf jedem Discord-Server verfügbar.
+* [ ] **Strikte Daten- & Konfigurations-Trennung pro Server (`guildId` Partitionierung):**
+  * [ ] Speicherstruktur pro Guild: `data/guilds/<guildId>/config.json`.
+  * [ ] Jeder Server hat seine eigenen Kanäle (`#free-games`, `#logs`, `#voice-master`, etc.) und Rollen.
+  * [ ] Vollständig getrennte Moderations-Cases, Level-Rankings und Audit-Logs (keine Datenvermischung).
+* [ ] **Multi-Guild Server-Switcher im Web-Dashboard:**
+  * [ ] Dropdown-Menü in der oberen Dashboard-Navigationsleiste mit allen Servern des eingeloggten Discord-Admins (gefiltert nach `Administrator` / `Manage_Guild`).
+  * [ ] Server-Kacheln auf einer Übersicht-Seite (`/dashboard/servers`):
+    * [ ] Bereits aktivierte Server verwalten (Klick schaltet aktiven Kontext um).
+    * [ ] Nicht aktivierte Server mit einem 1-Klick-Link **„➕ Bot einladen“** (mit vorkonfigurierten OAuth2-Berechtigungen) hinzufügen.
+* [ ] **API-Mandantenfähigkeit:**
+  * [ ] Alle Web-API-Routen (`/api/discord/*`, `/api/config/*`, `/api/stats/*`) akzeptieren den Header bzw. Query-Parameter `?guildId=<id>`.
+  * [ ] Serverseitige Autorisierungsprüfung: Darf der eingeloggte Discord-User diese spezifische `guildId` konfigurieren?
 
 ---
 

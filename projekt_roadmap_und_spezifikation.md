@@ -233,7 +233,10 @@ CREATE TABLE server_backups (
   * [ ] Clip-Showcase (`#clips` mit Upvotes & wöchentlicher Clip der Woche).
   * [ ] Dynamische Willkommens-Karten (Canvas), Auto-Role und Live-Kanalzähler (Mitglieder/Voice).
   * [ ] Geburtstagssystem (`/birthday`) und Server-Währung mit Shop (`/shop`).
-* [ ] **Sprint 10: Multi-Guild & Public Release:**
-  * [ ] Multi-Guild Server-Switcher im Web-Dashboard („Bot einladen“ + Mandantentrennung).
+* [ ] **Sprint 10: Multi-Guild & Public Release (1 Bot in 1 CT für N Server):**
+  * [ ] 1 zentraler Bot-Prozess auf Proxmox CT 109 bedient unbegrenzt viele Discord-Server parallel.
+  * [ ] Globale Discord Slash-Commands (`applicationCommands`) für automatische Verfügbarkeit auf allen Servern.
+  * [ ] Strikte Mandantentrennung aller Konfigurationsdateien, Cases und Stats (`data/guilds/<guildId>/*`).
+  * [ ] Multi-Guild Server-Switcher im Web-Dashboard („Bot einladen“ + Guild-Wechsel per Dropdown).
   * [ ] Eigene Custom Commands & Text-Reaktionen im Web konfigurierbar.
   * [ ] Live-Web-Chat / Admin-Konsole und geplante Ankündigungen (`/announcements`).
