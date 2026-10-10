@@ -224,3 +224,16 @@ CREATE TABLE server_backups (
   * [ ] Automatische Level-Rollen-Belohnungen (Zuweisung von Meilenstein-Rollen im Dashboard & Level-Up).
   * [ ] Live-Streamer Widget auf der Dashboard-Startseite (`glgbot.brogameryt.de`).
   * [ ] Tägliches Belohnungssystem (`/daily`), Giveaways (`/giveaway`) und TeamSpeak/Game-Server Status.
+* [ ] **Sprint 8: Hybrides Musik- & Audio-System (Sub-Bot vs. All-in-One):**
+  * [ ] Konfigurierbarer Modus: Sub-Bot Worker (`discord-music`) oder Embedded im Haupt-Bot.
+  * [ ] Lokale MP3-Dateien & Web-Upload, Spotify-Auflösung, YouTube-Streaming, 24/7 Web-Radio.
+  * [ ] Web-Player im Dashboard (`/music`) mit Live-Queue & Controls.
+* [ ] **Sprint 9: Gaming & Community-Wachstum:**
+  * [ ] LFG-System (`/lfg`) mit automatischem Move in neue temporäre VoiceMaster-Lobby.
+  * [ ] Clip-Showcase (`#clips` mit Upvotes & wöchentlicher Clip der Woche).
+  * [ ] Dynamische Willkommens-Karten (Canvas), Auto-Role und Live-Kanalzähler (Mitglieder/Voice).
+  * [ ] Geburtstagssystem (`/birthday`) und Server-Währung mit Shop (`/shop`).
+* [ ] **Sprint 10: Multi-Guild & Public Release:**
+  * [ ] Multi-Guild Server-Switcher im Web-Dashboard („Bot einladen“ + Mandantentrennung).
+  * [ ] Eigene Custom Commands & Text-Reaktionen im Web konfigurierbar.
+  * [ ] Live-Web-Chat / Admin-Konsole und geplante Ankündigungen (`/announcements`).

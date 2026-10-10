@@ -136,6 +136,91 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
+## 🎮 Priorität 3: Gaming-Extras & Community-Wachstum
+
+### 10. 👥 LFG-System (Looking for Group / Mitspieler-Suche)
+* [ ] Slash-Command `/lfg spiel:<name> mitspieler:<anzahl> [rang:<rang>] [beschreibung:<text>]`.
+* [ ] Interaktives Discord-Embed mit Echtzeit-Slot-Anzeige (`🎮 Beitreten` & `❌ Verlassen` Buttons).
+* [ ] **Automatischer Voice-Move:** Sobald die Gruppe voll ist, pingt der Bot alle Teilnehmer und verschiebt sie automatisch in eine neu generierte temporäre VoiceMaster-Lobby (`🎮・[Spiel] Gruppe von [Leiter]`).
+
+---
+
+### 11. 🎬 Community-Clip-Showcase (`#clips`)
+* [ ] Automatischer Video- & Clip-Detektor (erkennt Twitch Clips, YouTube Shorts, Medal.tv und Discord-Videodateien).
+* [ ] Bot hängt automatisch Reaktions-Buttons an (`🔥 Upvote`, `😂 Lustig`).
+* [ ] Wöchentlicher automatischer Post jeden Sonntagabend: Der meiste Upvote-Clip wird als „🏆 Clip der Woche“ gekürt und gepinnt.
+
+---
+
+### 12. 🖼️ Grafische Willkommens-Karten (Canvas / Dynamic Image)
+* [ ] Willkommens-Banner für neue Mitglieder:
+  * [ ] Nutzer-Avatar & Server-Icon gerendert.
+  * [ ] Benutzername, Tag und Server-Mitgliederzähler (`Du bist Mitglied #1.248!`).
+* [ ] Automatische Rollenvergabe (Autorole) bei Beitritt (`@Gast` oder Standard-Rolle).
+* [ ] Im Web-Dashboard konfigurierbar: Willkommenskanal, Hintergrundbild, Farbverlauf und Text.
+
+---
+
+### 13. 📊 Live Server-Statistik-Kanäle (Counter oben in der Serverliste)
+* [ ] Gesperrte Voice-Kanäle ganz oben auf dem Discord-Server, die sich alle 10 Minuten aktualisieren:
+  * [ ] `👥・Mitglieder: 1.250`
+  * [ ] `🔊・Im Voice: 24`
+  * [ ] `🔴・Gerade Live: 3`
+  * [ ] `🎮・Game Server: Online`
+* [ ] Vollständig konfigurierbar im Web-Dashboard (welche Counter aktiv sind, Emojis und Beschriftungen).
+
+---
+
+### 14. 🎂 Geburtstags-System (`/birthday`)
+* [ ] Befehl `/birthday set <tag>.<monat>`.
+* [ ] Automatische Überprüfung um 00:01 Uhr jeden Tag.
+* [ ] Feierliches Glückwunsch-Embed im Ankündigungskanal und automatische Zuweisung einer temporären Rolle (`🎉 Geburtstagskind`) für 24 Stunden.
+
+---
+
+### 15. 🪙 Community-Wirtschaft & Belohnungs-Shop (Economy)
+* [ ] Server-Währung („GLG-Coins“) gesammelt durch Chat-Aktivität, Voice-Zeit, Streaks und Events.
+* [ ] Chat-Befehle `/balance`, `/daily`, `/pay <user> <amount>`, `/leaderboard coins`.
+* [ ] **Belohnungs-Shop (`/shop` & im Web-Dashboard):**
+  * [ ] Kaufen von exklusiven Rollenfarben (z. B. Neon-Gelb, Cyber-Blau).
+  * [ ] Eigene permanente Voice-Channel-Namen oder individuelle Profil-Badges.
+
+---
+
+## 🌐 Priorität 4: Public Release & Multi-Guild Architektur
+
+> **Ziel:** Ermöglicht es anderen Servern, den GLGBot per Klick einzuladen und für ihre eigene Community unabhängig zu nutzen.
+
+### 16. 🔄 Multi-Guild Server-Switcher im Web-Dashboard
+* [ ] Dropdown-Menü in der oberen Dashboard-Navigationsleiste mit allen Servern des eingeloggten Discord-Admins.
+* [ ] Server-Kacheln auf einer Übersicht-Seite (`/dashboard/servers`):
+  * [ ] Bereits aktivierte Server verwalten.
+  * [ ] Nicht aktivierte Server mit einem 1-Klick-Link **„➕ Bot einladen“** (mit vorkonfigurierten OAuth2-Berechtigungen) hinzufügen.
+* [ ] Vollständige Mandantentrennung aller Konfigurationsdateien und Datenbank-Einträge pro `guildId`.
+
+---
+
+### 17. ⚡ Eigene Custom Commands & Text-Reaktionen
+* [ ] Im Web-Dashboard unter `/custom-commands`:
+  * [ ] Eigene Slash- oder Prefix-Befehle erstellen (z. B. `/ts`, `/lan`, `/regeln`, `/partner`).
+  * [ ] Auswahl zwischen einfacher Textantwort oder formatiertem Discord-Embed mit Bildern.
+
+---
+
+### 18. 💬 Live Web-Konsole & Chat im Dashboard
+* [ ] Textkanal im Dashboard auswählen und Live-Nachrichten in Echtzeit mitlesen.
+* [ ] Nachrichten direkt als Bot in den Kanal senden oder auf Nachrichten antworten.
+
+---
+
+### 19. ⏰ Geplante Ankündigungen (Scheduled Messages)
+* [ ] Im Web-Dashboard unter `/announcements`:
+  * [ ] Nachricht oder Embed vorschreiben.
+  * [ ] Datum und Uhrzeit für die geplante Veröffentlichung wählen (z. B. LAN-Party Start, Event-Erinnerung).
+  * [ ] Automatische pünktliche Ausführung durch den Bot-Scheduler.
+
+---
+
 ## 📊 Abgeschlossene Meilensteine (History)
 
 * [x] **v2.3.0 (Aktuell live):**
