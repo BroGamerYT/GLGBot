@@ -7,7 +7,8 @@
     "displayName": "DerBroGamerYT",
     "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/e674e09dd1f6e78f-profile_image-150x150.png",
     "discordChannelId": "1131340278201073765",
-    "pingRoleId": "1522884114108125344",
+    "pingRoleId": "1558464175183765684",
+    "linkedDiscordUserId": "202880081159389184",
     "isLive": false
   },
   {
@@ -17,7 +18,7 @@
     "channelName": "deven89030",
     "displayName": "deven89030",
     "discordChannelId": "1131340278201073765",
-    "pingRoleId": "1522884114108125344",
+    "pingRoleId": "1558464175183765684",
     "isLive": false
   },
   {
@@ -28,7 +29,7 @@
     "displayName": "MoPs43ver",
     "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/c557590c-b699-42e7-bd95-cd82781c0294-profile_image-150x150.png",
     "discordChannelId": "1131340278201073765",
-    "pingRoleId": "1522884114108125344",
+    "pingRoleId": "1558464175183765684",
     "isLive": false
   },
   {
@@ -39,7 +40,7 @@
     "displayName": "smudi030",
     "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/fd699c1b-57df-418d-83fb-44bce91adb39-profile_image-150x150.png",
     "discordChannelId": "1131340278201073765",
-    "pingRoleId": "1522884114108125344",
+    "pingRoleId": "1558464175183765684",
     "isLive": false
   },
   {
@@ -50,6 +51,7 @@
     "displayName": "FlosList",
     "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/c29b8e09-aff0-4de4-8801-dec6b2cee3d3-profile_image-70x70.png",
     "discordChannelId": "1131340278201073765",
+    "pingRoleId": "1558464175183765684",
     "linkedDiscordUserId": "175241556566081536",
     "isLive": false
   }

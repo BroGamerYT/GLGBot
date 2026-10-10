@@ -122,18 +122,28 @@ class LiveStreamService {
       }
     }
 
+    const voiceCat = guild.channels.cache.find(
+      (c: any) => c.type === ChannelType.GuildCategory && (c.name.toLowerCase().includes("voice") || c.name.toLowerCase().includes("sprach"))
+    );
+
     const found = guild.channels.cache.find(
       (c: any) => c.type === ChannelType.GuildCategory && 
         (c.name.toLowerCase().includes("live stream") || c.name.toLowerCase().includes("live-stream") || c.name.toLowerCase().includes("livestream"))
     );
-    if (found) return found;
+    if (found) {
+      if (voiceCat && found.position !== voiceCat.position + 1) {
+        await found.setPosition(voiceCat.position + 1).catch(() => null);
+      }
+      return found;
+    }
 
     try {
       const created = await guild.channels.create({
         name: "🔴 Live Streams",
         type: ChannelType.GuildCategory,
+        position: voiceCat ? voiceCat.position + 1 : undefined,
       });
-      console.log(`[LiveStream] Kategorie '🔴 Live Streams' automatisch erstellt auf ${guild.name}`);
+      console.log(`[LiveStream] Kategorie '🔴 Live Streams' automatisch erstellt auf ${guild.name} unter Voice Channels`);
       return created;
     } catch (e) {
       console.error("[LiveStream] Konnte Kategorie '🔴 Live Streams' nicht automatisch erstellen:", e);
@@ -221,14 +231,14 @@ class LiveStreamService {
         .setFooter({ text: "BroBot Live-Alerts" })
         .setTimestamp();
 
-      // 1. Benachrichtigung in den ausgewählten Ankündigungskanal senden
-      if (cfg.announcementChannelId) {
+      // 1. Benachrichtigung in den ausgewählten Ankündigungskanal senden (NUR falls nicht bereits von streamNotificationService gesendet)
+      if (cfg.announcementChannelId && !customData) {
         try {
           const announceChannel = member.guild.channels.cache.get(cfg.announcementChannelId);
           if (announceChannel && "send" in announceChannel) {
             const announceText = streamUrl 
-              ? `📢 **<@${member.id}> ist jetzt live auf Twitch!** Schaut vorbei auf **${streamUrl}**!` 
-              : `📢 **<@${member.id}> ist jetzt live!**`;
+              ? `📢 **${member.displayName} ist jetzt live auf Twitch!** Schaut vorbei auf **${streamUrl}**!` 
+              : `📢 **${member.displayName} ist jetzt live!**`;
             await (announceChannel as any).send({
               content: announceText,
               embeds: [embed],
