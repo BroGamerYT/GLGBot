@@ -66,18 +66,23 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
 
 ### Phase 3: Creator- & Community-Module
 - [ ] **Live- & Content-Alerts:**
+  - [x] Dynamische Streamer-Rolle beim Start zuweisen und bei Ende entfernen (`presenceUpdate`).
+  - [x] Dynamische Live-Stream Kanäle (`🔴・[Name] ist live`) mit Link-Status und Embeds erstellen & bei Stream-Ende automatisch löschen (`/setup-live`).
   - [ ] **Twitch:** EventSub Webhook für `stream.online` und `stream.offline`.
   - [ ] **YouTube:** Upload- und Stream-Erkennung über WebSub / RSS.
   - [ ] **TikTok:** Polling-/Webhook-Anbindung für TikTok-Live-Sessions.
-  - [ ] Dynamische Streamer-Rolle (z. B. `🔴 Live Jetzt`) beim Start zuweisen und bei Ende entfernen.
 - [ ] **Free-Games-Tracker:**
   - [ ] Automatisierter Cronjob (jeden Donnerstag 17:00 Uhr für Epic Games Store).
   - [ ] Steam 100%-Discounts API-Polling.
   - [ ] Automatischer Post im Ankündigungskanal mit Bild, Link und `@FreeGames`-Ping.
-- [x] **Auto-Move & Temporäre Voice-Kanäle:**
+- [x] **Auto-Move & Temporäre Voice-Kanäle (VoiceMaster Parität):**
   - [x] "Join to Create"-Masterkanal konfigurieren (`/setup-voice`).
   - [x] Beim Betreten dynamisch neuen Kanal `🔊・Lobby von [Name]` anlegen und Nutzer verschieben.
   - [x] Kanal automatisch löschen, sobald sich 0 Personen darin aufhalten.
+  - [x] Interaktives VoiceMaster-Dashboard (`/interface` / `/voice-panel`) mit Dropdowns & Modals.
+  - [x] Vollständige Voice-Befehle: `/voice lock`, `/voice unlock`, `/voice hide`, `/voice unhide`, `/voice permit`, `/voice reject`, `/voice transfer`, `/voice claim`, `/voice bitrate`.
+  - [x] Temporärer Textkanal verknüpft mit Sprach-Lobby (automatisches Mitlöschen).
+  - [x] Automatischer Kanalname basierend auf aktuellem Spiel (`/voice game`).
 - [ ] **Rollen-Management & Onboarding:**
   - [ ] Auto-Rolle bei Serverbeitritt (`on_member_join`).
   - [ ] Interaktives Rollen-Panel mit Buttons (Gaming-Rollen, Stream-Pings, Notification-Filter).
@@ -131,6 +136,11 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
 ---
 
 ### Phase 6: Multi-Bot-Architektur & System-Monitoring
+- [x] **24/7 Server-Hosting & Bereitstellung:**
+  - [x] Proxmox VE LXC Container (CT 109 `discordbot`, Debian 12, Node 22).
+  - [x] PM2 Daemon mit `systemd` Autostart bei Reboot.
+  - [x] Caddy Reverse Proxy mit automatischem Let's Encrypt SSL (`glgbot.brogameryt.de`).
+  - [x] All-in-One Desktop Launcher & Synchronisations-Skript (`start.bat`).
 - [ ] **Sub-Bot-Verwaltung:**
   - [ ] Prozess-Trennung: Haupt-Bot läuft unabhängig von rechenintensiven Sub-Bots.
   - [ ] Musik-Bot Worker angebunden an Lavalink für latenzfreies Streaming.
