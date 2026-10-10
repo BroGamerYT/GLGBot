@@ -5,6 +5,8 @@ import { AttachmentBuilder, EmbedBuilder } from "discord.js";
 /**
  * Animierte GIF-Banner für die Bot-Kanäle (liegen in assets/banners/).
  * Discord kann keinen animierten Text - ein animiertes Bild aber schon.
+ * Eigene Banner (z. B. mit deinem Servernamen, siehe scripts/make_banners.py) kannst du
+ * unter config/banners/<name>.gif ablegen - sie haben Vorrang vor den mitgelieferten.
  */
 export type BannerName = "rules" | "permissions" | "free-games" | "game-news" | "driver-news";
 
@@ -17,7 +19,8 @@ const COLORS: Record<BannerName, number> = {
 };
 
 export function getBanner(name: BannerName) {
-  const file = path.join(process.cwd(), "assets", "banners", `${name}.gif`);
+  const custom = path.join(process.cwd(), "config", "banners", `${name}.gif`);
+  const file = fs.existsSync(custom) ? custom : path.join(process.cwd(), "assets", "banners", `${name}.gif`);
   if (!fs.existsSync(file)) return null;
   return {
     file: new AttachmentBuilder(file, { name: `${name}.gif` }),

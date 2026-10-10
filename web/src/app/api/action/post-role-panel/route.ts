@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
+import { BRANDING } from "@/lib/branding";
 
 function getBotToken() {
   const rootEnvPath = path.join(process.cwd(), "../.env");
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
             url: "https://cdn.discordapp.com/emojis/849312521948823562.png",
           },
           footer: {
-            text: "GLGBot Rollen-System | 1-Klick Toggle",
+            text: `${BRANDING.bot} Rollen-System | 1-Klick Toggle`,
           },
         },
       ],

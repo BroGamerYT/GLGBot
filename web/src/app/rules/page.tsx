@@ -318,7 +318,7 @@ export default function RulesPage() {
                 <Info className="w-4 h-4 shrink-0 text-discord-blurple" />
                 <span>
                   Platzhalter: <code className="text-indigo-300">{"{server}"}</code> Servername ·{" "}
-                  <code className="text-indigo-300">{"{@Name}"}</code> erwähnt ein Mitglied (z. B. <code className="text-indigo-300">{"{@mops4ever}"}</code>) ·{" "}
+                  <code className="text-indigo-300">{"{@Name}"}</code> erwähnt ein Mitglied (z. B. <code className="text-indigo-300">{"{@MaxMustermann}"}</code>) ·{" "}
                   <code className="text-indigo-300">{"{permissions}"}</code> Link zu #berechtigungen. Formatierung: <code>**fett**</code>, <code>*kursiv*</code>,{" "}
                   <code>[Text](https://link)</code>, Aufzählung mit <code>•</code>.
                 </span>

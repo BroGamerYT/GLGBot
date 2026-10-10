@@ -101,7 +101,7 @@ export function randomState(): string {
   return b64url(bytes);
 }
 
-/** Basis-URL des Dashboards (z. B. https://glgbot.brogameryt.de) – wichtig hinter Caddy. */
+/** Basis-URL des Dashboards (z. B. https://bot.example.com) – wichtig hinter Caddy. */
 export function getBaseUrl(fallbackOrigin: string): string {
   return (process.env.DASHBOARD_URL || fallbackOrigin).replace(/\/+$/, "");
 }

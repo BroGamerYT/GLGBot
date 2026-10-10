@@ -25,10 +25,10 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
 ```
 
 * **Bot-Core:** TypeScript (`discord.js` v14)
-* **Web-Frontend:** Next.js, React, Tailwind CSS, Shadcn UI (Dark Theme) – Domain: `https://glgbot.brogameryt.de`
+* **Web-Frontend:** Next.js, React, Tailwind CSS, Shadcn UI (Dark Theme)
 * **Web-Auth:** Discord OAuth2 (Session-Prüfung auf Server-Administratorrechte)
 * **Hosting / 24/7 Server:** Proxmox VE LXC Container 109 (`discordbot`), Debian 12, Node.js 22 LTS, PM2 Service
-* **Reverse Proxy:** Caddy auf CT 102 (`synchro-proxy`) für automatische SSL-Zertifikate & Routing
+* **Reverse Proxy:** Caddy für automatische SSL-Zertifikate & Routing
 * **Datenbank:** PostgreSQL (via Prisma ORM) + Redis (Cache / Live-Events)
 * **Audio-Worker:** Lavalink Node (entkoppelte Musik-Wiedergabe)
 
@@ -119,10 +119,10 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
 ---
 
 ### Phase 5: Web-Dashboard (Admin-Interface)
-- [x] **Basis & Live-Bereitstellung (`https://glgbot.brogameryt.de`):**
+- [x] **Basis & Live-Bereitstellung :**
   * [x] Next.js 14 Frontend im modernen Discord Dark Theme (Tailwind CSS, Lucide Icons).
   * [x] Direkte REST-API Anbindung an Discord Gateway (`/api/discord/guild`) für Live-Kanäle, Kategorien und Rollen.
-  * [x] PM2 Deployment (`discord-web` auf Port 3000) im Proxmox CT 109 mit Caddy Reverse Proxy & Let's Encrypt SSL.
+  * [x] PM2 Deployment (`discord-web` auf Port 3000) mit Caddy Reverse Proxy & Let's Encrypt SSL.
   * [x] Discord OAuth2 Login mit Rollen-/Berechtigungsprüfung (`Administrator`).
 - [x] **Zwei-Wege Kanal- & VoiceMaster-Manager (`/voice`):**
   * [x] Grafische Konfiguration von Master-Sprachkanal und Ziel-Kategorie.
@@ -149,9 +149,9 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
 
 ### Phase 6: Multi-Bot-Architektur & System-Monitoring
 - [x] **24/7 Server-Hosting & Bereitstellung:**
-  - [x] Proxmox VE LXC Container (CT 109 `discordbot`, Debian 12, Node 22).
+  - [x] Proxmox VE LXC Container (Debian 12, Node 22).
   - [x] PM2 Daemon mit `systemd` Autostart bei Reboot.
-  - [x] Caddy Reverse Proxy mit automatischem Let's Encrypt SSL (`glgbot.brogameryt.de`).
+  - [x] Caddy Reverse Proxy mit automatischem Let's Encrypt SSL.
   - [x] All-in-One Desktop Launcher & Synchronisations-Skript (`start.bat`).
 - [ ] **Sub-Bot-Verwaltung:**
   - [ ] Prozess-Trennung: Haupt-Bot läuft unabhängig von rechenintensiven Sub-Bots.

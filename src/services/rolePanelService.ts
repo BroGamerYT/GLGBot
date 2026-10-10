@@ -12,6 +12,7 @@ import {
 } from "discord.js";
 import { liveStreamService } from "./liveStreamService";
 import { prisonService } from "./prisonService";
+import { BRANDING } from "../config/branding";
 
 export interface RolePanelConfig {
   [guildId: string]: {
@@ -382,7 +383,7 @@ class RolePanelService {
         "Neue Grafik- und Chipsatz-Treiber (NVIDIA, AMD, Intel) - schaltet den `#treiber-news` Kanal frei."
       )
       .setThumbnail("https://cdn.discordapp.com/emojis/849312521948823562.png")
-      .setFooter({ text: "GLGBot Rollen-System | 1-Klick Toggle" })
+      .setFooter({ text: `${BRANDING.bot} Rollen-System | 1-Klick Toggle` })
       .setTimestamp();
   }
 

@@ -1,5 +1,6 @@
 import { EmbedBuilder, Guild, User } from "discord.js";
 import { statsService } from "../services/statsService";
+import { BRANDING } from "../config/branding";
 
 /**
  * Rang-/Level-Karte für /rank und /level status.
@@ -39,7 +40,7 @@ export function buildLevelCard(guild: Guild, user: User, opts: { title?: string;
       { name: "💬 Chat-Nachrichten", value: stats.messagesCount.toLocaleString("de-DE"), inline: true },
       { name: "🎙️ Voice-Zeit", value: statsService.formatMinutes(stats.voiceMinutes), inline: true }
     )
-    .setFooter({ text: "GermanyLanGame Level-System" })
+    .setFooter({ text: `${BRANDING.community} Level-System` })
     .setTimestamp();
 
   if (opts.showNextSteps && !progress.isMaxLevel) {

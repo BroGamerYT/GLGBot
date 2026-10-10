@@ -16,6 +16,7 @@ import {
   Image as ImageIcon,
   MessageSquare,
 } from "lucide-react";
+import { BRANDING } from "@/lib/branding";
 
 interface Channel {
   id: string;
@@ -64,7 +65,7 @@ export default function EmbedBuilderPage() {
   const [messageContent, setMessageContent] = useState<string>("");
 
   const [embed, setEmbed] = useState<EmbedData>({
-    title: "Willkommen auf GermanyLanGame!",
+    title: `Willkommen auf ${BRANDING.community}!`,
     description: "Hier findest du alle wichtigen Neuigkeiten, Events und Informationen rund um unsere Community.",
     url: "",
     color: "#5865F2",
@@ -73,7 +74,7 @@ export default function EmbedBuilderPage() {
     authorUrl: "",
     thumbnail: "",
     image: "",
-    footerText: "GermanyLanGame • Automatische Benachrichtigung",
+    footerText: `${BRANDING.community} • Automatische Benachrichtigung`,
     footerIcon: "",
     timestamp: true,
     fields: [
@@ -161,7 +162,7 @@ export default function EmbedBuilderPage() {
         authorUrl: "",
         thumbnail: "",
         image: "",
-        footerText: "GermanyLanGame • Ankündigungen",
+        footerText: `${BRANDING.community} • Ankündigungen`,
         footerIcon: "",
         timestamp: true,
         fields: [
@@ -198,7 +199,7 @@ export default function EmbedBuilderPage() {
         authorUrl: "",
         thumbnail: "",
         image: "",
-        footerText: "GermanyLanGame Events",
+        footerText: `${BRANDING.community} Events`,
         footerIcon: "",
         timestamp: true,
         fields: [
@@ -634,7 +635,7 @@ export default function EmbedBuilderPage() {
                   type="text"
                   value={embed.footerText}
                   onChange={(e) => setEmbed({ ...embed, footerText: e.target.value })}
-                  placeholder="z. B. GermanyLanGame Community"
+                  placeholder="z. B. Meine Community"
                   className="w-full bg-discord-dark border border-discord-border rounded-lg px-3 py-2 text-sm text-white"
                 />
               </div>

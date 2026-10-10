@@ -1,12 +1,106 @@
-# 🤖 GermanyLanGame-Bot (GLGBot)
+# 🤖 GLGBot – Discord-Bot mit Web-Dashboard
 
-Ein moderner, modularer und hochperformanter Discord-Bot in **TypeScript (discord.js v14)** mit interaktivem **VoiceMaster-System**, **dynamischen Live-Streamer-Kanälen**, **Level-System mit Talk-Partner-Tracking**, **Gefängnis- & Moderations-System**, **Echtzeit-Support-Tickets** und vollständigem **Web-Dashboard** unter [`https://glgbot.brogameryt.de`](https://glgbot.brogameryt.de).
+Ein moderner, modularer Discord-Bot in **TypeScript (discord.js v14)** mit **Next.js-Web-Dashboard** und Discord-Login.
+Ursprünglich für die Community *Germany LanGame* gebaut – jetzt für jeden Server nutzbar.
+
+**Funktionen:** VoiceMaster (Join-to-Create), Live-Streamer-Rolle & Twitch-/YouTube-Alerts, Level-System mit Talk-Partner-Tracking,
+Moderation mit Gefängnis-System (`/knast`), Support-Tickets mit Transkripten, Regeln mit Freischaltung, Rollen-Panel,
+Gratis-Spiele (Epic, Steam, GOG), Game- & Treiber-News, Audit-Logs und Server-Backups.
+
+> Sprache von Bot und Dashboard: **Deutsch**. Eine Installation ist für **einen** Discord-Server gedacht (`GUILD_ID`).
 
 ---
 
-## 🌐 Zentrales Web-Dashboard (`https://glgbot.brogameryt.de`)
+## 📦 Installation
 
-Alle Server-Funktionen können sowohl **im Discord-Chat via Slash-Befehle** als auch **im Web-Dashboard** in Echtzeit konfiguriert und gesteuert werden:
+### Voraussetzungen
+* **Node.js 20 oder neuer** (empfohlen: 22 LTS) und npm
+* Ein Linux-Server, VPS, Raspberry Pi oder Windows-PC, der 24/7 läuft
+* Für das Dashboard von außen: eine (Sub-)Domain und ein Reverse Proxy mit HTTPS (z. B. Caddy)
+
+### 1. Discord-App anlegen
+1. Im [Discord Developer Portal](https://discord.com/developers/applications) auf **New Application** klicken.
+2. **Bot** → *Reset Token* → Token kopieren (`DISCORD_TOKEN`).
+3. **Bot** → unter *Privileged Gateway Intents* alle drei einschalten: **Presence**, **Server Members**, **Message Content**.
+4. **General Information** → *Application ID* kopieren (`CLIENT_ID`).
+5. **OAuth2** → *Client Secret* kopieren (`DISCORD_CLIENT_SECRET`) und unter *Redirects* eintragen:
+   `https://deine-domain.de/api/auth/callback` (lokal: `http://localhost:3000/api/auth/callback`).
+6. Bot einladen – diesen Link öffnen (`DEINE_CLIENT_ID` ersetzen):
+   `https://discord.com/oauth2/authorize?client_id=DEINE_CLIENT_ID&scope=bot%20applications.commands&permissions=8`
+   Die Rolle des Bots in den Server-Einstellungen möglichst **weit oben** einsortieren, damit er Rollen vergeben kann.
+
+### 2. Projekt herunterladen & einrichten
+```bash
+git clone https://github.com/BroGamerYT/GLGBot.git
+cd GLGBot
+cp .env.example .env        # Windows: copy .env.example .env
+```
+`.env` öffnen und ausfüllen – alle Felder sind dort erklärt. Wichtig: `DISCORD_TOKEN`, `CLIENT_ID`, `GUILD_ID`,
+`DISCORD_CLIENT_SECRET`, `DASHBOARD_URL`, `SESSION_SECRET` und `COMMUNITY_NAME`.
+
+### 3. Bauen & starten
+```bash
+# Bot
+npm install
+npm run build
+npm run deploy-commands     # Slash-Befehle bei Discord registrieren
+npm start
+
+# Dashboard (zweites Terminal)
+cd web
+npm install
+npm run build
+npm start                   # läuft auf Port 3000
+```
+Das Dashboard liest die `.env` aus dem Hauptordner mit. Bot und Dashboard müssen auf **demselben Rechner** laufen
+(sie sprechen über `127.0.0.1:3101` miteinander).
+
+### 4. Dauerhaft betreiben (Linux, PM2)
+```bash
+npm install -g pm2
+pm2 start dist/index.js --name discord-bot
+cd web && pm2 start npm --name discord-web -- start
+pm2 save && pm2 startup
+```
+
+### 5. Dashboard per HTTPS erreichbar machen (Caddy)
+```
+bot.example.com {
+    reverse_proxy 127.0.0.1:3000
+}
+```
+Caddy holt das SSL-Zertifikat automatisch. `DASHBOARD_URL` muss genau dieser Adresse entsprechen.
+
+### 6. Im Discord einrichten
+Mit Admin-Rechten im Dashboard einloggen oder im Discord:
+* `/setup-roles auto` – legt alle Rollen (`Gast`, `bn.live`, `bn.free`, `bn.gamenews`, `bn.treiber` …) und Kanäle an
+* `/setup-rules post` – Regel- und Berechtigungskanal, danach optional `/setup-rules lock`
+* `/setup-voice set`, `/setup-live set`, `/setup-tickets`, `/setup-logs` – je nachdem, was du nutzen willst
+
+### Updates
+```bash
+git pull
+npm install && npm run build && npm run deploy-commands
+cd web && npm install && npm run build
+pm2 restart discord-bot discord-web
+```
+
+---
+
+## 🎨 An deinen Server anpassen
+
+| Was | Wo |
+| :--- | :--- |
+| Name der Community, Bot-Name, Dashboard-Adresse | `.env` (`COMMUNITY_NAME`, `BOT_NAME`, `DASHBOARD_URL`) |
+| Serverregeln | Im Dashboard unter **Regeln** – oder als eigene Vorlage in `config/rules.json` (gleicher Aufbau wie `src/config/rules.ts`) |
+| Animierte Kanal-Banner mit deinem Servernamen | `python scripts/make_banners.py --subtitle "MEIN SERVER"` → landet in `config/banners/` |
+| Alle übrigen Einstellungen (XP, Streamer, Free-Games, News …) | Web-Dashboard bzw. Slash-Befehle, gespeichert in `data/` |
+
+Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo – deine Einstellungen bleiben bei `git pull` erhalten.
+
+---
+
+## 🌐 Web-Dashboard
 
 | Dashboard-Bereich | Pfad | Zugriff | Beschreibung |
 | :--- | :--- | :--- | :--- |
@@ -24,11 +118,11 @@ Alle Server-Funktionen können sowohl **im Discord-Chat via Slash-Befehle** als 
 | **Server-Backups** | `/backups` | 🔒 Admin | 1-Klick JSON-Snapshots aller Rollen, Kanäle und Einstellungen mit Wiederherstellung. |
 | **Server-Regeln** | `/rules` | 🔒 Admin | Regel-Editor mit Vorschau, 1-Klick-Veröffentlichung und Regel-Sperre (Server erst nach Bestätigung sichtbar). |
 | **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 32 Slash-Befehle mit Beschreibungen. |
-| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.4.0. |
+| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.5.0. |
 
 ---
 
-## 🌟 Hauptfunktionen im Detail
+## 🌟 Funktionen im Detail
 
 ### 1. 🏆 Anspruchsvolles Level-System & Talk-Partner Tracking (bis Stufe 25)
 * **Progressive Level-Kurve (bis Level 25):**
@@ -103,9 +197,21 @@ Alle Server-Funktionen können sowohl **im Discord-Chat via Slash-Befehle** als 
 * **Stille Benachrichtigungen:** Protokolliert Rollen-, Berechtigungs- und Kanaländerungen im Log-Kanal mit `SuppressNotifications` (keine störenden Audio-Pings).
 * **Server-Backups:** Sichert die gesamte Struktur (Kategorien, Kanäle, Rollen, Berechtigungen) als JSON-Snapshot mit 1-Klick-Wiederherstellung.
 
+### 8. 📜 Regeln & Freischaltung
+* `/setup-rules post` (oder Dashboard „Regeln“) legt `#📜・regeln` und `#🔔・berechtigungen` an und postet die Regeln mit animiertem Banner und Button **„Regeln akzeptieren“**.
+* **Regel-Sperre** (`/setup-rules lock`): Neue Mitglieder sehen nur `#regeln`, bis sie akzeptieren. Bestehende Mitglieder bekommen beim Einschalten automatisch die Gast-Rolle.
+* Unterstützt das Discord-Regel-Screening: Wer das Regel-Pop-up beim Beitreten bestätigt, bekommt die Gast-Rolle automatisch.
+* Regeltexte im Dashboard bearbeitbar, Platzhalter `{server}`, `{@Name}`, `{permissions}`.
+
+### 9. 📰 Game-News & 🖥️ Treiber-News
+* **Getrennte Kanäle & Rollen:** `#📰・game-news` (Rolle `bn.gamenews`) für Spiel-Updates und `#🖥️・treiber-news` (Rolle `bn.treiber`) für Treiber - jeder sieht nur, was er abonniert hat.
+* **Quellen:** Steam-Ankündigungen & Patchnotes jedes Steam-Spiels (Vorschläge wie GTA V, CS2, Rust … oder eigenes Spiel per Link/App-ID), Minecraft-Versionen, NVIDIA GeForce, AMD Radeon, AMD Ryzen Chipsatz, Intel Arc (AMD/Intel als Beta).
+* Detailansicht im Dashboard mit „Was ist enthalten?“ und den letzten Beiträgen; Verlauf aller Änderungen; angepinnte Übersicht im Kanal.
+* Prüfung alle 15 Minuten, beim Hinzufügen wird nichts Altes gepostet.
+
 ---
 
-## 💻 Vollständige Befehlsübersicht (32 Slash-Befehle)
+## 💻 Befehlsübersicht (32 Slash-Befehle)
 
 | Befehl | Beschreibung | Berechtigung |
 |---|---|---|
@@ -142,116 +248,44 @@ Alle Server-Funktionen können sowohl **im Discord-Chat via Slash-Befehle** als 
 | `/logs list \| search` | Audit-Log durchsuchen. | Audit-Log anzeigen |
 | `/backup create \| list \| restore \| export \| delete` | Server-Backups verwalten. | Administrator |
 
----|---|---|
-| `/ping` | Zeigt aktuelle WebSocket- und Roundtrip-Latenz an. | Alle |
-| `/help` | Öffnet das interaktive Hilfe-Embed mit Links zu Web-Dashboard & Support. | Alle |
-| `/rank [user]` | Zeigt die persönliche Rangkarte mit XP, Level, Fortschritt und XP-Herkunft. | Alle |
-| `/leaderboard` | Zeigt die serverweiten Top 10 Ranglisten für Level, Voice-Zeit und Duos. | Alle |
-| `/suggest <idee>` | Reicht einen Verbesserungsvorschlag mit Abstimmungs-Buttons ein. | Alle |
-| `/dm <text> [user]` | Sendet eine Direktnachricht im Namen des Servers. | Nachrichten verwalten |
-| `/warn <user> <grund>` | Verwarnt ein Mitglied und zieht automatisch Level-XP ab. | Mitglieder moderieren |
-| `/timeout <user> <dauer> <grund>` | Belegt ein Mitglied mit einem Timeout und zieht XP ab. | Mitglieder moderieren |
-| `/prison <user> <grund>` | Steckt ein Mitglied in den Isolations-Knast (#knast-zelle) mit XP-Abzug. | Mitglieder moderieren |
-| `/kick <user> [grund]` | Kickt ein Mitglied vom Server und zieht XP ab. | Mitglieder kicken |
-| `/ban <user> [grund] [tage]` | Bannt einen Nutzer permanent vom Server mit XP-Abzug. | Mitglieder bannen |
-| `/unban <user_id> [grund]` | Hebt den Bann eines Nutzers auf. | Mitglieder bannen |
-| `/cases [user]` | Listet alle dokumentierten Moderations-Fälle eines Nutzers auf. | Mitglieder moderieren |
-| `/clear <anzahl>` | Löscht eine bestimmte Anzahl an Nachrichten im aktuellen Kanal. | Nachrichten verwalten |
-| `/setup-voice set <kanal> [kat]` | Richtet den Join-to-Create Masterkanal für temporäre Lobbies ein. | Kanäle verwalten |
-| `/setup-voice status` / `disable` | Zeigt Konfiguration an oder deaktiviert das Voice-System. | Kanäle verwalten |
-| `/interface` | Sendet das interaktive VoiceMaster-Steuerungs-Panel. | Kanäle verwalten |
-| `/voice <aktion>` | Steuert die eigene temporäre Sprach-Lobby (Lock, Hide, Permit, etc.). | Lobby-Besitzer |
-| `/setup-live set <rolle> [alert] [kat]` | Konfiguriert das Live-Streamer-System & Benachrichtigungen. | Kanäle verwalten |
-| `/setup-live status` / `disable` | Zeigt Status der Live-Streamer-Erkennung an. | Kanäle verwalten |
-| `/twitch-live start [link] [spiel]` | Gehe sofort live: Vergibt Live-Rolle, sendet Alert & erstellt Kanal. | Alle Streamer |
-| `/twitch-live stop` | Beendet deinen Live-Status, entfernt die Rolle und löscht den Kanal. | Alle Streamer |
-| `/streamer add <twitch> <kanal>` | Fügt Streamer zur automatischen Benachrichtigungsliste hinzu. | Kanäle verwalten |
-| `/streamer remove <twitch>` | Entfernt einen Streamer aus der Überwachungsliste. | Kanäle verwalten |
-| `/streamer list` | Listet alle überwachten Streamer mit aktuellem Status auf. | Alle |
-| `/streamer check` | Führt eine sofortige Überprüfung aller Streamer auf Twitch durch. | Kanäle verwalten |
-| `/setup-roles set [gast] [live] [free]` | Konfiguriert Gast-, Stream- und Free-Games Rollen. | Rollen verwalten |
-| `/setup-roles panel [kanal]` | Sendet das interaktive Berechtigungs- & Rollen-Panel. | Rollen verwalten |
-| `/setup-roles status` | Zeigt die aktuelle Konfiguration des Rollen-Zentrums an. | Rollen verwalten |
-| `/free-games list` | Zeigt die aktuell kostenlosen PC-Spiele im Store an. | Alle |
-| `/free-games post` | Sendet aktuelle Gratis-Spiele sofort in den Ankündigungskanal. | Nachrichten verwalten |
-
 ---
 
-### 8. 📜 Regeln & Freischaltung
-* `/setup-rules post` (oder Dashboard „Regeln“) legt `#📜・regeln` und `#🔔・berechtigungen` an und postet die Regeln mit animiertem Banner und Button **„Regeln akzeptieren“**.
-* **Regel-Sperre** (`/setup-rules lock`): Neue Mitglieder sehen nur `#regeln`, bis sie akzeptieren. Bestehende Mitglieder bekommen beim Einschalten automatisch die Gast-Rolle.
-* Unterstützt das Discord-Regel-Screening: Wer das Regel-Pop-up beim Beitreten bestätigt, bekommt die Gast-Rolle automatisch.
-* Regeltexte im Dashboard bearbeitbar, Platzhalter `{server}`, `{@Name}`, `{permissions}`.
-
-### 9. 📰 Game-News & 🖥️ Treiber-News
-* **Getrennte Kanäle & Rollen:** `#📰・game-news` (Rolle `bn.gamenews`) für Spiel-Updates und `#🖥️・treiber-news` (Rolle `bn.treiber`) für Treiber - jeder sieht nur, was er abonniert hat.
-* **Quellen:** Steam-Ankündigungen & Patchnotes jedes Steam-Spiels (Vorschläge wie GTA V, CS2, Rust … oder eigenes Spiel per Link/App-ID), Minecraft-Versionen, NVIDIA GeForce, AMD Radeon, AMD Ryzen Chipsatz, Intel Arc (AMD/Intel als Beta).
-* Detailansicht im Dashboard mit „Was ist enthalten?“ und den letzten Beiträgen; Verlauf aller Änderungen; angepinnte Übersicht im Kanal.
-* Prüfung alle 15 Minuten, beim Hinzufügen wird nichts Altes gepostet.
-
-## 🏗️ Architektur & 24/7 Hosting
+## 🏗️ Aufbau
 
 ```
-┌────────────────────────────────────────────────────────┐
-│             https://glgbot.brogameryt.de               │
-│        Next.js Dashboard & Discord OAuth2 Login        │
-└───────────────────────────┬────────────────────────────┘
-                            │ Reverse Proxy (Port 3000)
-┌───────────────────────────▼────────────────────────────┐
-│          Caddy Proxy (Proxmox CT 102 - synchro)        │
-│          Automatische Let's Encrypt SSL-Zertifikate    │
-└───────────────────────────┬────────────────────────────┘
-                            │ Internes Netzwerk (10.0.0.x)
-┌───────────────────────────▼────────────────────────────┐
-│      Proxmox LXC Container (CT 109 - discordbot)       │
-│      - Debian 12 (minimal), 1 vCPU, 1 GB RAM           │
-│      - Node.js 22 LTS, discord.js v14, Next.js 14      │
-│      - PM2 Process Manager:                            │
-│          ID 0: discord-bot                             │
-│          ID 1: discord-web                             │
-│      - Interne Bot-API: 127.0.0.1:3101                 │
-└────────────────────────────────────────────────────────┘
+Internet ──HTTPS──▶ Reverse Proxy (z. B. Caddy) ──▶ Next.js-Dashboard :3000
+                                                         │  interne API (127.0.0.1:3101, Token-geschützt)
+                                                         ▼
+                                                   Discord-Bot (discord.js) ──▶ Discord
+Daten: JSON-Dateien in data/   ·   Prozesse: PM2 (discord-bot, discord-web)
 ```
 
----
+### Windows-Helfer (optional)
+Für Entwicklung auf Windows mit Server-Upload per SSH: `start.bat` (Kontrollzentrum) und `sync_server.bat`
+(Upload, Build & PM2-Neustart). Zugangsdaten dafür in `server_config.ini` – Vorlage: `server_config.example.ini`.
+Eine Beispiel-Anleitung für Proxmox findest du in [`proxmox_anleitung.md`](proxmox_anleitung.md).
 
-## 🚀 Desktop-Verwaltung (`start.bat`)
-
-Auf dem Entwicklungs-PC befindet sich das All-in-One Kontrollzentrum [`start.bat`](start.bat):
-
-1. **Lokale Steuerung:** Bot starten, stoppen oder im Dev-Modus mit Hot-Reload (`tsx watch`) ausführen.
-2. **Proxmox Synchronisation:**
-   * **Upload `[5]`:** Synchronisiert Code-Änderungen auf CT 109, kompiliert (`npm run build`) und startet PM2 neu.
-   * **Download `[6]`:** Holt `.env` oder Dateien vom Server.
-   * **SSH-Konsole `[7]`:** Verbindet sich direkt per SSH-Key mit dem Container (`ssh ct109`).
-   * **Server-Neustart `[8]`:** Startet die Dienste auf Proxmox neu.
-
----
-
-## ⚙️ Lokale Entwicklung
-
+### Lokale Entwicklung
 ```bash
-# 1. Abhängigkeiten installieren
-npm install
-cd web && npm install && cd ..
-
-# 2. Slash-Befehle bei Discord registrieren
+npm install && (cd web && npm install)
 npm run deploy-commands
-
-# 3. Bot im Entwicklungsmodus starten
-npm run dev
-
-# 4. Webinterface im Entwicklungsmodus starten
-cd web && npm run dev
+npm run dev                 # Bot mit Auto-Reload
+cd web && npm run dev       # Dashboard auf http://localhost:3000
 ```
 
 ---
 
 ## 🔐 Authentifizierung & Rechte
 
-* **Öffentliche Seiten:** `/hilfe`, `/changelog` und `/stats` sind ohne Login für alle Server-Mitglieder direkt zugänglich.
+* **Öffentliche Seiten:** `/hilfe`, `/changelog` und `/stats` sind ohne Login direkt zugänglich.
 * **Geschützte Admin-Bereiche:** Anmeldung erfolgt über Discord OAuth2. Zugriff haben Server-Owner, Mitglieder mit *Administrator* oder *Server verwalten*, sowie alle in `DASHBOARD_ROLE_IDS` bzw. `DASHBOARD_USER_IDS` hinterlegten Accounts.
 * **Automatischer Logout:** Die Rechte werden jede Minute bei Discord neu geprüft. Wird der Admin-Zugang entzogen oder der Server verlassen, ist man beim nächsten Klick abgemeldet.
 * **Öffentliche Statistik:** Ohne Login sind nur Level und XP sichtbar - Moderationsfälle und Gesprächspartner nur für eingeloggte Admins.
 * **Rechte im Dashboard:** Rollen mit Admin- oder Verwaltungsrechten dürfen nur Administratoren vergeben; Rollen, Spitznamen und Strafen nur für Mitglieder unterhalb der eigenen Rolle.
 * **Bot-Schnittstelle:** Das Dashboard spricht mit dem Bot über `127.0.0.1:3101`, geschützt mit `SESSION_SECRET` (bzw. `INTERNAL_API_TOKEN`).
+
+---
+
+## 📄 Lizenz
+
+[MIT](LICENSE) – frei nutzbar, veränderbar und weitergebbar. Über einen Stern ⭐ auf GitHub freue ich mich.

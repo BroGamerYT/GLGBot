@@ -23,7 +23,7 @@ import {
 
 export const metadata = {
   title: "Changelog & Updates | GLGBot",
-  description: "Entwicklungs-Historie, neue Features und Versions-Updates des GLGBots für GermanyLanGame.",
+  description: "Entwicklungs-Historie, neue Features und Versions-Updates des GLGBots.",
 };
 
 interface Release {
@@ -42,10 +42,39 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.4.0",
-    date: "10. Oktober 2026",
+    version: "v2.5.0",
+    date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Open Source – für jeden Server nutzbar",
+    description:
+      "Der Bot ist jetzt öffentlich auf GitHub (MIT-Lizenz) und lässt sich auf jedem Discord-Server einsetzen. Alles Server-Spezifische wird über die .env bzw. den config-Ordner eingestellt.",
+    highlights: [
+      {
+        icon: Globe,
+        title: "Eigener Name & eigene Domain",
+        description:
+          "COMMUNITY_NAME, BOT_NAME und DASHBOARD_URL in der .env steuern Footer, Transkripte, Hilfe-Links und das Dashboard. Ohne Domain werden die Dashboard-Buttons einfach ausgeblendet.",
+      },
+      {
+        icon: FolderTree,
+        title: "Eigene Regeln & Banner",
+        description:
+          "Eigene Standard-Regeln in config/rules.json, eigene animierte Banner mit dem Servernamen per scripts/make_banners.py in config/banners/ – beides bleibt bei Updates erhalten.",
+      },
+      {
+        icon: LifeBuoy,
+        title: "Installationsanleitung",
+        description:
+          "Schritt-für-Schritt-Anleitung in der README: Discord-App anlegen, .env ausfüllen, bauen, mit PM2 betreiben und per Caddy veröffentlichen.",
+      },
+    ],
+  },
+  {
+    version: "v2.4.0",
+    date: "10. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Sicherheits-Update, /knast, /level status & Treiber-News",
     description:
       "Großes Sicherheits- und Komfort-Update: mehrere Lücken im Dashboard geschlossen, automatischer Logout bei Rechte-Entzug, überarbeitetes Gefängnis-System, neuer Level-Status und getrennte Kanäle für Spiel- und Treiber-News.",
@@ -240,7 +269,7 @@ const RELEASES: Release[] = [
     badgeColor: "bg-blue-500/10 text-blue-400 border-blue-500/30",
     title: "Basis-Release: VoiceMaster & Live-Streamer",
     description:
-      "Die Geburtsstunde des GLGBots auf dem Proxmox CT 109 Container.",
+      "Die Geburtsstunde des GLGBots.",
     highlights: [
       {
         icon: Mic,

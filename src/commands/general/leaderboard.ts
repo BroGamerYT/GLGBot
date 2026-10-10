@@ -17,7 +17,7 @@ const leaderboardCommand: Command = {
     const embed = new EmbedBuilder()
       .setColor(0xfee75c)
       .setTitle("🏆 Level & Aktivitäts-Rangliste")
-      .setDescription("Die 10 aktivsten Mitglieder auf GermanyLanGame basierend auf Chat & Voice:")
+      .setDescription(`Die 10 aktivsten Mitglieder auf ${interaction.guild.name} basierend auf Chat & Voice:`)
       .setTimestamp();
 
     if (top.length === 0) {

@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { TextChannel, Message, Guild, AttachmentBuilder, User } from "discord.js";
+import { BRANDING } from "../config/branding";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const TRANSCRIPTS_DIR = path.join(DATA_DIR, "transcripts");
@@ -182,7 +183,7 @@ export class TranscriptService {
     const subBorder = "-".repeat(70);
 
     let txt = `${border}\n`;
-    txt += `GERMANY LANGAME - TICKET TRANSKRIPT\n`;
+    txt += `${BRANDING.community.toUpperCase()} - TICKET TRANSKRIPT\n`;
     txt += `${border}\n`;
     txt += `Ticket-Kanal:     #${meta.channelName}\n`;
     txt += `Server:           ${meta.guildName} (${meta.guildId})\n`;
@@ -249,7 +250,7 @@ export class TranscriptService {
     }
 
     txt += `${subBorder}\n`;
-    txt += `ENDE DES TRANSKRIPTS - GermanyLanGame Support-System\n`;
+    txt += `ENDE DES TRANSKRIPTS - ${BRANDING.community} Support-System\n`;
     txt += `${border}\n`;
 
     return txt;
@@ -406,7 +407,7 @@ export class TranscriptService {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transkript #${escapeHtml(meta.channelName)} | GermanyLanGame</title>
+  <title>Transkript #${escapeHtml(meta.channelName)} | ${escapeHtml(BRANDING.community)}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -714,7 +715,7 @@ export class TranscriptService {
   </main>
 
   <footer class="footer-bar">
-    Generiert von GermanyLanGame Bot • ${escapeHtml(meta.closedAt)}
+    Generiert von ${escapeHtml(BRANDING.bot)} • ${escapeHtml(meta.closedAt)}
   </footer>
 </body>
 </html>`;

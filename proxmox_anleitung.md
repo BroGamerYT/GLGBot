@@ -63,13 +63,13 @@ mkdir -p /opt/discordbot
 
 Du musst auf dem Server nichts manuell hochladen. Nutze einfach die neuen Werkzeuge auf deinem Desktop:
 
-1. Öffne [`server_config.ini`](file:///c:/Users/domin/Desktop/DiscordBot/server_config.ini) auf deinem PC und trage die IP deines Containers ein:
+1. Kopiere `server_config.example.ini` zu `server_config.ini` und trage die IP deines Containers ein:
    ```ini
    SERVER_IP=192.168.178.50
    SERVER_USER=root
    SERVER_PATH=/opt/discordbot
    ```
-2. Doppelklick auf [`sync_server.bat`](file:///c:/Users/domin/Desktop/DiscordBot/sync_server.bat):
+2. Lege deine fertige `.env` in den Projektordner (siehe `README.md`) und starte per Doppelklick `sync_server.bat`:
    * Wähle **`[1]`** (Upload).
    * Das Skript lädt deinen Code hoch, installiert alles und startet den Bot mit **PM2**!
 

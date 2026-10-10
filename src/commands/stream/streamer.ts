@@ -7,6 +7,7 @@ import {
 } from "discord.js";
 import { Command } from "../../types";
 import { streamNotificationService } from "../../services/streamNotificationService";
+import { BRANDING, dashboardLink } from "../../config/branding";
 
 const streamerCommand: Command = {
   data: new SlashCommandBuilder()
@@ -20,7 +21,7 @@ const streamerCommand: Command = {
         .addStringOption((opt) =>
           opt
             .setName("name")
-            .setDescription("Kanalname oder Handle (z. B. floslist oder @BroGamerYT)")
+            .setDescription("Kanalname oder Handle (z. B. meinkanal oder @MeinKanal)")
             .setRequired(true)
         )
         .addChannelOption((opt) =>
@@ -66,7 +67,7 @@ const streamerCommand: Command = {
         .addStringOption((opt) =>
           opt
             .setName("streamer")
-            .setDescription("Aktueller Kanalname des Streamers (z. B. floslist)")
+            .setDescription("Aktueller Kanalname des Streamers (z. B. meinkanal)")
             .setRequired(true)
         )
         .addStringOption((opt) =>
@@ -78,7 +79,7 @@ const streamerCommand: Command = {
         .addStringOption((opt) =>
           opt
             .setName("anzeigename")
-            .setDescription("Benutzerdefinierter Anzeigename (z. B. 'Floslist Gaming')")
+            .setDescription("Benutzerdefinierter Anzeigename (z. B. 'Mein Kanal')")
             .setRequired(false)
         )
         .addChannelOption((opt) =>
@@ -312,7 +313,7 @@ const streamerCommand: Command = {
         .setColor(0x9146ff)
         .setTitle(`📺 Eingerichtete Streamer-Benachrichtigungen (${list.length})`)
         .setDescription(`Hier sind alle Streamer, die automatisch überwacht werden:`)
-        .setFooter({ text: "GLGBot Live-Streamer Suite | https://glgbot.brogameryt.de/live" })
+        .setFooter({ text: `${BRANDING.bot} Live-Streamer Suite${dashboardLink("/live") ? ` | ${dashboardLink("/live")}` : ""}` })
         .setTimestamp();
 
       // Discord erlaubt max. 25 Felder pro Embed

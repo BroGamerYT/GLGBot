@@ -8,6 +8,7 @@ import {
   ButtonStyle 
 } from "discord.js";
 import { Command } from "../../types";
+import { BRANDING, dashboardLink } from "../../config/branding";
 
 export function createVoicePanelEmbed() {
   return new EmbedBuilder()
@@ -19,7 +20,7 @@ export function createVoicePanelEmbed() {
       "• Alternativ kannst du die Befehle mit `/voice` ausführen."
     )
     .setThumbnail("https://cdn.discordapp.com/emojis/849312521948823562.png")
-    .setFooter({ text: "BroBot Voice-Manager | 24/7 Proxmox Power" })
+    .setFooter({ text: `${BRANDING.bot} Voice-Manager` })
     .setTimestamp();
 }
 
@@ -99,15 +100,14 @@ export function createVoicePanelComponents() {
     .setEmoji("🔄")
     .setStyle(ButtonStyle.Primary);
 
-  const dashboardButton = new ButtonBuilder()
-    .setLabel("Web-Dashboard")
-    .setEmoji("🌐")
-    .setStyle(ButtonStyle.Link)
-    .setURL("https://glgbot.brogameryt.de");
+  const dashboardUrl = dashboardLink();
 
   const row1 = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(settingsSelect);
   const row2 = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(permissionsSelect);
-  const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(refreshButton, dashboardButton);
+  const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(refreshButton);
+  if (dashboardUrl) {
+    row3.addComponents(new ButtonBuilder().setLabel("Web-Dashboard").setEmoji("🌐").setStyle(ButtonStyle.Link).setURL(dashboardUrl));
+  }
 
   return [row1, row2, row3];
 }

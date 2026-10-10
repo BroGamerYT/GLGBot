@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Mic, Radio, Users, Hash, Shield, ArrowRight, Server, CheckCircle2, AlertCircle } from "lucide-react";
+import { BRANDING, BOT_INITIALS } from "@/lib/branding";
 
 export default function DashboardOverviewPage() {
   const [data, setData] = useState<any>(null);
@@ -59,12 +60,12 @@ export default function DashboardOverviewPage() {
             />
           ) : (
             <div className="w-20 h-20 rounded-2xl bg-discord-blurple flex items-center justify-center font-bold text-2xl text-white">
-              GLG
+              {BOT_INITIALS}
             </div>
           )}
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl md:text-3xl font-extrabold text-white">{guild?.name || "Germany LanGame"}</h1>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-white">{guild?.name || BRANDING.community}</h1>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-discord-green/20 text-discord-green border border-discord-green/30">
                 Aktiv
               </span>
@@ -407,7 +408,7 @@ export default function DashboardOverviewPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="px-2.5 py-1 rounded-full bg-discord-blurple/20 text-discord-blurple text-[11px] font-bold uppercase tracking-wider">
-                  Empfohlen für GLG
+                  Empfohlen
                 </span>
                 <span className="text-xs text-discord-green font-semibold">Aktiv genutzt</span>
               </div>

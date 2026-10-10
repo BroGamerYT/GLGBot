@@ -18,6 +18,7 @@ import {
 import { auditLogService } from "./auditLogService";
 import { transcriptService, TranscriptMetadata } from "./transcriptService";
 import { readJsonFile, writeJsonAtomic } from "../utils/jsonFile";
+import { BRANDING } from "../config/branding";
 
 export interface TicketConfig {
   categoryId?: string;
@@ -113,7 +114,7 @@ class TicketService {
         { name: "🔒 Privat & Sicher", value: "Nur du und das Moderationsteam haben Zugriff.", inline: true },
         { name: "⚡ Schnelle Antwort", value: "Unser Team wird sich schnellstmöglich um dein Anliegen kümmern.", inline: true }
       )
-      .setFooter({ text: "Germany LanGame Support-Center" });
+      .setFooter({ text: `${BRANDING.community} Support-Center` });
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
@@ -143,7 +144,7 @@ class TicketService {
       name: "📩・support",
       type: ChannelType.GuildText,
       parent: infoCat?.id || undefined,
-      topic: "Offizieller Support-Kanal von GermanyLanGame • Öffne hier ein Ticket bei Fragen oder Problemen",
+      topic: `Offizieller Support-Kanal von ${BRANDING.community} • Öffne hier ein Ticket bei Fragen oder Problemen`,
       permissionOverwrites: [
         {
           id: guild.roles.everyone.id,

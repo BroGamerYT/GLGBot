@@ -14,8 +14,8 @@ export interface StreamNotification {
   id: string;
   guildId: string;
   platform: "twitch" | "youtube" | "kick";
-  channelName: string; // z. B. "derbrogameryt" oder "@DerBroGamerYT"
-  displayName?: string; // z. B. "DerBroGamerYT"
+  channelName: string; // z. B. "meinkanal" oder "@MeinKanal"
+  displayName?: string; // z. B. "MeinKanal"
   profileImageUrl?: string;
   youtubeChannelId?: string;
   discordChannelId: string;

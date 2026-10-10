@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
+import { BRANDING } from "@/lib/branding";
 
 function getBotToken() {
   const rootEnvPath = path.join(process.cwd(), "../.env");
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
             url: "https://cdn.discordapp.com/emojis/849312521948823562.png",
           },
           footer: {
-            text: "BroBot Voice-Manager | 24/7 Proxmox Power",
+            text: `${BRANDING.bot} Voice-Manager`,
           },
         },
       ],
@@ -94,13 +95,9 @@ export async function POST(req: Request) {
               label: "Status & Info",
               emoji: { name: "🔄" },
             },
-            {
-              type: 2,
-              style: 5,
-              label: "Web-Dashboard",
-              emoji: { name: "🌐" },
-              url: "https://glgbot.brogameryt.de",
-            },
+            ...(/^https?:\/\//i.test(BRANDING.dashboardUrl)
+              ? [{ type: 2, style: 5, label: "Web-Dashboard", emoji: { name: "🌐" }, url: BRANDING.dashboardUrl }]
+              : []),
           ],
         },
       ],

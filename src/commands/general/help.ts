@@ -7,6 +7,7 @@ import {
   ChatInputCommandInteraction,
 } from "discord.js";
 import { Command } from "../../types";
+import { BRANDING, dashboardLink } from "../../config/branding";
 
 const helpCommand: Command = {
   data: new SlashCommandBuilder()
@@ -15,9 +16,9 @@ const helpCommand: Command = {
   execute: async (interaction: ChatInputCommandInteraction) => {
     const embed = new EmbedBuilder()
       .setColor(0x5865f2)
-      .setTitle("📚 GLGBot — Hilfe & Befehlsübersicht")
+      .setTitle(`📚 ${BRANDING.bot} — Hilfe & Befehlsübersicht`)
       .setDescription(
-        "Willkommen beim zentralen Community-Bot von **GermanyLanGame**!\nHier findest du eine strukturierte Übersicht über alle verfügbaren Systeme und Befehle:"
+        `Willkommen beim zentralen Community-Bot von **${interaction.guild?.name || BRANDING.community}**!\nHier findest du eine strukturierte Übersicht über alle verfügbaren Systeme und Befehle:`
       )
       .addFields(
         {
@@ -87,18 +88,19 @@ const helpCommand: Command = {
           inline: false,
         }
       )
-      .setFooter({ text: "GermanyLanGame • Web-Dashboard: https://glgbot.brogameryt.de" })
+      .setFooter({ text: dashboardLink() ? `${BRANDING.community} • Web-Dashboard: ${dashboardLink()}` : BRANDING.community })
       .setTimestamp();
 
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setLabel("Web-Dashboard & Dokumentation")
-        .setStyle(ButtonStyle.Link)
-        .setURL("https://glgbot.brogameryt.de/hilfe")
-        .setEmoji("🌐")
-    );
+    const helpUrl = dashboardLink("/hilfe");
+    const components = helpUrl
+      ? [
+          new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder().setLabel("Web-Dashboard & Dokumentation").setStyle(ButtonStyle.Link).setURL(helpUrl).setEmoji("🌐")
+          ),
+        ]
+      : [];
 
-    await interaction.reply({ embeds: [embed], components: [row] });
+    await interaction.reply({ embeds: [embed], components });
   },
 };
 

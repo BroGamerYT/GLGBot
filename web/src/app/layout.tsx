@@ -4,9 +4,10 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { Mic, Radio, LayoutDashboard, Shield, LogOut, Gift, ScrollText, LifeBuoy, FileText, Archive, Newspaper, Palette, Ticket, Trophy, Sparkles, LogIn, Gavel } from "lucide-react";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
+import { BRANDING, BOT_INITIALS, DASHBOARD_HOST } from "@/lib/branding";
 
 export const metadata: Metadata = {
-  title: "GLGBot Web-Dashboard | GermanyLanGame",
+  title: `${BRANDING.bot} Web-Dashboard | ${BRANDING.community}`,
   description: "Zentrales Web-Dashboard für VoiceMaster, Live-Streamer und Server-Management",
 };
 
@@ -25,11 +26,11 @@ export default async function RootLayout({
           <header className="border-b border-discord-border bg-discord-dark/80 backdrop-blur-md px-6 py-3.5 flex items-center justify-between sticky top-0 z-50">
             <Link href="/" className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-discord-blurple to-indigo-400 flex items-center justify-center font-bold text-white shadow-md shadow-discord-blurple/20">
-                GLG
+                {BOT_INITIALS}
               </div>
               <div>
-                <h1 className="font-bold text-white text-sm leading-tight">GLGBot Panel</h1>
-                <p className="text-[11px] text-gray-400">GermanyLanGame</p>
+                <h1 className="font-bold text-white text-sm leading-tight">{BRANDING.bot} Panel</h1>
+                <p className="text-[11px] text-gray-400">{BRANDING.community}</p>
               </div>
             </Link>
 
@@ -86,11 +87,11 @@ export default async function RootLayout({
             {/* Header / Logo */}
             <div className="flex items-center gap-3 px-2 py-3 mb-3 shrink-0">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-discord-blurple to-indigo-400 flex items-center justify-center font-bold text-white shadow-lg shadow-discord-blurple/20">
-                GLG
+                {BOT_INITIALS}
               </div>
               <div>
-                <h1 className="font-bold text-white leading-tight">GLGBot Panel</h1>
-                <p className="text-xs text-gray-400">GermanyLanGame</p>
+                <h1 className="font-bold text-white leading-tight">{BRANDING.bot} Panel</h1>
+                <p className="text-xs text-gray-400">{BRANDING.community}</p>
               </div>
             </div>
 
@@ -219,14 +220,16 @@ export default async function RootLayout({
             <div className="flex items-center justify-between text-xs text-gray-400 px-2">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-discord-green animate-pulse"></span>
-                24/7 Proxmox
+                Online
               </span>
-              <span className="text-gray-500">CT 109</span>
+              <span className="text-gray-500">{BRANDING.bot}</span>
             </div>
-            <div className="px-2 py-1.5 bg-discord-card rounded-md text-[11px] text-gray-400 flex items-center justify-between">
-              <span>Domain:</span>
-              <span className="text-discord-blurple font-mono">glgbot.brogameryt.de</span>
-            </div>
+            {DASHBOARD_HOST && (
+              <div className="px-2 py-1.5 bg-discord-card rounded-md text-[11px] text-gray-400 flex items-center justify-between gap-2">
+                <span>Domain:</span>
+                <span className="text-discord-blurple font-mono truncate">{DASHBOARD_HOST}</span>
+              </div>
+            )}
           </div>
         </aside>
 

@@ -55,7 +55,7 @@ export default function LiveStreamerPage() {
   const [categoryId, setCategoryId] = useState("");
   const [channelType, setChannelType] = useState<"voice" | "text">("voice");
   const [autoRole, setAutoRole] = useState(true);
-  const [globalPingRoleId, setGlobalPingRoleId] = useState("1558464175183765684");
+  const [globalPingRoleId, setGlobalPingRoleId] = useState("");
   const [globalSilent, setGlobalSilent] = useState(false);
   const [globalCustomMessage, setGlobalCustomMessage] = useState("");
 
@@ -335,6 +335,7 @@ export default function LiveStreamerPage() {
   }
 
   const roles = data?.roles || [];
+  const liveAlertRole = roles.find((r: any) => /bn\.live/i.test(r.name || ""));
   const textChannels = data?.textChannels || [];
   const categories = data?.categories || [];
   const members = data?.members || [];
@@ -521,7 +522,7 @@ export default function LiveStreamerPage() {
                   <div className="relative">
                     <input
                       type="text"
-                      placeholder="Tippe z. B. Floslist, BroGamerYT, MontanaBlack..."
+                      placeholder="Tippe einen Kanalnamen, z. B. MeinKanal…"
                       value={channelInput}
                       onChange={(e) => setChannelInput(e.target.value)}
                       onFocus={() => {
@@ -671,7 +672,7 @@ export default function LiveStreamerPage() {
                   type="text"
                   value={newDisplayName}
                   onChange={(e) => setNewDisplayName(e.target.value)}
-                  placeholder={selectedStreamer ? selectedStreamer.displayName : "z. B. Floslist Gaming oder BroGamer"}
+                  placeholder={selectedStreamer ? selectedStreamer.displayName : "z. B. Mein Kanal"}
                   className="w-full bg-discord-card border border-discord-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 font-medium"
                 />
                 <p className="text-[11px] text-gray-400 mt-1">
@@ -736,15 +737,15 @@ export default function LiveStreamerPage() {
                   <div className="font-sans text-white text-xs bg-discord-dark/80 px-2.5 py-1.5 rounded border border-discord-border break-words">
                     {newCustomMessage.trim() ? (
                       newCustomMessage
-                        .replace(/{streamer}/gi, newDisplayName.trim() || selectedStreamer?.displayName || "FlosList")
+                        .replace(/{streamer}/gi, newDisplayName.trim() || selectedStreamer?.displayName || "MeinKanal")
                         .replace(/{game}/gi, "Minecraft")
                         .replace(/{title}/gi, "Community Stream & Fun!")
-                        .replace(/{url}/gi, (selectedStreamer?.platform === "youtube" || platformTab === "youtube") ? "https://youtube.com/watch?v=..." : "https://twitch.tv/floslist")
+                        .replace(/{url}/gi, (selectedStreamer?.platform === "youtube" || platformTab === "youtube") ? "https://youtube.com/watch?v=..." : "https://twitch.tv/meinkanal")
                         .replace(/{ping}|{role}/gi, newPingRoleId === "@everyone" ? "@everyone" : (newPingRoleId === "@here" ? "@here" : (roles.find((r: any) => r.id === newPingRoleId)?.name ? `@${roles.find((r: any) => r.id === newPingRoleId)?.name}` : "@Live-Alerts")))
                     ) : (
                       <span className="text-gray-400 italic">
                         {newPingRoleId ? `${newPingRoleId === "@everyone" ? "@everyone" : (newPingRoleId === "@here" ? "@here" : `@${roles.find((r: any) => r.id === newPingRoleId)?.name || "Rolle"}`)} ` : ""}
-                        📢 **{newDisplayName.trim() || selectedStreamer?.displayName || "FlosList"}** ist jetzt live auf {(selectedStreamer?.platform === "youtube" || platformTab === "youtube") ? "YouTube" : "Twitch"}!
+                        📢 **{newDisplayName.trim() || selectedStreamer?.displayName || "MeinKanal"}** ist jetzt live auf {(selectedStreamer?.platform === "youtube" || platformTab === "youtube") ? "YouTube" : "Twitch"}!
                       </span>
                     )}
                   </div>
@@ -860,7 +861,7 @@ export default function LiveStreamerPage() {
                           onClick={() => setShowAddModal(true)}
                           className="text-xs text-purple-400 hover:underline font-semibold"
                         >
-                          + Jetzt den ersten Streamer hinzufügen (z. B. Floslist oder BroGamerYT)
+                          + Jetzt den ersten Streamer hinzufügen
                         </button>
                       </div>
                     ) : (
@@ -1079,11 +1080,11 @@ export default function LiveStreamerPage() {
               className="w-full bg-discord-dark border border-discord-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-all font-medium"
             >
               <option value="">— Kein Ping (ohne Erwähnung) —</option>
-              <option value="1558464175183765684">🔴 Live-Stream Alerts (bn.live) [Empfohlen]</option>
+              {liveAlertRole && <option value={liveAlertRole.id}>🔴 {liveAlertRole.name} [Empfohlen]</option>}
               <option value="@everyone">@everyone (Ganzen Server pingen)</option>
               <option value="@here">@here (Alle Online-Mitglieder pingen)</option>
               {roles
-                .filter((r: any) => r.id !== "1558464175183765684")
+                .filter((r: any) => r.id !== liveAlertRole?.id)
                 .map((r: any) => (
                   <option key={r.id} value={r.id}>
                     @{r.name}

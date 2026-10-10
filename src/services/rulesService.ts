@@ -20,6 +20,20 @@ import { gameNewsService } from "./gameNewsService";
 
 const COLOR = 0x5865f2;
 const RULES_FILE = path.join(process.cwd(), "data", "rules.json");
+/** Eigene Standard-Regeln (nicht im Git-Repo) - ersetzen die eingebauten Beispiel-Regeln. */
+const DEFAULT_RULES_FILE = path.join(process.cwd(), "config", "rules.json");
+
+function loadDefaultRules(): RulesConfig {
+  try {
+    if (fs.existsSync(DEFAULT_RULES_FILE)) {
+      const data = JSON.parse(fs.readFileSync(DEFAULT_RULES_FILE, "utf-8"));
+      if (data && Array.isArray(data.rules)) return { ...RULES, ...data };
+    }
+  } catch (e) {
+    console.error("[Rules] config/rules.json ist ungültig - nutze Beispiel-Regeln:", e);
+  }
+  return RULES;
+}
 
 export const RULE_LIMITS = { maxRules: 25, title: 100, ruleTitle: 100, emoji: 16, text: 1000, intro: 1500, consequences: 500, acceptText: 1000 };
 
@@ -31,12 +45,12 @@ class RulesService {
     try {
       if (fs.existsSync(RULES_FILE)) {
         const data = JSON.parse(fs.readFileSync(RULES_FILE, "utf-8"));
-        if (data && Array.isArray(data.rules)) return { ...RULES, ...data };
+        if (data && Array.isArray(data.rules)) return { ...loadDefaultRules(), ...data };
       }
     } catch (e) {
       console.error("[Rules] data/rules.json ist ungültig - nutze Standard-Regeln:", e);
     }
-    return RULES;
+    return loadDefaultRules();
   }
 
   public isCustomized(): boolean {
@@ -47,6 +61,7 @@ class RulesService {
   public saveRules(input: any): string | null {
     const L = RULE_LIMITS;
     if (!input || typeof input !== "object" || !Array.isArray(input.rules)) return "Ungültiges Format.";
+    const RULES = loadDefaultRules();
     const str = (v: any) => (typeof v === "string" ? v.trim() : "");
 
     const rules: RulesConfig = {
@@ -79,7 +94,7 @@ class RulesService {
     return null;
   }
 
-  /** Setzt die Regeln auf die Standardwerte aus src/config/rules.ts zurück. */
+  /** Setzt die Regeln auf die Standardwerte (config/rules.json bzw. src/config/rules.ts) zurück. */
   public resetRules() {
     if (fs.existsSync(RULES_FILE)) fs.unlinkSync(RULES_FILE);
   }
