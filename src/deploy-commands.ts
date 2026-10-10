@@ -27,8 +27,12 @@ async function deploy() {
         (entry.name.endsWith(".ts") || entry.name.endsWith(".js")) &&
         !entry.name.endsWith(".d.ts")
       ) {
-        const fileUrl = pathToFileURL(fullPath).href;
-        const mod = await import(fileUrl);
+        let mod: any;
+        try {
+          mod = require(fullPath);
+        } catch {
+          mod = await import(pathToFileURL(fullPath).href);
+        }
         const command: Command = mod.default || mod;
         if (command && command.data) {
           commands.push(command.data.toJSON());

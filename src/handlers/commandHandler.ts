@@ -18,8 +18,13 @@ export async function loadCommands(client: BotClient, commandsPath: string = pat
       await loadCommands(client, fullPath);
     } else if (entry.isFile() && (entry.name.endsWith(".ts") || entry.name.endsWith(".js")) && !entry.name.endsWith(".d.ts")) {
       try {
-        const fileUrl = pathToFileURL(fullPath).href;
-        const commandModule = await import(fileUrl);
+        let commandModule: any;
+        try {
+          commandModule = require(fullPath);
+        } catch {
+          commandModule = await import(pathToFileURL(fullPath).href);
+        }
+
         const command: Command = commandModule.default || commandModule;
 
         if (command && command.data && typeof command.execute === "function") {

@@ -16,8 +16,13 @@ export async function loadEvents(client: BotClient, eventsPath: string = path.jo
   for (const file of files) {
     const fullPath = path.join(eventsPath, file);
     try {
-      const fileUrl = pathToFileURL(fullPath).href;
-      const eventModule = await import(fileUrl);
+      let eventModule: any;
+      try {
+        eventModule = require(fullPath);
+      } catch {
+        eventModule = await import(pathToFileURL(fullPath).href);
+      }
+
       const event: BotEvent = eventModule.default || eventModule;
 
       if (event && event.name && typeof event.execute === "function") {
