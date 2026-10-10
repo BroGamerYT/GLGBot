@@ -7,6 +7,7 @@ import { rolePanelService } from "../services/rolePanelService";
 import { gameNewsService } from "../services/gameNewsService";
 import { auditLogService } from "../services/auditLogService";
 import { backupService } from "../services/backupService";
+import { ticketService } from "../services/ticketService";
 
 /**
  * Interne Schnittstelle für das Web-Dashboard.
@@ -344,6 +345,86 @@ export function startInternalApi(client: Client) {
           ).catch(() => null);
 
           return send(res, 200, { ok: true, messageId: msg.id, channelId: channel.id });
+        }
+
+        // ---------------- Tickets ----------------
+        case "GET /tickets": {
+          const allTickets = ticketService.getTickets(guild.id);
+          const config = ticketService.getConfig(guild.id);
+
+          // Anreicherung um aktuellen Kanal-Status
+          const enriched = allTickets.map((t) => {
+            const ch = guild.channels.cache.get(t.channelId);
+            return {
+              ...t,
+              channelExists: Boolean(ch),
+              channelName: ch ? ch.name : (t.channelName || `ticket-${t.channelId.slice(0, 4)}`),
+            };
+          });
+
+          return send(res, 200, {
+            tickets: enriched,
+            config,
+          });
+        }
+        case "GET /tickets/transcript": {
+          const qs = (req.url || "").split("?")[1] || "";
+          const params = new URLSearchParams(qs);
+          const channelId = params.get("channelId");
+          if (!channelId) return send(res, 400, { error: "Keine channelId angegeben." });
+
+          const transcript = await ticketService.getTranscript(channelId, guild);
+          return send(res, 200, { transcript: transcript || "Kein Transkript verfügbar." });
+        }
+        case "GET /tickets/messages": {
+          const qs = (req.url || "").split("?")[1] || "";
+          const params = new URLSearchParams(qs);
+          const channelId = params.get("channelId");
+          if (!channelId) return send(res, 400, { error: "Keine channelId angegeben." });
+
+          const ch = guild.channels.cache.get(channelId);
+          if (!ch || !ch.isTextBased()) {
+            return send(res, 404, { error: "Kanal ist geschlossen oder existiert nicht mehr." });
+          }
+
+          const messages = await ticketService.getLiveMessages(ch as any);
+          return send(res, 200, { messages });
+        }
+        case "POST /tickets/config": {
+          const body = await readBody(req);
+          const updated = ticketService.setConfig(guild.id, {
+            categoryId: body.categoryId || undefined,
+            supportRoleId: body.supportRoleId || undefined,
+          });
+          return send(res, 200, { ok: true, config: updated });
+        }
+        case "POST /tickets/post-panel": {
+          const body = await readBody(req);
+          const channelId = String(body.channelId || "").trim();
+          if (!channelId) return send(res, 400, { error: "Kein Kanal ausgewählt." });
+
+          const ok = await ticketService.postPanel(guild, channelId);
+          if (!ok) return send(res, 400, { error: "Kanal wurde nicht gefunden oder ist kein Textkanal." });
+          return send(res, 200, { ok: true });
+        }
+        case "POST /tickets/close": {
+          const body = await readBody(req);
+          const channelId = String(body.channelId || "").trim();
+          if (!channelId) return send(res, 400, { error: "Keine channelId angegeben." });
+
+          const ok = await ticketService.closeTicketFromWeb(guild, channelId, by || "Web-Dashboard", client);
+          if (!ok) return send(res, 400, { error: "Kanal konnte nicht geschlossen werden (evtl. bereits gelöscht)." });
+          return send(res, 200, { ok: true });
+        }
+        case "POST /tickets/send-message": {
+          const body = await readBody(req);
+          const channelId = String(body.channelId || "").trim();
+          const text = String(body.text || "").trim();
+          if (!channelId || !text) return send(res, 400, { error: "Kanal und Nachrichtentext erforderlich." });
+
+          const ok = await ticketService.sendTicketMessage(guild, channelId, text, by || "Web-Support");
+          if (!ok) return send(res, 400, { error: "Nachricht konnte nicht gesendet werden." });
+          return send(res, 200, { ok: true });
         }
 
         default:

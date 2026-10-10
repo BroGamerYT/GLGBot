@@ -27,18 +27,23 @@ interface FullTicketConfig {
   [guildId: string]: TicketConfig;
 }
 
-interface TicketRecord {
+export interface TicketRecord {
   channelId: string;
+  channelName?: string;
   guildId: string;
   creatorId: string;
   creatorTag: string;
   createdAt: string;
   status: "OPEN" | "CLOSED";
+  closedAt?: string;
+  closedByTag?: string;
+  transcriptFile?: string;
 }
 
 const DATA_DIR = path.join(__dirname, "../../data");
 const CONFIG_FILE = path.join(DATA_DIR, "ticket_config.json");
 const TICKETS_FILE = path.join(DATA_DIR, "tickets.json");
+const TRANSCRIPTS_DIR = path.join(DATA_DIR, "transcripts");
 
 class TicketService {
   private config: FullTicketConfig = {};
@@ -52,6 +57,9 @@ class TicketService {
   private ensureDataDir() {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(TRANSCRIPTS_DIR)) {
+      fs.mkdirSync(TRANSCRIPTS_DIR, { recursive: true });
     }
   }
 
@@ -181,6 +189,7 @@ class TicketService {
 
     const ticketRecord: TicketRecord = {
       channelId: ticketChannel.id,
+      channelName: ticketChannel.name,
       guildId: guild.id,
       creatorId: user.id,
       creatorTag: user.tag || user.username,
@@ -229,13 +238,24 @@ class TicketService {
   // Schließt ein Ticket, erstellt Transkript und löscht Kanal
   public async closeTicket(channel: TextChannel, closedBy: User, client: Client) {
     const record = this.tickets.find((t) => t.channelId === channel.id);
+
+    // 1. Transkript generieren & auf Festplatte speichern
+    const transcriptText = await this.generateTranscriptText(channel);
+    const transcriptFile = path.join(TRANSCRIPTS_DIR, `${channel.id}.txt`);
+    try {
+      fs.writeFileSync(transcriptFile, transcriptText, "utf-8");
+    } catch (e) {
+      console.error("[TicketService] Fehler beim Speichern des Transkripts:", e);
+    }
+
     if (record) {
       record.status = "CLOSED";
+      record.closedAt = new Date().toISOString();
+      record.closedByTag = closedBy.tag || closedBy.username;
+      record.transcriptFile = `${channel.id}.txt`;
       this.saveData();
     }
 
-    // 1. Transkript generieren
-    const transcriptText = await this.generateTranscriptText(channel);
     const transcriptBuffer = Buffer.from(transcriptText, "utf-8");
     const attachment = new AttachmentBuilder(transcriptBuffer, {
       name: `transcript-${channel.name}-${Date.now()}.txt`,
@@ -314,6 +334,69 @@ class TicketService {
     }
 
     return text;
+  }
+
+  public getTickets(guildId: string): TicketRecord[] {
+    return this.tickets.filter((t) => t.guildId === guildId);
+  }
+
+  public async getTranscript(channelId: string, guild?: Guild): Promise<string | null> {
+    const filePath = path.join(TRANSCRIPTS_DIR, `${channelId}.txt`);
+    if (fs.existsSync(filePath)) {
+      return fs.readFileSync(filePath, "utf-8");
+    }
+    if (guild) {
+      const ch = guild.channels.cache.get(channelId);
+      if (ch && ch.isTextBased() && "messages" in ch) {
+        return this.generateTranscriptText(ch as TextChannel);
+      }
+    }
+    return null;
+  }
+
+  public async getLiveMessages(channel: TextChannel): Promise<{ author: string; content: string; time: string; isBot: boolean }[]> {
+    const messages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
+    if (!messages) return [];
+    return [...messages.values()]
+      .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
+      .map((m) => ({
+        author: m.author.tag || m.author.username,
+        content: m.content,
+        time: new Date(m.createdTimestamp).toLocaleString("de-DE"),
+        isBot: m.author.bot,
+      }));
+  }
+
+  public async postPanel(guild: Guild, channelId: string): Promise<boolean> {
+    const ch = guild.channels.cache.get(channelId) || (await guild.channels.fetch(channelId).catch(() => null));
+    if (!ch || !ch.isTextBased() || !("send" in ch)) return false;
+    const { embeds, components } = this.createPanelEmbed();
+    await (ch as TextChannel).send({ embeds, components });
+    return true;
+  }
+
+  public async sendTicketMessage(guild: Guild, channelId: string, text: string, senderName: string): Promise<boolean> {
+    const ch = guild.channels.cache.get(channelId) || (await guild.channels.fetch(channelId).catch(() => null));
+    if (!ch || !ch.isTextBased() || !("send" in ch)) return false;
+    const embed = new EmbedBuilder()
+      .setColor(0x5865f2)
+      .setAuthor({ name: `${senderName} (Web-Support)` })
+      .setDescription(text)
+      .setTimestamp();
+    await (ch as TextChannel).send({ embeds: [embed] });
+    return true;
+  }
+
+  public async closeTicketFromWeb(guild: Guild, channelId: string, closedByName: string, client: Client): Promise<boolean> {
+    const ch = guild.channels.cache.get(channelId) || (await guild.channels.fetch(channelId).catch(() => null));
+    if (!ch || !ch.isTextBased()) return false;
+    const fakeUser = {
+      id: client.user?.id || "dashboard",
+      tag: closedByName,
+      username: closedByName,
+    } as User;
+    await this.closeTicket(ch as TextChannel, fakeUser, client);
+    return true;
   }
 }
 

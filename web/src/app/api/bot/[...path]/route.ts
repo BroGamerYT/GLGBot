@@ -37,6 +37,13 @@ const ALLOWED = new Set([
   "DELETE backups/delete",
   "GET embeds/channels",
   "POST embeds/send",
+  "GET tickets",
+  "GET tickets/transcript",
+  "GET tickets/messages",
+  "POST tickets/config",
+  "POST tickets/post-panel",
+  "POST tickets/close",
+  "POST tickets/send-message",
 ]);
 
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {
