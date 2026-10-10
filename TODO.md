@@ -2,6 +2,10 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
+**Aktueller Stand:** v2.6.0 (siehe History ganz unten)
+
+> ⚠️ **Grundsatz-Entscheidung zuerst:** Bleibt es dabei, dass jeder den Bot selbst hostet (Open-Source-Modell, so wie jetzt auf GitHub) – oder soll *ein* Bot viele Server bedienen (Punkt 16)? Jedes neue Feature, das jetzt nur für einen Server gebaut wird, muss bei Multi-Guild später umgebaut werden. Diese Entscheidung sollte vor Priorität 2 fallen.
+
 ---
 
 ## 🚀 Priorität 1: Sofort anstehend
@@ -11,7 +15,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
   * [ ] `/free-games` und `/news` in `web/src/middleware.ts` zu den öffentlichen Seiten (`isPublicPage`) hinzufügen.
   * [ ] GET-Endpunkte `GET /api/bot/free-games` und `GET /api/bot/news` für Gäste freigeben (`isPublicApi`).
 * [ ] **UI-Anpassungen:**
-  * [ ] Client-seitige Session-Prüfung (`useSession`) in `web/src/app/free-games/page.tsx` und `web/src/app/news/page.tsx`.
+  * [ ] Login-Status im Client über `GET /api/auth/me` prüfen (es gibt kein `useSession` – das gehört zu NextAuth) in `web/src/app/free-games/page.tsx` und `web/src/app/news/page.tsx`.
   * [ ] **Gast-Modus:** Alle Spiele-Karten, Filter, Countdowns, Store-Links und Treiber-Updates anzeigen.
   * [ ] **Admin-Controls verbergen:** Buttons zum Manuellen Posten in Discord, Feed-Verwaltung und Webhook-Settings nur für eingeloggte Admins sichtbar machen.
   * [ ] Öffentliche Navigation in Kopfzeile (`Header`) für Gäste um Free Games & News ergänzen.
@@ -19,10 +23,12 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 ---
 
 ### 2. 📅 Game Release Kalender (`/releases` & `/kalender`)
+> ⚠️ **Datenquelle vorher klären:** Es gibt keine gute kostenlose Release-API ohne Anmeldung. Optionen: **IGDB** (braucht Twitch-Developer Client-ID/Secret), **RAWG** (API-Key, Free-Tier), **Steam „Demnächst“** (nur PC) oder eine **kuratierte Liste** (muss jemand von Hand pflegen).
+
 * [ ] **Backend & Datenservice:**
   * [ ] Neuer Service `src/services/releaseService.ts` mit kuratierter Release-Liste oder API-Anbindung.
   * [ ] Speicherung von Titel, Release-Datum, Plattformen (PC, PS5, Xbox Series X/S, Switch, Game Pass), Genre, Store- und Trailer-Links.
-  * [ ] Interne REST-API-Endpunkte `GET /api/releases` und `POST /api/releases` (für manuelle Admin-Einträge).
+  * [ ] Interne Bot-API `GET /releases` und `POST /releases` (im Dashboard über `/api/bot/releases`, für manuelle Admin-Einträge).
 * [ ] **Web-Dashboard:**
   * [ ] Neue öffentliche Seite `web/src/app/releases/page.tsx`.
   * [ ] Timeline- und Monats-Ansicht (Kommende Wochen / Dieser Monat / Nächster Monat / Später).
@@ -45,7 +51,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 * [ ] **Web-Dashboard (`/stats`):**
   * [ ] Einstellungs-Reiter „Rollen-Belohnungen“ im Stats-Konfigurationsbereich.
   * [ ] Interaktive Zuweisungs-Tabelle: Level auswählen (z. B. 5, 10, 15, 20, 25) und Server-Rolle aus Dropdown zuordnen.
-  * [ ] Speichern über `/api/config/stats`.
+  * [ ] Speichern über `/api/bot/stats/config` (wie die übrigen XP-Einstellungen).
 * [ ] **Retroaktive Nachrüstung:**
   * [ ] Button oder Befehl `/rank sync-roles`, um bestehenden Mitgliedern nachträglich die ihren Leveln entsprechenden Rollen zuzuweisen.
 
@@ -54,7 +60,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 ## 🎯 Priorität 2: Community- & Interaktions-Features
 
 ### 4. 🔴 „Gerade Live“-Widget auf der Dashboard-Startseite
-* [ ] Live-Banner auf `web/src/app/page.tsx` (`glgbot.brogameryt.de`).
+* [ ] Live-Banner auf der Dashboard-Startseite `web/src/app/page.tsx`.
 * [ ] Zeigt aktuell aktive Streamer aus der Community in Echtzeit an (Twitch/YouTube/Voice).
 * [ ] Anzeige mit Avatar, Stream-Titel, Spiel und 1-Klick-Direktlink zum Stream.
 
@@ -64,6 +70,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 * [ ] Täglicher Belohnungs-Befehl `/daily` für Mitglieder.
 * [ ] Feste Basis-XP (z. B. +50 XP) plus ansteigender Streak-Bonus (z. B. Tag 2: +60 XP, Tag 7: +200 XP).
 * [ ] 24h-Cooldown mit 36h-Kulanzfenster für Streaks.
+* [ ] Hinweis: `/daily` steht auch in Punkt 15 (Economy) – **ein** gemeinsamer Befehl: erst XP, später zusätzlich Coins.
 * [ ] Streak-Anzeige im Rang-Befehl `/rank` und im Dashboard-Profil.
 
 ---
@@ -80,6 +87,8 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 ---
 
 ### 7. 🖼️ Grafische Rangkarte (Canvas / SVG)
+> Zusammen mit Punkt 12 (Willkommens-Karten) bauen – beide brauchen dieselbe Bild-Bibliothek (z. B. `@napi-rs/canvas`).
+
 * [ ] Visuelle Rank-Card bei `/rank` statt reinem Text-Embed:
   * [ ] Nutzer-Avatar mit Discord-Status.
   * [ ] Aktuelles Level & Ranglistenplatz (#1, #2, ...).
@@ -89,14 +98,14 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 ---
 
 ### 8. 🌐 TeamSpeak- & Game-Server Status-Widget
-* [ ] Live-Status-Abfrage für GermanyLanGame Server (TeamSpeak 3 / CS2 / Minecraft / etc.).
+* [ ] Live-Status-Abfrage für eigene Game-Server (TeamSpeak 3 / CS2 / Minecraft / etc.) – Server-Adressen im Dashboard einstellbar.
 * [ ] Anzeige im Web-Dashboard (Online-Status, Spieleranzahl, IP zum Kopieren).
 * [ ] Discord-Slash-Befehl `/serverstatus` mit Live-Embed.
 
 ---
 
 ### 9. 🛡️ Erweiterter Auto-Mod & Anti-Spam
-* [ ] Automatische Erkennung und Löschung von unerlaubten Discord-Einladungslinks fremder Server.
+* [x] Automatische Erkennung und Löschung von unerlaubten Discord-Einladungslinks fremder Server *(gibt es schon in `blacklistService.ts`)*.
 * [ ] Mass-Mention-Schutz (>5 Mentions = Auto-Löschung + Verwarnung).
 * [ ] Verknüpfung mit dem Levelsystem: Automatische Strafpunkte (-XP) bei moderativen Vorfällen.
 
@@ -107,6 +116,11 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 > **Architektur-Ziel:** Für eine spätere Veröffentlichung konfigurierbar machen:
 > * **Modus A (Sub-Bot Worker):** Dedizierter Bot-Account („GLG Music“) mit eigenem Token – maximale Performance ohne Last für den Haupt-Bot.
 > * **Modus B (Embedded / All-in-One):** Direkt im Haupt-Bot integriert – kein 2. Bot nötig, perfekt für einfache Server oder Ein-Klick-Setup.
+>
+> **Empfohlene Reihenfolge:** Zuerst nur **Modus B** und nur stabile Quellen (**Web-Radio** und **eigene MP3s**). Zwei Modi von Anfang an verdoppeln den Aufwand.
+> **YouTube** zuletzt und als „kann ausfallen“ kennzeichnen: YouTube sperrt Bots regelmäßig, und das Abspielen über `yt-dlp` verstößt gegen die YouTube-Nutzungsbedingungen.
+> **Spotify** lässt sich nicht direkt abspielen – es wird nur der Titel ausgelesen und der Song anderswo (YouTube/SoundCloud) gesucht.
+> Technisch nötig: `@discordjs/voice`, `ffmpeg` und eine Opus-Bibliothek auf dem Server.
 
 * [ ] **Konfiguration & Modus-Auswahl (`config/music.json` / `.env`):**
   * [ ] Schalter `MUSIC_MODE: "subbot" | "embedded" | "disabled"`.
@@ -156,7 +170,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 * [ ] Willkommens-Banner für neue Mitglieder:
   * [ ] Nutzer-Avatar & Server-Icon gerendert.
   * [ ] Benutzername, Tag und Server-Mitgliederzähler (`Du bist Mitglied #1.248!`).
-* [ ] Automatische Rollenvergabe (Autorole) bei Beitritt (`@Gast` oder Standard-Rolle).
+* [ ] Automatische Rollenvergabe (Autorole) bei Beitritt – **nur wenn die Regel-Sperre aus ist**. `@Gast` bekommt man bei uns erst mit „Regeln akzeptieren“; wer sie sofort bekommt, sieht den ganzen Server, ohne die Regeln zu lesen.
 * [ ] Im Web-Dashboard konfigurierbar: Willkommenskanal, Hintergrundbild, Farbverlauf und Text.
 
 ---
@@ -180,7 +194,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ### 15. 🪙 Community-Wirtschaft & Belohnungs-Shop (Economy)
 * [ ] Server-Währung („GLG-Coins“) gesammelt durch Chat-Aktivität, Voice-Zeit, Streaks und Events.
-* [ ] Chat-Befehle `/balance`, `/daily`, `/pay <user> <amount>`, `/leaderboard coins`.
+* [ ] Chat-Befehle `/balance`, `/pay <user> <amount>`, `/leaderboard coins` (`/daily` aus Punkt 5 wird um Coins erweitert).
 * [ ] **Belohnungs-Shop (`/shop` & im Web-Dashboard):**
   * [ ] Kaufen von exklusiven Rollenfarben (z. B. Neon-Gelb, Cyber-Blau).
   * [ ] Eigene permanente Voice-Channel-Namen oder individuelle Profil-Badges.
@@ -189,14 +203,18 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 🌐 Priorität 4: Public Release & 1-Bot-in-1-CT Multi-Guild Architektur
 
-> **Architektur-Konzept:** **Ein einziger Bot-Prozess im Proxmox-Container (CT 109)** bedient unbegrenzt viele Discord-Server gleichzeitig.
+> **Architektur-Konzept:** **Ein einziger Bot-Prozess** (z. B. in einem Proxmox-Container) bedient unbegrenzt viele Discord-Server gleichzeitig.
 > * **Ressourcen:** Minimaler RAM-Verbrauch (~200 MB) für beliebig viele Server.
 > * **Zentrale Wartung:** 1x `git pull` & `pm2 restart` aktualisiert alle Server simultan.
 > * **1-Klick-Onboarding:** Jeder Server-Besitzer kann den Bot per Invite-Link einladen, ohne eigene Server/Tokens zu benötigen.
 
 ### 16. 🏛️ Multi-Guild Datenisolation & Globale Commands (1 Bot -> N Server)
+> ⚠️ **Größter Umbau im ganzen Plan.** Bot & Dashboard sind fest auf einen Server ausgelegt: `GUILD_ID` steckt in 17 Stellen in Bot und Dashboard, die interne Bot-API (`src/api/internalApi.ts`) kennt nur einen Server.
+> * **Ab 100 Servern** verlangt Discord eine **Bot-Verifizierung**; die drei Privileged Intents (Presence, Server Members, Message Content) müssen dann einzeln beantragt und begründet werden.
+> * Wer den Bot für fremde Server hostet, ist für deren Daten verantwortlich (**Datenschutz / DSGVO**, Datenschutzerklärung, Löschung auf Anfrage).
+
 * [ ] **Globale Discord Slash-Commands:**
-  * [ ] Umstellung von `applicationGuildCommands(clientId, guildId)` auf globale Registrierung `applicationCommands(clientId)`.
+  * [ ] Globale Registrierung `applicationCommands(clientId)` – `deploy-commands` kann das schon, wenn `GUILD_ID` leer ist.
   * [ ] Befehle sind nach Einladung des Bots automatisch auf jedem Discord-Server verfügbar.
 * [ ] **Strikte Daten- & Konfigurations-Trennung pro Server (`guildId` Partitionierung):**
   * [ ] Speicherstruktur pro Guild: `data/guilds/<guildId>/config.json`.
@@ -208,7 +226,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
     * [ ] Bereits aktivierte Server verwalten (Klick schaltet aktiven Kontext um).
     * [ ] Nicht aktivierte Server mit einem 1-Klick-Link **„➕ Bot einladen“** (mit vorkonfigurierten OAuth2-Berechtigungen) hinzufügen.
 * [ ] **API-Mandantenfähigkeit:**
-  * [ ] Alle Web-API-Routen (`/api/discord/*`, `/api/config/*`, `/api/stats/*`) akzeptieren den Header bzw. Query-Parameter `?guildId=<id>`.
+  * [ ] Alle Web-API-Routen (`/api/discord/*`, `/api/config/*`, `/api/bot/*` inkl. der internen Bot-API) akzeptieren den Header bzw. Query-Parameter `?guildId=<id>`.
   * [ ] Serverseitige Autorisierungsprüfung: Darf der eingeloggte Discord-User diese spezifische `guildId` konfigurieren?
 
 ---
@@ -237,6 +255,8 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 ### 20. 🏗️ 1-Klick Server-Templates & Auto-Setup Wizard
 
 > **Ziel:** Richtet auf neuen oder bestehenden Discord-Servern in 15 Sekunden eine komplette, professionelle und sichere Server-Struktur ein.
+>
+> **Baut auf v2.6.0 auf:** Die Seite „Server einrichten“ (`/setup`) und `/setup-all` mit `src/services/setupService.ts` legen die Bot-Bereiche schon an – Templates ergänzen das nur um die allgemeine Server-Struktur (Kategorien, Chats, Team-Rollen) und sollten denselben Service nutzen statt eines zweiten Systems.
 
 * [ ] **Vordefinierte Server-Typen (JSON-Templates in `src/templates/`):**
   * [ ] 🎮 **Gaming Clan / E-Sport:** Infos (Regeln, News), Community (Chat, Clips, Memes), Talk (VoiceMaster, AFK), Spiele-Lobbys.
@@ -256,12 +276,15 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 * [ ] **Bedienung via Web & Discord:**
   * [ ] **Web-Dashboard (`/templates`):** Interaktiver 3-Schritte-Assistent (Typ wählen -> Stil wählen -> Vorschau prüfen -> „Server einrichten“).
   * [ ] **Discord Slash-Command:** `/server-setup template:<typ> style:<stil> [wipe:true|false]` mit Sicherheits-Bestätigungs-Button.
+  * [ ] ⚠️ `wipe` (Server vorher leeren) **nur mit automatischem Backup davor** – sonst löscht ein Fehlklick den kompletten Server. Am besten zusätzlich: nur der Server-Owner darf `wipe` nutzen.
 
 ---
 
 ### 21. 📦 1-Klick Installer & Deployment-Pakete (Docker, Windows .bat & Linux)
 
 > **Ziel:** Jeder Nutzer kann den Bot & das Web-Dashboard in unter 3 Minuten auf seinem System installieren – ohne technische Vorkenntnisse.
+
+> **Empfehlung:** Mit **Docker** anfangen – ein Befehl startet Bot + Dashboard auf Linux, NAS und Windows. Wichtig: Bot und Dashboard sprechen über `127.0.0.1:3101` miteinander → im Compose-Setup entweder ein gemeinsamer Container oder `BOT_API_HOST` konfigurierbar machen.
 
 * [ ] **🐳 Docker & Docker-Compose (`docker-compose.yml` & `Dockerfile`):**
   * [ ] Sauberes Multi-Container-Setup für Bot und Next.js Web-Dashboard.
@@ -276,16 +299,38 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
   * [ ] Optionale Autostart-Einrichtung (Start beim Windows-Boot).
   * [ ] Erstellt eine bequeme Desktop-Verknüpfung `GLGBot_Starten.bat`.
 * [ ] **🐧 Linux 1-Klick Setup-Skript (`install_linux.sh`):**
-  * [ ] Automatisches Setup-Skript für Debian/Ubuntu/Proxmox CT.
+  * [ ] Automatisches Setup-Skript für Debian/Ubuntu/Proxmox-Container.
   * [ ] Richtet Node.js 22 LTS, PM2 Prozess-Manager und Caddy Reverse Proxy vollautomatisch mit `systemd` ein.
+
+---
+
+## 🧰 Bekannte Probleme & Technik-Schulden
+
+* [ ] **Automatische Sicherung des `data/`-Ordners** (Level, Strafen, Einstellungen, Streamer): täglicher Export auf dem Server, z. B. 7 Tage aufbewahren. Wichtiger als die meisten neuen Features.
+* [ ] **Backup wiederherstellen setzt die @everyone-Rechte zurück** – dadurch kann die Regel-Sperre aufgehoben werden. Nach dem Restore Sperre automatisch neu anwenden.
+* [ ] **Twitch- & YouTube-Erkennung** läuft über inoffizielle Wege (Twitch-GQL, YouTube-Seite) und kann bei Änderungen kaputtgehen → langfristig offizielle Twitch-API (Client-ID/Secret) als Option.
+* [ ] **„ping“-Auto-Antwort** reagiert in jedem Kanal → auf bestimmte Kanäle beschränken oder abschaltbar machen.
+* [ ] **AMD- & Intel-Treiber-News** sind Beta (Seiten-Auslesen) und können ausfallen.
+* [ ] **Öffentliches GitHub-Repo** (`BroGamerYT/GLGBot`) wird nicht automatisch aktualisiert: neue Versionen vor dem Hochladen auf private Daten prüfen (Domain, IPs, IDs, Namen).
+* [ ] **Automatische Tests / Build-Check** (z. B. GitHub Actions: `tsc` + `next build` bei jedem Push), damit Fehler vor dem Hochladen auffallen.
 
 ---
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.3.0 (Aktuell live):**
+* [x] **v2.6.0 (Aktuell):**
+  * [x] „Server einrichten“-Seite im Dashboard (`/setup`) und `/setup-all`: Bereiche ankreuzen, ein Klick legt alle fehlenden Rollen & Kanäle an.
+* [x] **v2.5.0:**
+  * [x] Open Source auf GitHub (MIT-Lizenz) mit Installationsanleitung.
+  * [x] Branding über `.env` (`COMMUNITY_NAME`, `BOT_NAME`, `DASHBOARD_URL`), eigene Regeln/Banner in `config/`.
+* [x] **v2.4.0:**
+  * [x] Sicherheits-Update: Rangprüfung, keine öffentlichen Moderationsfälle, automatischer Logout bei Rechte-Entzug.
+  * [x] `/knast` (Gefängnis sperrt alle Kanäle), `/level status`, getrennte Treiber-News (`bn.treiber`).
+  * [x] Game-News mit Detailansicht & Verlauf, Free-Games mit App-Buttons, animierte Kanal-Banner.
+  * [x] Regeln mit Regel-Sperre & Beitritts-Pop-up, temporäre Live-Rolle, nur ein Stream-Alert pro Stream.
+* [x] **v2.3.0:**
   * [x] Konfigurierbare Live-Stream Benachrichtigungen (Rollen-Pings `@bn.live`, `@silent`-Modus, Custom Message im Web & Chat).
   * [x] Detaillierte Aktivitäts- & XP-Aufschlüsselung (Chat vs. Voice, Netto-Berechnung, Abzüge bei Strafen).
   * [x] Dynamisches 25-Stufen Levelsystem mit quadratischer XP-Kurve und flexiblen Vergabe-Raten.
   * [x] Audit-Logging, Anti-Nuke, Ticket-System, VoiceMaster-Lobbys, Free-Games Auto-Tracker.
-  * [x] 24/7 Hosting auf Proxmox CT 109 mit Caddy SSL & PM2.
+  * [x] 24/7 Hosting auf Proxmox mit Caddy SSL & PM2.
