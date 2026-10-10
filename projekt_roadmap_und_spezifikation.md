@@ -239,5 +239,6 @@ CREATE TABLE server_backups (
   * [ ] Strikte Mandantentrennung aller Konfigurationsdateien, Cases und Stats (`data/guilds/<guildId>/*`).
   * [ ] Multi-Guild Server-Switcher im Web-Dashboard („Bot einladen“ + Guild-Wechsel per Dropdown).
   * [ ] **1-Klick Server-Templates & Auto-Setup Wizard:** Vollständige Einrichtung (Gaming Clan, Multi-Gaming, Coding, Anime, Creator) mit Emoji-Stilen & Berechtigungs-Hardening via `backupService.ts`.
+  * [ ] **1-Klick Installer-Pakete:** Docker & Docker-Compose (`docker-compose.yml`), Windows 1-Klick Setup (`install_windows.bat` mit Auto-Env) und Linux One-Liner (`install_linux.sh`).
   * [ ] Eigene Custom Commands & Text-Reaktionen im Web konfigurierbar.
   * [ ] Live-Web-Chat / Admin-Konsole und geplante Ankündigungen (`/announcements`).

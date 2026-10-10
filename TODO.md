@@ -259,6 +259,28 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
+### 21. 📦 1-Klick Installer & Deployment-Pakete (Docker, Windows .bat & Linux)
+
+> **Ziel:** Jeder Nutzer kann den Bot & das Web-Dashboard in unter 3 Minuten auf seinem System installieren – ohne technische Vorkenntnisse.
+
+* [ ] **🐳 Docker & Docker-Compose (`docker-compose.yml` & `Dockerfile`):**
+  * [ ] Sauberes Multi-Container-Setup für Bot und Next.js Web-Dashboard.
+  * [ ] Unterstützt Linux, Proxmox, Unraid, Synology/QNAP NAS, TrueNAS und Windows Docker Desktop.
+  * [ ] 1-Befehl-Start: `docker compose up -d`.
+  * [ ] Persistente Volumes für `data/`, `config/` und `.env`.
+  * [ ] Schnelle Updates mit `docker compose pull && docker compose up -d`.
+* [ ] **🪟 Windows 1-Klick Installer (`install_windows.bat` & Setup-Assistent):**
+  * [ ] System-Prüfung: Prüft, ob Node.js & Git vorhanden sind (mit automatischem Download-Hinweis).
+  * [ ] Interaktiver Setup-Dialog im Terminal: Fragt Bot-Token, Client-ID etc. ab und erstellt automatisch die `.env`.
+  * [ ] Automatischer Build (`npm install` und `npm run build` für Bot & Web).
+  * [ ] Optionale Autostart-Einrichtung (Start beim Windows-Boot).
+  * [ ] Erstellt eine bequeme Desktop-Verknüpfung `GLGBot_Starten.bat`.
+* [ ] **🐧 Linux 1-Klick Setup-Skript (`install_linux.sh`):**
+  * [ ] Automatisches Setup-Skript für Debian/Ubuntu/Proxmox CT.
+  * [ ] Richtet Node.js 22 LTS, PM2 Prozess-Manager und Caddy Reverse Proxy vollautomatisch mit `systemd` ein.
+
+---
+
 ## 📊 Abgeschlossene Meilensteine (History)
 
 * [x] **v2.3.0 (Aktuell live):**
