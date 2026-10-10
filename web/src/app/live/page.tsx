@@ -17,7 +17,9 @@ import {
   Search,
   UserCheck,
   Youtube,
-  Check
+  Check,
+  Pencil,
+  MessageSquare
 } from "lucide-react";
 
 interface StreamNotification {
@@ -68,6 +70,8 @@ export default function LiveStreamerPage() {
   const [selectedStreamer, setSelectedStreamer] = useState<StreamerSearchResult | null>(null);
 
   // Formular-Zusatzfelder
+  const [editingStreamer, setEditingStreamer] = useState<StreamNotification | null>(null);
+  const [newDisplayName, setNewDisplayName] = useState("");
   const [newChannelId, setNewChannelId] = useState("");
   const [newPingRoleId, setNewPingRoleId] = useState("");
   const [newLinkedUserId, setNewLinkedUserId] = useState("");
@@ -201,6 +205,42 @@ export default function LiveStreamerPage() {
     }
   };
 
+  const handleOpenAddModal = () => {
+    setEditingStreamer(null);
+    handleResetSelected();
+    setChannelInput("");
+    setNewDisplayName("");
+    setNewChannelId(textChannels[0]?.id || "");
+    setNewPingRoleId("");
+    setNewLinkedUserId("");
+    setNewCustomMessage("");
+    setShowAddModal(true);
+  };
+
+  const handleOpenEditModal = (s: StreamNotification) => {
+    setEditingStreamer(s);
+    setPlatformTab(s.platform === "youtube" ? "youtube" : "twitch");
+    setSelectedStreamer({
+      platform: s.platform as "twitch" | "youtube",
+      channelName: s.channelName,
+      displayName: s.displayName || s.channelName,
+      channelId: s.youtubeChannelId,
+      avatar: s.profileImageUrl || "",
+      url: s.platform === "youtube" ? `https://youtube.com/${s.channelName}` : `https://twitch.tv/${s.channelName}`,
+    });
+    setChannelInput(s.channelName);
+    setNewDisplayName(s.displayName || s.channelName);
+    setNewChannelId(s.discordChannelId);
+    setNewPingRoleId(s.pingRoleId || "");
+    setNewLinkedUserId(s.linkedDiscordUserId || "");
+    setNewCustomMessage(s.customMessage || "");
+    setShowAddModal(true);
+  };
+
+  const insertVariable = (tag: string) => {
+    setNewCustomMessage((prev) => (prev ? `${prev} ${tag}` : tag));
+  };
+
   const handleAddStreamer = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalChannelName = selectedStreamer ? selectedStreamer.channelName : channelInput.trim();
@@ -212,15 +252,16 @@ export default function LiveStreamerPage() {
     setAddingStreamer(true);
     try {
       const payload = {
+        id: editingStreamer ? editingStreamer.id : undefined,
         platform: selectedStreamer ? selectedStreamer.platform : (platformTab === "youtube" ? "youtube" : "twitch"),
         channelName: finalChannelName,
-        displayName: selectedStreamer?.displayName,
+        displayName: newDisplayName.trim() || selectedStreamer?.displayName,
         profileImageUrl: selectedStreamer?.avatar,
         channelId: selectedStreamer?.channelId,
         discordChannelId: newChannelId,
         pingRoleId: newPingRoleId || undefined,
         linkedDiscordUserId: newLinkedUserId || undefined,
-        customMessage: newCustomMessage || undefined,
+        customMessage: newCustomMessage.trim() || undefined,
       };
 
       const res = await fetch("/api/config/streamers", {
@@ -232,20 +273,23 @@ export default function LiveStreamerPage() {
       const json = await res.json();
       if (res.ok && json.notification) {
         setStreamers((prev) => {
-          const filtered = prev.filter(
-            (s) => s.id !== json.notification.id && 
-            !(s.channelName.toLowerCase() === json.notification.channelName.toLowerCase() && s.platform === json.notification.platform)
-          );
-          return [...filtered, json.notification];
+          const idx = prev.findIndex((s) => s.id === json.notification.id);
+          if (idx >= 0) {
+            const copy = [...prev];
+            copy[idx] = json.notification;
+            return copy;
+          }
+          return [...prev, json.notification];
         });
         handleResetSelected();
         setShowAddModal(false);
+        setEditingStreamer(null);
         setMessage({ 
-          text: `✅ ${json.notification.platform === "youtube" ? "YouTube" : "Twitch"}-Streamer "${json.notification.displayName}" erfolgreich hinzugefügt!`, 
+          text: `✅ ${json.notification.platform === "youtube" ? "YouTube" : "Twitch"}-Streamer "${json.notification.displayName}" erfolgreich ${editingStreamer ? "aktualisiert" : "hinzugefügt"}!`, 
           type: "success" 
         });
       } else {
-        alert(json.error || "Fehler beim Hinzufügen des Streamers.");
+        alert(json.error || "Fehler beim Speichern des Streamers.");
       }
     } catch (err: any) {
       alert(`Fehler: ${err.message}`);
@@ -340,10 +384,7 @@ export default function LiveStreamerPage() {
           </div>
 
           <button
-            onClick={() => {
-              handleResetSelected();
-              setShowAddModal(true);
-            }}
+            onClick={handleOpenAddModal}
             className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm flex items-center gap-2 shadow-lg shadow-purple-600/20 transition-all self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" />
@@ -356,12 +397,24 @@ export default function LiveStreamerPage() {
           <div className="bg-discord-dark/95 border border-purple-500/40 rounded-xl p-5 space-y-4 animate-in fade-in duration-200">
             <div className="flex items-center justify-between border-b border-discord-border pb-3">
               <h3 className="font-bold text-white text-base flex items-center gap-2">
-                <Plus className="w-4 h-4 text-purple-400" />
-                Neue Stream-Benachrichtigung erstellen
+                {editingStreamer ? (
+                  <>
+                    <Pencil className="w-4 h-4 text-purple-400" />
+                    Streamer bearbeiten: <span className="text-purple-300 font-bold">{editingStreamer.displayName || editingStreamer.channelName}</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 text-purple-400" />
+                    Neue Stream-Benachrichtigung erstellen
+                  </>
+                )}
               </h3>
               <button
                 type="button"
-                onClick={() => setShowAddModal(false)}
+                onClick={() => {
+                  setShowAddModal(false);
+                  setEditingStreamer(null);
+                }}
                 className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded bg-discord-card border border-discord-border"
               >
                 Schließen ✕
@@ -595,10 +648,105 @@ export default function LiveStreamerPage() {
                 </p>
               </div>
 
+              {/* Benutzerdefinierter Anzeigename */}
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-gray-300 mb-1">
+                  Benutzerdefinierter Anzeigename (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={newDisplayName}
+                  onChange={(e) => setNewDisplayName(e.target.value)}
+                  placeholder={selectedStreamer ? selectedStreamer.displayName : "z. B. Floslist Gaming oder BroGamer"}
+                  className="w-full bg-discord-card border border-discord-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 font-medium"
+                />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Hier kannst du den Namen anpassen oder überschreiben, wie er im Discord-Alert genannt werden soll.
+                </p>
+              </div>
+
+              {/* Benutzerdefinierter Benachrichtigungstext (Custom Text) */}
+              <div className="sm:col-span-2 space-y-2 border-t border-discord-border pt-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-gray-300 flex items-center gap-1.5">
+                    <MessageSquare className="w-3.5 h-3.5 text-yellow-400" />
+                    Eigener Benachrichtigungstext / Custom Text (Optional)
+                  </label>
+                  {newCustomMessage && (
+                    <button
+                      type="button"
+                      onClick={() => setNewCustomMessage("")}
+                      className="text-[10px] text-gray-400 hover:text-red-400 underline"
+                    >
+                      Auf Standard zurücksetzen
+                    </button>
+                  )}
+                </div>
+
+                {/* Variable Buttons */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] text-gray-400 mr-1">Variablen:</span>
+                  {[
+                    { tag: "{streamer}", desc: "Name des Streamers" },
+                    { tag: "{game}", desc: "Spiel / Kategorie" },
+                    { tag: "{title}", desc: "Stream-Titel" },
+                    { tag: "{url}", desc: "Direktlink zum Stream" },
+                    { tag: "{ping}", desc: "Ping-Rolle / @everyone" },
+                  ].map((v) => (
+                    <button
+                      key={v.tag}
+                      type="button"
+                      onClick={() => insertVariable(v.tag)}
+                      title={v.desc}
+                      className="px-2 py-0.5 rounded bg-discord-card border border-discord-border text-[11px] font-mono text-purple-300 hover:text-white hover:border-purple-500 hover:bg-purple-950/40 transition-colors"
+                    >
+                      + {v.tag}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  value={newCustomMessage}
+                  onChange={(e) => setNewCustomMessage(e.target.value)}
+                  rows={2}
+                  placeholder={`z. B. 🚨 Hey Leute! {streamer} zockt gerade live {game}! Kommt alle vorbei: {url}`}
+                  className="w-full bg-discord-card border border-discord-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 font-mono"
+                />
+
+                {/* Live-Vorschau Box */}
+                <div className="bg-discord-card/70 border border-discord-border/60 rounded-lg p-2.5 text-xs text-gray-300">
+                  <div className="text-[10px] uppercase font-bold text-gray-400 mb-1 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-yellow-400" />
+                    Live-Vorschau des Discord-Nachrichtentexts:
+                  </div>
+                  <div className="font-sans text-white text-xs bg-discord-dark/80 px-2.5 py-1.5 rounded border border-discord-border break-words">
+                    {newCustomMessage.trim() ? (
+                      newCustomMessage
+                        .replace(/{streamer}/gi, newDisplayName.trim() || selectedStreamer?.displayName || "FlosList")
+                        .replace(/{game}/gi, "Minecraft")
+                        .replace(/{title}/gi, "Community Stream & Fun!")
+                        .replace(/{url}/gi, (selectedStreamer?.platform === "youtube" || platformTab === "youtube") ? "https://youtube.com/watch?v=..." : "https://twitch.tv/floslist")
+                        .replace(/{ping}|{role}/gi, newPingRoleId === "@everyone" ? "@everyone" : (newPingRoleId === "@here" ? "@here" : (roles.find((r: any) => r.id === newPingRoleId)?.name ? `@${roles.find((r: any) => r.id === newPingRoleId)?.name}` : "@Live-Alerts")))
+                    ) : (
+                      <span className="text-gray-400 italic">
+                        {newPingRoleId ? `${newPingRoleId === "@everyone" ? "@everyone" : (newPingRoleId === "@here" ? "@here" : `@${roles.find((r: any) => r.id === newPingRoleId)?.name || "Rolle"}`)} ` : ""}
+                        📢 **{newDisplayName.trim() || selectedStreamer?.displayName || "FlosList"}** ist jetzt live auf {(selectedStreamer?.platform === "youtube" || platformTab === "youtube") ? "YouTube" : "Twitch"}!
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-gray-500 mt-1">
+                    Leer lassen für die Standard-Nachricht. Das farbige Embed mit Thumbnail und Button wird immer automatisch mitgesendet.
+                  </p>
+                </div>
+              </div>
+
               <div className="sm:col-span-2 flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setEditingStreamer(null);
+                  }}
                   className="px-4 py-2 rounded-lg bg-discord-border text-gray-300 text-xs font-semibold hover:bg-discord-border/80"
                 >
                   Abbrechen
@@ -611,12 +759,21 @@ export default function LiveStreamerPage() {
                   {addingStreamer ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      Wird hinzugefügt...
+                      {editingStreamer ? "Wird gespeichert..." : "Wird hinzugefügt..."}
                     </>
                   ) : (
                     <>
-                      <Plus className="w-3.5 h-3.5" />
-                      Streamer anlegen
+                      {editingStreamer ? (
+                        <>
+                          <Save className="w-3.5 h-3.5" />
+                          Änderungen speichern
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-3.5 h-3.5" />
+                          Streamer anlegen
+                        </>
+                      )}
                     </>
                   )}
                 </button>
@@ -753,6 +910,12 @@ export default function LiveStreamerPage() {
                               )}
                             </div>
                           )}
+                          {s.customMessage && (
+                            <div className="text-[11px] text-yellow-300/90 flex items-center gap-1.5 mt-1 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20 max-w-xs truncate" title={s.customMessage}>
+                              <MessageSquare className="w-3 h-3 flex-shrink-0 text-yellow-400" />
+                              <span className="truncate font-mono">"{s.customMessage}"</span>
+                            </div>
+                          )}
                         </div>
                       </td>
 
@@ -781,13 +944,22 @@ export default function LiveStreamerPage() {
 
                       {/* Aktionen */}
                       <td className="px-4 py-3.5 text-right">
-                        <button
-                          onClick={() => handleDeleteStreamer(s.id, s.displayName || s.channelName)}
-                          className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                          title="Benachrichtigung löschen"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleOpenEditModal(s)}
+                            className="p-1.5 text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors"
+                            title="Streamer bearbeiten"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteStreamer(s.id, s.displayName || s.channelName)}
+                            className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                            title="Benachrichtigung löschen"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

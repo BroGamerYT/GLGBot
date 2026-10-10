@@ -221,6 +221,7 @@ class StreamNotificationService {
 
   // Benachrichtigung hinzufügen oder aktualisieren
   public async addOrUpdateNotification(params: {
+    id?: string;
     guildId: string;
     platform?: "twitch" | "youtube";
     channelName: string;
@@ -266,25 +267,31 @@ class StreamNotificationService {
     }
 
     this.loadNotifications();
-    const existingIndex = this.notifications.findIndex(
-      (n) => n.guildId === params.guildId && n.platform === platform && n.channelName.toLowerCase() === cleanName.toLowerCase()
-    );
+    let existingIndex = -1;
+    if (params.id) {
+      existingIndex = this.notifications.findIndex((n) => n.id === params.id);
+    }
+    if (existingIndex < 0) {
+      existingIndex = this.notifications.findIndex(
+        (n) => n.guildId === params.guildId && n.platform === platform && n.channelName.toLowerCase() === cleanName.toLowerCase()
+      );
+    }
 
     const notif: StreamNotification = {
-      id: existingIndex >= 0 ? this.notifications[existingIndex].id : `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      id: params.id || (existingIndex >= 0 ? this.notifications[existingIndex].id : `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`),
       guildId: params.guildId,
       platform,
       channelName: cleanName,
-      displayName,
-      profileImageUrl,
+      displayName: params.displayName || displayName,
+      profileImageUrl: profileImageUrl || (existingIndex >= 0 ? this.notifications[existingIndex].profileImageUrl : ""),
       youtubeChannelId,
       discordChannelId: params.discordChannelId,
       pingRoleId: params.pingRoleId || undefined,
       linkedDiscordUserId: params.linkedDiscordUserId || undefined,
       customMessage: params.customMessage || undefined,
       lastNotified: existingIndex >= 0 ? this.notifications[existingIndex].lastNotified : undefined,
-      isLive,
-      currentStreamId: streamId,
+      isLive: existingIndex >= 0 ? this.notifications[existingIndex].isLive : isLive,
+      currentStreamId: streamId || (existingIndex >= 0 ? this.notifications[existingIndex].currentStreamId : undefined),
     };
 
     if (existingIndex >= 0) {
@@ -439,7 +446,21 @@ class StreamNotificationService {
       ? `📢 **${streamerName}** ist jetzt live auf YouTube!`
       : `📢 **${streamerName}** ist jetzt live auf Twitch!`;
 
-    const content = `${ping}${notif.customMessage ? notif.customMessage.replace("{streamer}", streamerName).replace("{game}", gameName) : defaultMsg}`;
+    let content = "";
+    if (notif.customMessage && notif.customMessage.trim().length > 0) {
+      const pingText = ping.trim();
+      const hasPingPlaceholder = /{ping}|{role}|{everyone}|{here}/i.test(notif.customMessage);
+      const replaced = notif.customMessage
+        .replace(/{streamer}/gi, streamerName)
+        .replace(/{game}/gi, gameName)
+        .replace(/{title}/gi, streamTitle)
+        .replace(/{url}/gi, streamUrl)
+        .replace(/{ping}|{role}/gi, pingText);
+
+      content = hasPingPlaceholder ? replaced : (ping ? `${ping}${replaced}` : replaced);
+    } else {
+      content = `${ping}${defaultMsg}`;
+    }
 
     const embed = new EmbedBuilder()
       .setColor(isYoutube ? 0xff0000 : 0x9146ff) // YouTube Rot oder Twitch Lila

@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   try {
     const guildId = getGuildId();
     const body = await req.json();
-    const { platform = "twitch", channelName, displayName: passedDisplayName, profileImageUrl: passedAvatar, channelId: passedChannelId, discordChannelId, pingRoleId, linkedDiscordUserId, customMessage } = body;
+    const { id, platform = "twitch", channelName, displayName: passedDisplayName, profileImageUrl: passedAvatar, channelId: passedChannelId, discordChannelId, pingRoleId, linkedDiscordUserId, customMessage } = body;
 
     if (!channelName || !discordChannelId) {
       return NextResponse.json({ error: "Fehlende Pflichtangaben (Kanalname & Discord-Kanal)." }, { status: 400 });
@@ -72,8 +72,8 @@ export async function POST(req: Request) {
           const json = await res.json();
           const user = json?.data?.user;
           if (user) {
-            displayName = user.displayName || cleanName;
-            profileImageUrl = user.profileImageURL || "";
+            displayName = passedDisplayName || user.displayName || cleanName;
+            profileImageUrl = profileImageUrl || user.profileImageURL || "";
             if (user.stream) {
               isLive = true;
               currentStreamId = user.stream.id;
@@ -87,7 +87,8 @@ export async function POST(req: Request) {
       // YouTube
       try {
         const handle = cleanName.startsWith("@") ? cleanName : `@${cleanName}`;
-        const ytRes = await fetch(`https://www.youtube.com/${handle}`, {
+        const ytUrl = youtubeChannelId ? `https://www.youtube.com/channel/${youtubeChannelId}` : `https://www.youtube.com/${handle}`;
+        const ytRes = await fetch(ytUrl, {
           headers: { "User-Agent": "Mozilla/5.0" },
         });
         if (ytRes.ok) {
@@ -105,23 +106,29 @@ export async function POST(req: Request) {
     }
 
     const all = loadNotifs();
-    const existingIndex = all.findIndex((n) => n.guildId === guildId && n.platform === platform && n.channelName.toLowerCase() === cleanName.toLowerCase());
+    let existingIndex = -1;
+    if (id) {
+      existingIndex = all.findIndex((n) => n.id === id);
+    }
+    if (existingIndex < 0) {
+      existingIndex = all.findIndex((n) => n.guildId === guildId && n.platform === platform && n.channelName.toLowerCase() === cleanName.toLowerCase());
+    }
 
     const item = {
-      id: existingIndex >= 0 ? all[existingIndex].id : `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      id: id || (existingIndex >= 0 ? all[existingIndex].id : `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`),
       guildId,
       platform,
       channelName: cleanName,
-      displayName,
-      profileImageUrl,
+      displayName: passedDisplayName || displayName,
+      profileImageUrl: profileImageUrl || (existingIndex >= 0 ? all[existingIndex].profileImageUrl : ""),
       youtubeChannelId,
       discordChannelId,
       pingRoleId: pingRoleId || undefined,
       linkedDiscordUserId: linkedDiscordUserId || undefined,
-      customMessage: customMessage || undefined,
+      customMessage: customMessage !== undefined ? (customMessage.trim().length > 0 ? customMessage.trim() : undefined) : (existingIndex >= 0 ? all[existingIndex].customMessage : undefined),
       lastNotified: existingIndex >= 0 ? all[existingIndex].lastNotified : undefined,
-      isLive,
-      currentStreamId,
+      isLive: existingIndex >= 0 ? all[existingIndex].isLive : isLive,
+      currentStreamId: currentStreamId !== undefined ? currentStreamId : (existingIndex >= 0 ? all[existingIndex].currentStreamId : undefined),
     };
 
     if (existingIndex >= 0) {

@@ -46,10 +46,68 @@ const streamerCommand: Command = {
             .setDescription("Rolle, die beim Stream-Start gepingt werden soll (z. B. @Live-Alerts)")
             .setRequired(false)
         )
+        .addStringOption((opt) =>
+          opt
+            .setName("custom_text")
+            .setDescription("Eigener Benachrichtigungstext (z. B. '{streamer} ist live mit {game}! {url}')")
+            .setRequired(false)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("edit")
+        .setDescription("Bearbeitet eine bestehende Streamer-Benachrichtigung (Name, Text, Rolle, Kanal)")
+        .addStringOption((opt) =>
+          opt
+            .setName("streamer")
+            .setDescription("Aktueller Kanalname des Streamers (z. B. floslist)")
+            .setRequired(true)
+        )
+        .addStringOption((opt) =>
+          opt
+            .setName("neuer_name")
+            .setDescription("Neuer Kanalname / Handle (falls du den Kanal tauschen möchtest)")
+            .setRequired(false)
+        )
+        .addStringOption((opt) =>
+          opt
+            .setName("anzeigename")
+            .setDescription("Benutzerdefinierter Anzeigename (z. B. 'Floslist Gaming')")
+            .setRequired(false)
+        )
+        .addChannelOption((opt) =>
+          opt
+            .setName("kanal")
+            .setDescription("Neuer Ziel-Kanal für die Benachrichtigungen")
+            .addChannelTypes(ChannelType.GuildText)
+            .setRequired(false)
+        )
+        .addStringOption((opt) =>
+          opt
+            .setName("plattform")
+            .setDescription("Plattform anpassen (Twitch oder YouTube)")
+            .setRequired(false)
+            .addChoices(
+              { name: "Twitch", value: "twitch" },
+              { name: "YouTube", value: "youtube" }
+            )
+        )
+        .addRoleOption((opt) =>
+          opt
+            .setName("ping_rolle")
+            .setDescription("Rolle, die beim Live-Start gepingt werden soll")
+            .setRequired(false)
+        )
         .addUserOption((opt) =>
           opt
             .setName("discord_nutzer")
-            .setDescription("Discord-Mitglied verknüpfen (bekommt @Live-Rolle und Live-Voice-Raum)")
+            .setDescription("Verknüpftes Discord-Mitglied")
+            .setRequired(false)
+        )
+        .addStringOption((opt) =>
+          opt
+            .setName("custom_text")
+            .setDescription("Eigener Benachrichtigungstext mit {streamer}, {game}, {url}, {title}")
             .setRequired(false)
         )
     )
@@ -90,6 +148,7 @@ const streamerCommand: Command = {
       const platformChoice = (interaction.options.getString("plattform") || "twitch") as "twitch" | "youtube";
       const pingRole = interaction.options.getRole("ping_rolle");
       const discordUser = interaction.options.getUser("discord_nutzer");
+      const customText = interaction.options.getString("custom_text");
 
       const result = await streamNotificationService.addOrUpdateNotification({
         guildId: interaction.guild.id,
@@ -98,6 +157,7 @@ const streamerCommand: Command = {
         discordChannelId: channel.id,
         pingRoleId: pingRole ? pingRole.id : undefined,
         linkedDiscordUserId: discordUser ? discordUser.id : undefined,
+        customMessage: customText || undefined,
       });
 
       if (!result.success || !result.notification) {
@@ -123,7 +183,77 @@ const streamerCommand: Command = {
           { name: "📢 Ziel-Kanal", value: `<#${notif.discordChannelId}>`, inline: true },
           { name: "🔔 Ping-Rolle", value: notif.pingRoleId ? `<@&${notif.pingRoleId}>` : "*Keine*", inline: true },
           { name: "👤 Verknüpfter Discord-Nutzer", value: notif.linkedDiscordUserId ? `<@${notif.linkedDiscordUserId}>` : "*Keiner*", inline: true },
+          { name: "💬 Eigener Text", value: notif.customMessage ? `\`${notif.customMessage}\`` : "*Standard-Nachricht*", inline: false },
           { name: "🔴 Aktueller Status", value: notif.isLive ? `**LIVE auf ${isYt ? "YouTube" : "Twitch"}!**` : "Offline", inline: true }
+        )
+        .setFooter({ text: "GLGBot Live-Streamer Suite" })
+        .setTimestamp();
+
+      await interaction.editReply({ embeds: [embed] });
+      return;
+    }
+
+    if (sub === "edit") {
+      await interaction.deferReply();
+      const currentName = interaction.options.getString("streamer", true);
+      const list = streamNotificationService.getByGuild(interaction.guild.id);
+      const existing = list.find(
+        (n) => n.channelName.toLowerCase() === currentName.trim().toLowerCase() || 
+               n.displayName?.toLowerCase() === currentName.trim().toLowerCase() ||
+               n.id === currentName.trim()
+      );
+
+      if (!existing) {
+        await interaction.editReply({
+          content: `❌ Kein Streamer mit dem Namen **${currentName}** gefunden. Nutze \`/streamer list\` für alle Streamer.`,
+        });
+        return;
+      }
+
+      const neuerName = interaction.options.getString("neuer_name");
+      const anzeigename = interaction.options.getString("anzeigename");
+      const newChannel = interaction.options.getChannel("kanal");
+      const newPlatform = interaction.options.getString("plattform") as "twitch" | "youtube" | null;
+      const newPingRole = interaction.options.getRole("ping_rolle");
+      const newDiscordUser = interaction.options.getUser("discord_nutzer");
+      const newCustomText = interaction.options.getString("custom_text");
+
+      const result = await streamNotificationService.addOrUpdateNotification({
+        id: existing.id,
+        guildId: interaction.guild.id,
+        platform: (newPlatform || existing.platform) as "twitch" | "youtube",
+        channelName: neuerName ? neuerName.trim() : existing.channelName,
+        displayName: anzeigename ? anzeigename.trim() : (neuerName ? undefined : existing.displayName),
+        discordChannelId: newChannel ? newChannel.id : existing.discordChannelId,
+        pingRoleId: newPingRole ? newPingRole.id : existing.pingRoleId,
+        linkedDiscordUserId: newDiscordUser ? newDiscordUser.id : existing.linkedDiscordUserId,
+        customMessage: newCustomText !== null ? (newCustomText.trim().length > 0 ? newCustomText.trim() : undefined) : existing.customMessage,
+      });
+
+      if (!result.success || !result.notification) {
+        await interaction.editReply({
+          content: `❌ ${result.message || "Fehler beim Aktualisieren des Streamers."}`,
+        });
+        return;
+      }
+
+      const notif = result.notification;
+      const isYt = notif.platform === "youtube";
+      const streamUrl = isYt 
+        ? `https://youtube.com/${notif.channelName.startsWith("@") ? notif.channelName : "@" + notif.channelName}` 
+        : `https://twitch.tv/${notif.channelName}`;
+
+      const embed = new EmbedBuilder()
+        .setColor(isYt ? 0xff0000 : 0x9146ff)
+        .setTitle(`✏️ ${isYt ? "YouTube" : "Twitch"}-Benachrichtigung erfolgreich geändert!`)
+        .setThumbnail(notif.profileImageUrl || null)
+        .setDescription(`Die Einstellungen für **${notif.displayName}** wurden aktualisiert:`)
+        .addFields(
+          { name: "📺 Kanal / Streamer", value: `[${notif.displayName}](${streamUrl})`, inline: true },
+          { name: "📢 Ziel-Kanal", value: `<#${notif.discordChannelId}>`, inline: true },
+          { name: "🔔 Ping-Rolle", value: notif.pingRoleId ? `<@&${notif.pingRoleId}>` : "*Keine*", inline: true },
+          { name: "👤 Verknüpfter Nutzer", value: notif.linkedDiscordUserId ? `<@${notif.linkedDiscordUserId}>` : "*Keiner*", inline: true },
+          { name: "💬 Eigener Text", value: notif.customMessage ? `\`${notif.customMessage}\`` : "*Standard-Nachricht*", inline: false }
         )
         .setFooter({ text: "GLGBot Live-Streamer Suite" })
         .setTimestamp();
