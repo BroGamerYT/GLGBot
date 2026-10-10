@@ -15,6 +15,10 @@ import {
   CheckCircle2,
   Tag,
   ArrowRight,
+  UserCheck,
+  AlertTriangle,
+  FolderTree,
+  Lock,
 } from "lucide-react";
 
 export const metadata = {
@@ -38,10 +42,45 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.2.0",
+    version: "v2.3.0",
     date: "Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Benutzerverwaltung, Gefängnis-System & Transparente XP-Aufschlüsselung",
+    description:
+      "Umfangreiches Verwaltungs- und Transparenz-Upgrade: Vollständige Benutzerverwaltung im Web, Gefängnis-System (/prison) mit Isolations-Rolle, automatischer Minus-Level XP-Abzug bei Regelverstößen, Support-Kategorie und transparente Aufschlüsselung aller gesammelten Erfahrungspunkte.",
+    highlights: [
+      {
+        icon: UserCheck,
+        title: "Benutzerverwaltung & Admin-Panel (/users)",
+        description:
+          "Zentrale Mitgliederverwaltung mit Nickname-Änderung, Rollen-Zuweisung, manueller XP-Korrektur, Admin-Notizen und intelligenter Filterung nach Server-Auffälligkeiten.",
+      },
+      {
+        icon: Lock,
+        title: "Gefängnis-System (/prison) & Bad-Name Filter",
+        description:
+          "Isolations-Modus für Regelbrecher mit eigener Gefängnis-Rolle und Zelle (#knast-zelle). Automatischer Filter für unangemessene Nicknames inklusive Zwangsumbenennung und Chat-Wortfilter.",
+      },
+      {
+        icon: Trophy,
+        title: "Transparente XP-Aufschlüsselung & Vorfall-Historie",
+        description:
+          "Exakte Aufschlüsselung im Nutzer-Modal: Woher stammen die XP (Chat-Ertrag mit Nachrichtenanzahl, Voice-Ertrag mit Minuten)? Plus lückenlose Historie aller Mod-Eingriffe mit Datum, Grund und abgezogenen Minuspunkten (-XP).",
+      },
+      {
+        icon: FolderTree,
+        title: "Support-Kategorie & Sticky-Sidebar Layout",
+        description:
+          "Automatische Erstellung der Support-Kategorie mit #ticket-support, #hilfe-faq und #support-voice. Die Web-Sidebar und das Nutzerprofil bleiben nun beim Scrollen fixiert am Bildschirm verankert.",
+      },
+    ],
+  },
+  {
+    version: "v2.2.0",
+    date: "Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Echtzeit-Tickets, Balancierte Level & Öffentliche Seiten",
     description:
       "Umfangreiches Update für Community-Interaktion und nahtlose Verwaltung: Live-Chat im Ticket-Webinterface, neu ausbalanciertes Leveling und öffentlicher Zugriff ohne Login.",
