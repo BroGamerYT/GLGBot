@@ -41,9 +41,9 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
   - [ ] OAuth2 Redirect URL für das Web-Dashboard eintragen.
   - [ ] Bot-Token und Client Secret sicher als Umgebungsvariablen (`.env`) konfigurieren.
 - [ ] **Entwicklungsumgebung:**
-  - [ ] Git-Repository initialisieren und Branch-Strategie definieren.
-  - [ ] Modulare Ordnerstruktur für Commands, Events, Services und Web aufsetzen.
-  - [ ] Datenbank anbinden (PostgreSQL Schema & ORM wie Prisma oder SQLAlchemy).
+  - [x] Git-Repository initialisieren und Branch-Strategie definieren.
+  - [x] Modulare Ordnerstruktur für Commands, Events, Services und Web aufsetzen (TypeScript / discord.js).
+  - [ ] Datenbank anbinden (PostgreSQL Schema & ORM wie Prisma).
 
 ---
 
