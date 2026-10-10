@@ -96,6 +96,10 @@ Alle Server-Kanäle und Bot-Module können sowohl **im Discord-Chat** als auch *
 | `/setup-roles status` | Zeigt die aktuelle Konfiguration des Rollen-Zentrums an. | Rollen verwalten |
 | `/free-games list` | Zeigt die aktuell kostenlosen PC-Spiele im Epic Games Store an. | Alle |
 | `/free-games post` | Sendet die aktuellen Gratis-Spiele sofort in den konfigurierten Kanal. | Nachrichten verwalten |
+| `/streamer add <twitch> <kanal> [ping] [user]` | Fügt Twitch-Streamer zur Benachrichtigungsliste hinzu (Streamcord Alternative). | Kanäle verwalten |
+| `/streamer remove <twitch>` | Entfernt einen Twitch-Streamer aus der Benachrichtigungsliste. | Kanäle verwalten |
+| `/streamer list` | Listet alle überwachten Streamer mit Live-Status und Zielkanal auf. | Alle |
+| `/streamer check` | Führt eine sofortige Überprüfung aller Streamer auf Twitch durch. | Kanäle verwalten |
 
 ---
 

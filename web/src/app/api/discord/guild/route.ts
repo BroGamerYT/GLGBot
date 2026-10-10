@@ -54,6 +54,28 @@ export async function GET() {
     });
     const roles: any[] = await rolesRes.json();
 
+    // 4. Members (bis zu 100)
+    let members: any[] = [];
+    try {
+      const membersRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members?limit=100`, {
+        headers,
+        next: { revalidate: 30 },
+      });
+      if (membersRes.ok) {
+        const rawMembers = await membersRes.json();
+        if (Array.isArray(rawMembers)) {
+          members = rawMembers.map((m: any) => ({
+            id: m.user.id,
+            username: m.user.username,
+            displayName: m.nick || m.user.global_name || m.user.username,
+            avatar: m.user.avatar,
+          }));
+        }
+      }
+    } catch (e) {
+      // Ignoriere
+    }
+
     const voiceChannels = Array.isArray(channels) ? channels.filter((c) => c.type === 2) : [];
     const textChannels = Array.isArray(channels) ? channels.filter((c) => c.type === 0) : [];
     const categories = Array.isArray(channels) ? channels.filter((c) => c.type === 4) : [];
@@ -64,6 +86,7 @@ export async function GET() {
       voiceChannels,
       textChannels,
       categories,
+      members,
       roles: Array.isArray(roles) ? roles.filter((r) => r.name !== "@everyone") : [],
     });
   } catch (error: any) {

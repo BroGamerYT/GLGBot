@@ -1,6 +1,7 @@
 import { ActivityType, Events } from "discord.js";
 import { BotEvent } from "../types";
 import { freeGamesService } from "../services/freeGamesService";
+import { streamNotificationService } from "../services/streamNotificationService";
 
 const readyEvent: BotEvent<Events.ClientReady> = {
   name: Events.ClientReady,
@@ -20,6 +21,9 @@ const readyEvent: BotEvent<Events.ClientReady> = {
 
     // Automatischer Benachrichtigungsdienst für Gratis-Spiele
     freeGamesService.startAutoChecker(client);
+
+    // Automatischer Poller für Twitch-Stream Benachrichtigungen
+    streamNotificationService.startPoller(client);
   },
 };
 

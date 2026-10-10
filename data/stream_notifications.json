@@ -1,0 +1,45 @@
+[
+  {
+    "id": "notif_derbrogameryt",
+    "guildId": "548842540074401802",
+    "platform": "twitch",
+    "channelName": "derbrogameryt",
+    "displayName": "DerBroGamerYT",
+    "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/e674e09dd1f6e78f-profile_image-150x150.png",
+    "discordChannelId": "1131340278201073765",
+    "pingRoleId": "1522884114108125344",
+    "isLive": false
+  },
+  {
+    "id": "notif_deven89030",
+    "guildId": "548842540074401802",
+    "platform": "twitch",
+    "channelName": "deven89030",
+    "displayName": "deven89030",
+    "discordChannelId": "1131340278201073765",
+    "pingRoleId": "1522884114108125344",
+    "isLive": false
+  },
+  {
+    "id": "notif_mops43ver",
+    "guildId": "548842540074401802",
+    "platform": "twitch",
+    "channelName": "mops43ver",
+    "displayName": "MoPs43ver",
+    "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/c557590c-b699-42e7-bd95-cd82781c0294-profile_image-150x150.png",
+    "discordChannelId": "1131340278201073765",
+    "pingRoleId": "1522884114108125344",
+    "isLive": false
+  },
+  {
+    "id": "notif_smudi030",
+    "guildId": "548842540074401802",
+    "platform": "twitch",
+    "channelName": "smudi030",
+    "displayName": "smudi030",
+    "profileImageUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/fd699c1b-57df-418d-83fb-44bce91adb39-profile_image-150x150.png",
+    "discordChannelId": "1131340278201073765",
+    "pingRoleId": "1522884114108125344",
+    "isLive": false
+  }
+]

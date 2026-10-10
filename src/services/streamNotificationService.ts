@@ -1,0 +1,388 @@
+import fs from "fs";
+import path from "path";
+import { 
+  Client, 
+  EmbedBuilder, 
+  TextChannel, 
+  GuildMember, 
+  ChannelType 
+} from "discord.js";
+import { liveStreamService } from "./liveStreamService";
+
+export interface StreamNotification {
+  id: string;
+  guildId: string;
+  platform: "twitch" | "youtube" | "kick";
+  channelName: string; // z.B. "derbrogameryt"
+  displayName?: string; // z.B. "DerBroGamerYT"
+  profileImageUrl?: string;
+  discordChannelId: string;
+  pingRoleId?: string;
+  linkedDiscordUserId?: string;
+  customMessage?: string;
+  lastNotified?: string;
+  isLive?: boolean;
+  currentStreamId?: string;
+}
+
+interface TwitchGqlResponse {
+  data?: {
+    user?: {
+      id: string;
+      displayName: string;
+      profileImageURL: string;
+      stream: {
+        id: string;
+        title: string;
+        game?: {
+          name: string;
+        };
+        viewersCount: number;
+        previewImageURL: string;
+      } | null;
+    } | null;
+  };
+}
+
+const DATA_DIR = path.join(process.cwd(), "data");
+const NOTIFICATIONS_FILE = path.join(DATA_DIR, "stream_notifications.json");
+
+class StreamNotificationService {
+  private notifications: StreamNotification[] = [];
+  private pollerInterval: NodeJS.Timeout | null = null;
+  private client: Client | null = null;
+
+  constructor() {
+    this.ensureDataDir();
+    this.loadNotifications();
+  }
+
+  private ensureDataDir() {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+  }
+
+  public loadNotifications(): StreamNotification[] {
+    try {
+      if (fs.existsSync(NOTIFICATIONS_FILE)) {
+        const raw = fs.readFileSync(NOTIFICATIONS_FILE, "utf-8");
+        this.notifications = JSON.parse(raw);
+      } else {
+        this.notifications = [];
+      }
+    } catch (e) {
+      this.notifications = [];
+    }
+    return this.notifications;
+  }
+
+  public saveNotifications() {
+    try {
+      this.ensureDataDir();
+      fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify(this.notifications, null, 2), "utf-8");
+    } catch (e) {
+      console.error("[StreamNotification] Fehler beim Speichern:", e);
+    }
+  }
+
+  public getByGuild(guildId: string): StreamNotification[] {
+    this.loadNotifications();
+    return this.notifications.filter((n) => n.guildId === guildId);
+  }
+
+  // Fragt Twitch User- & Stream-Status über die offizielle Web-GQL-Schnittstelle ab
+  public async fetchTwitchUser(channelName: string): Promise<{
+    exists: boolean;
+    displayName: string;
+    profileImageUrl: string;
+    stream: {
+      id: string;
+      title: string;
+      game: string;
+      viewersCount: number;
+      previewImageUrl: string;
+    } | null;
+  }> {
+    try {
+      const cleanName = channelName.trim().toLowerCase().replace(/^https?:\/\/(www\.)?twitch\.tv\//i, "").replace(/[^a-z0-9_]/gi, "");
+      const query = `query { user(login: "${cleanName}") { id displayName profileImageURL(width: 300) stream { id title game { name } viewersCount previewImageURL(width: 640, height: 360) } } }`;
+
+      const res = await fetch("https://gql.twitch.tv/gql", {
+        method: "POST",
+        headers: {
+          "Client-ID": "kimne78kx3ncx6brgo4mv6wki5h1ko",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!res.ok) {
+        return { exists: false, displayName: cleanName, profileImageUrl: "", stream: null };
+      }
+
+      const json: TwitchGqlResponse = await res.json();
+      const user = json?.data?.user;
+
+      if (!user) {
+        return { exists: false, displayName: cleanName, profileImageUrl: "", stream: null };
+      }
+
+      return {
+        exists: true,
+        displayName: user.displayName || cleanName,
+        profileImageUrl: user.profileImageURL || "",
+        stream: user.stream ? {
+          id: user.stream.id,
+          title: user.stream.title,
+          game: user.stream.game?.name || "Just Chatting",
+          viewersCount: user.stream.viewersCount || 0,
+          previewImageUrl: user.stream.previewImageURL || "",
+        } : null,
+      };
+    } catch (e) {
+      console.error(`[StreamNotification] Fehler beim Abrufen von Twitch (${channelName}):`, e);
+      return { exists: false, displayName: channelName, profileImageUrl: "", stream: null };
+    }
+  }
+
+  // Benachrichtigung hinzufügen oder aktualisieren
+  public async addOrUpdateNotification(params: {
+    guildId: string;
+    channelName: string;
+    discordChannelId: string;
+    pingRoleId?: string;
+    linkedDiscordUserId?: string;
+    customMessage?: string;
+  }): Promise<{ success: boolean; notification?: StreamNotification; message?: string }> {
+    const cleanName = params.channelName.trim().toLowerCase().replace(/^https?:\/\/(www\.)?twitch\.tv\//i, "").replace(/[^a-z0-9_]/gi, "");
+    if (!cleanName) {
+      return { success: false, message: "Ungültiger Twitch-Name." };
+    }
+
+    const twitchInfo = await this.fetchTwitchUser(cleanName);
+    if (!twitchInfo.exists) {
+      return { success: false, message: `Der Twitch-Kanal "${cleanName}" konnte nicht gefunden werden.` };
+    }
+
+    this.loadNotifications();
+    const existingIndex = this.notifications.findIndex(
+      (n) => n.guildId === params.guildId && n.channelName.toLowerCase() === cleanName
+    );
+
+    const notif: StreamNotification = {
+      id: existingIndex >= 0 ? this.notifications[existingIndex].id : `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      guildId: params.guildId,
+      platform: "twitch",
+      channelName: cleanName,
+      displayName: twitchInfo.displayName,
+      profileImageUrl: twitchInfo.profileImageUrl,
+      discordChannelId: params.discordChannelId,
+      pingRoleId: params.pingRoleId || undefined,
+      linkedDiscordUserId: params.linkedDiscordUserId || undefined,
+      customMessage: params.customMessage || undefined,
+      lastNotified: existingIndex >= 0 ? this.notifications[existingIndex].lastNotified : undefined,
+      isLive: twitchInfo.stream !== null,
+      currentStreamId: twitchInfo.stream ? twitchInfo.stream.id : undefined,
+    };
+
+    if (existingIndex >= 0) {
+      this.notifications[existingIndex] = notif;
+    } else {
+      this.notifications.push(notif);
+    }
+
+    this.saveNotifications();
+    return { success: true, notification: notif };
+  }
+
+  // Benachrichtigung entfernen
+  public removeNotification(guildId: string, idOrChannelName: string): boolean {
+    this.loadNotifications();
+    const clean = idOrChannelName.trim().toLowerCase();
+    const beforeCount = this.notifications.length;
+    this.notifications = this.notifications.filter(
+      (n) => !(n.guildId === guildId && (n.id === idOrChannelName || n.channelName.toLowerCase() === clean))
+    );
+    if (this.notifications.length !== beforeCount) {
+      this.saveNotifications();
+      return true;
+    }
+    return false;
+  }
+
+  // Startet den Hintergrund-Poller (prüft alle 60 Sekunden)
+  public startPoller(client: Client) {
+    if (this.pollerInterval) return;
+    this.client = client;
+
+    console.log("📺 [StreamNotification] Twitch-Stream Poller gestartet (Intervall: 60 Sekunden)");
+
+    // Initialer Durchlauf nach 10 Sekunden
+    setTimeout(async () => {
+      await this.checkAllStreams();
+    }, 10000);
+
+    // Alle 60 Sekunden wiederholen
+    this.pollerInterval = setInterval(async () => {
+      await this.checkAllStreams();
+    }, 60000);
+  }
+
+  // Prüft alle eingetragenen Benachrichtigungen
+  public async checkAllStreams() {
+    if (!this.client) return;
+    this.loadNotifications();
+
+    if (this.notifications.length === 0) return;
+
+    for (const notif of this.notifications) {
+      try {
+        const guild = this.client.guilds.cache.get(notif.guildId);
+        if (!guild) continue;
+
+        const twitchInfo = await this.fetchTwitchUser(notif.channelName);
+        if (!twitchInfo.exists) continue;
+
+        // Metadaten aktualisieren
+        if (twitchInfo.displayName) notif.displayName = twitchInfo.displayName;
+        if (twitchInfo.profileImageUrl) notif.profileImageUrl = twitchInfo.profileImageUrl;
+
+        const isNowLive = twitchInfo.stream !== null;
+
+        // Fall 1: Streamer geht LIVE
+        if (isNowLive && (!notif.isLive || notif.currentStreamId !== twitchInfo.stream?.id)) {
+          console.log(`🔴 [StreamNotification] ${notif.displayName} ist jetzt LIVE auf Twitch!`);
+          notif.isLive = true;
+          notif.currentStreamId = twitchInfo.stream?.id;
+          notif.lastNotified = new Date().toISOString();
+
+          await this.sendLiveAlert(guild, notif, twitchInfo);
+
+          // Falls ein Discord-Mitglied verknüpft ist: Live-Rolle vergeben & Live-Kanal erstellen
+          if (notif.linkedDiscordUserId) {
+            await this.handleLinkedMemberLive(guild, notif, twitchInfo);
+          }
+
+          this.saveNotifications();
+        } 
+        // Fall 2: Streamer geht OFFLINE
+        else if (!isNowLive && notif.isLive) {
+          console.log(`⚪ [StreamNotification] ${notif.displayName} ist jetzt OFFLINE.`);
+          notif.isLive = false;
+          notif.currentStreamId = undefined;
+
+          // Falls verknüpft: Live-Rolle entziehen & Live-Kanal löschen
+          if (notif.linkedDiscordUserId) {
+            await this.handleLinkedMemberOffline(guild, notif);
+          }
+
+          this.saveNotifications();
+        }
+      } catch (err) {
+        console.error(`[StreamNotification] Fehler bei der Prüfung von ${notif.channelName}:`, err);
+      }
+    }
+  }
+
+  // Sendet das stylische Stream-Alert-Embed in den Discord-Kanal
+  public async sendLiveAlert(
+    guild: any, 
+    notif: StreamNotification, 
+    twitchInfo: { displayName: string; profileImageUrl: string; stream: any }
+  ) {
+    const channel = guild.channels.cache.get(notif.discordChannelId);
+    if (!channel || !channel.isTextBased()) return;
+
+    const stream = twitchInfo.stream;
+    const streamUrl = `https://twitch.tv/${notif.channelName}`;
+    const streamTitle = stream?.title || `${notif.displayName} ist live auf Twitch!`;
+    const gameName = stream?.game || "Just Chatting";
+    const viewers = stream?.viewersCount || 0;
+    const previewUrl = stream?.previewImageUrl ? `${stream.previewImageUrl}?t=${Date.now()}` : "";
+
+    // Ping festlegen
+    let ping = "";
+    if (notif.pingRoleId) {
+      if (notif.pingRoleId === "@everyone") ping = "@everyone ";
+      else if (notif.pingRoleId === "@here") ping = "@here ";
+      else ping = `<@&${notif.pingRoleId}> `;
+    }
+
+    const streamerName = notif.displayName || notif.channelName;
+    const defaultMsg = `📢 **${streamerName}** ist jetzt live auf Twitch!`;
+    const content = `${ping}${notif.customMessage ? notif.customMessage.replace("{streamer}", streamerName).replace("{game}", gameName) : defaultMsg}`;
+
+    const embed = new EmbedBuilder()
+      .setColor(0x9146ff) // Twitch Lila
+      .setAuthor({
+        name: `${notif.displayName} ist jetzt LIVE!`,
+        iconURL: notif.profileImageUrl || undefined,
+        url: streamUrl,
+      })
+      .setTitle(streamTitle)
+      .setURL(streamUrl)
+      .setDescription(`Schaut jetzt live vorbei und seid im Chat dabei!`)
+      .addFields(
+        { name: "🎮 Spiel / Kategorie", value: `**${gameName}**`, inline: true },
+        { name: "👥 Zuschauer", value: `${viewers}`, inline: true },
+        { name: "🔗 Zum Stream", value: `[Hier zuschauen](${streamUrl})`, inline: true }
+      )
+      .setFooter({ text: "GLGBot Live-Alerts | Twitch" })
+      .setTimestamp();
+
+    if (notif.profileImageUrl) {
+      embed.setThumbnail(notif.profileImageUrl);
+    }
+
+    if (previewUrl) {
+      embed.setImage(previewUrl);
+    }
+
+    await (channel as TextChannel).send({
+      content,
+      embeds: [embed],
+    }).catch((e) => console.error("[StreamNotification] Konnte Alert nicht senden:", e));
+  }
+
+  // Verknüpftes Mitglied: Rolle & Kanal erzeugen
+  private async handleLinkedMemberLive(guild: any, notif: StreamNotification, twitchInfo: any) {
+    try {
+      const member: GuildMember | null = await guild.members.fetch(notif.linkedDiscordUserId!).catch(() => null);
+      if (!member) return;
+
+      const liveCfg = liveStreamService.getConfig(guild.id);
+      if (liveCfg && liveCfg.liveRoleId) {
+        if (!member.roles.cache.has(liveCfg.liveRoleId)) {
+          await member.roles.add(liveCfg.liveRoleId).catch(() => null);
+          console.log(`[StreamNotification] Live-Rolle an verknüpftes Mitglied ${member.user.tag} vergeben.`);
+        }
+      }
+
+      // Kanal anlegen via liveStreamService.startLive
+      const streamUrl = `https://twitch.tv/${notif.channelName}`;
+      await liveStreamService.startLive(member, {
+        url: streamUrl,
+        title: twitchInfo.stream?.title,
+        game: twitchInfo.stream?.game,
+      });
+    } catch (e) {
+      console.error("[StreamNotification] Fehler bei verknüpftem Mitglied (Live):", e);
+    }
+  }
+
+  // Verknüpftes Mitglied: Rolle entfernen & Kanal löschen
+  private async handleLinkedMemberOffline(guild: any, notif: StreamNotification) {
+    try {
+      const member: GuildMember | null = await guild.members.fetch(notif.linkedDiscordUserId!).catch(() => null);
+      if (!member) return;
+
+      await liveStreamService.stopLive(member);
+      console.log(`[StreamNotification] Live-Status für verknüpftes Mitglied ${member.user.tag} beendet.`);
+    } catch (e) {
+      console.error("[StreamNotification] Fehler bei verknüpftem Mitglied (Offline):", e);
+    }
+  }
+}
+
+export const streamNotificationService = new StreamNotificationService();
