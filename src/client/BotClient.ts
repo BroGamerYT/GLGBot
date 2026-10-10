@@ -1,4 +1,4 @@
-import { Client, ClientOptions, Collection, GatewayIntentBits } from "discord.js";
+import { Client, ClientOptions, Collection, GatewayIntentBits, Partials } from "discord.js";
 import { Command } from "../types";
 
 export class BotClient extends Client {
@@ -15,6 +15,13 @@ export class BotClient extends Client {
           GatewayIntentBits.MessageContent,
           GatewayIntentBits.GuildVoiceStates,
           GatewayIntentBits.GuildPresences,
+          GatewayIntentBits.DirectMessages,
+        ],
+        partials: [
+          Partials.Channel,
+          Partials.Message,
+          Partials.User,
+          Partials.Reaction,
         ],
       }
     );

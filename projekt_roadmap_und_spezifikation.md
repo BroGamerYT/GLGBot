@@ -35,11 +35,11 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
 ## 2. Vollständige Master-To-Do-Liste
 
 ### Phase 1: Vorbereitung & Infrastruktur
-- [ ] **Discord Developer Portal:**
-  - [ ] Neue Application & Bot anlegen.
-  - [ ] Gateway Intents aktivieren (`Server Members`, `Message Content`, `Presence`).
-  - [ ] OAuth2 Redirect URL für das Web-Dashboard eintragen.
-  - [ ] Bot-Token und Client Secret sicher als Umgebungsvariablen (`.env`) konfigurieren.
+- [x] **Discord Developer Portal:**
+  - [x] Neue Application & Bot anlegen.
+  - [x] Gateway Intents aktivieren (`Server Members`, `Message Content`, `Presence`).
+  - [x] OAuth2 Redirect URL für das Web-Dashboard eintragen.
+  - [x] Bot-Token und Client Secret sicher als Umgebungsvariablen (`.env`) konfigurieren.
 - [ ] **Entwicklungsumgebung:**
   - [x] Git-Repository initialisieren und Branch-Strategie definieren.
   - [x] Modulare Ordnerstruktur für Commands, Events, Services und Web aufsetzen (TypeScript / discord.js).
