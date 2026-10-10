@@ -102,6 +102,22 @@ class TempVoiceService {
     return this.activeTempChannels.get(channelId);
   }
 
+  // Speichert textChannelId -> voiceChannelId für temporäre Textkanäle
+  private tempTextChannels: Map<string, string> = new Map();
+
+  public getTempTextChannel(voiceChannelId: string): string | undefined {
+    return this.tempTextChannels.get(voiceChannelId);
+  }
+
+  public setTempTextChannel(voiceChannelId: string, textChannelId: string) {
+    this.tempTextChannels.set(voiceChannelId, textChannelId);
+  }
+
+  public setChannelOwner(channelId: string, newOwnerId: string) {
+    this.activeTempChannels.set(channelId, newOwnerId);
+    this.saveTempChannels();
+  }
+
   public async handleVoiceStateUpdate(oldState: VoiceState, newState: VoiceState) {
     const guild = newState.guild || oldState.guild;
     const guildConfig = this.config[guild.id];
@@ -115,11 +131,25 @@ class TempVoiceService {
           try {
             this.activeTempChannels.delete(oldChannel.id);
             this.saveTempChannels();
+
+            // Falls ein temporärer Textkanal existiert, lösche ihn ebenfalls
+            const textChannelId = this.tempTextChannels.get(oldChannel.id);
+            if (textChannelId) {
+              const textChannel = guild.channels.cache.get(textChannelId);
+              if (textChannel) {
+                await textChannel.delete("Temporärer Voice-Kanal gelöscht").catch(() => null);
+              }
+              this.tempTextChannels.delete(oldChannel.id);
+            }
+
             await oldChannel.delete("Temporärer Voice-Kanal ist leer");
             console.log(`[TempVoice] Gelöscht: ${oldChannel.name} (${oldChannel.id})`);
           } catch (error) {
             console.error(`[TempVoice] Fehler beim Löschen von ${oldChannel.id}:`, error);
           }
+        } else {
+          // Falls der Besitzer den Kanal verlassen hat, übertragen wir die Rechte nicht zwingend,
+          // aber andere können mit "Übernehmen" den Raum beanspruchen
         }
       }
     }
