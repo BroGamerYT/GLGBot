@@ -25,8 +25,10 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
 ```
 
 * **Bot-Core:** TypeScript (`discord.js` v14)
-* **Web-Frontend:** Next.js, React, Tailwind CSS, Shadcn UI (Dark Theme)
+* **Web-Frontend:** Next.js, React, Tailwind CSS, Shadcn UI (Dark Theme) – Domain: `https://glgbot.brogameryt.de`
 * **Web-Auth:** Discord OAuth2 (Session-Prüfung auf Server-Administratorrechte)
+* **Hosting / 24/7 Server:** Proxmox VE LXC Container 109 (`discordbot`), Debian 12, Node.js 22 LTS, PM2 Service
+* **Reverse Proxy:** Caddy auf CT 102 (`synchro-proxy`) für automatische SSL-Zertifikate & Routing
 * **Datenbank:** PostgreSQL (via Prisma ORM) + Redis (Cache / Live-Events)
 * **Audio-Worker:** Lavalink Node (entkoppelte Musik-Wiedergabe)
 
