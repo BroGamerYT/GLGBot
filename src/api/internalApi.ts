@@ -8,6 +8,7 @@ import { gameNewsService } from "../services/gameNewsService";
 import { auditLogService } from "../services/auditLogService";
 import { backupService } from "../services/backupService";
 import { ticketService } from "../services/ticketService";
+import { statsService } from "../services/statsService";
 
 /**
  * Interne Schnittstelle für das Web-Dashboard.
@@ -425,6 +426,44 @@ export function startInternalApi(client: Client) {
           const ok = await ticketService.sendTicketMessage(guild, channelId, text, by || "Web-Support");
           if (!ok) return send(res, 400, { error: "Nachricht konnte nicht gesendet werden." });
           return send(res, 200, { ok: true });
+        }
+        case "POST /tickets/ensure-support-channel": {
+          const ch = await ticketService.ensureSupportChannel(guild);
+          return send(res, 200, { ok: true, channelId: ch.id, channelName: ch.name });
+        }
+
+        // ---------------- Stats & Level-System ----------------
+        case "GET /stats": {
+          const topLevels = statsService.getTopLevels(guild.id, 20);
+          const topVoice = statsService.getTopVoice(guild.id, 20);
+          const topDuos = statsService.getTopDuos(guild.id, 10);
+          const config = statsService.getConfig(guild.id);
+
+          return send(res, 200, {
+            topLevels,
+            topVoice,
+            topDuos,
+            config,
+            memberCount: guild.memberCount,
+          });
+        }
+        case "GET /stats/user": {
+          const qs = (req.url || "").split("?")[1] || "";
+          const params = new URLSearchParams(qs);
+          const userId = params.get("userId");
+          if (!userId) return send(res, 400, { error: "Keine userId angegeben." });
+
+          const profile = statsService.getUserProfile(guild.id, userId);
+          const partners = statsService.getTopTalkPartners(guild.id, userId, 10);
+          return send(res, 200, { profile, partners });
+        }
+        case "POST /stats/config": {
+          const body = await readBody(req);
+          const updated = statsService.setConfig(guild.id, {
+            levelUpNotifications: typeof body.levelUpNotifications === "boolean" ? body.levelUpNotifications : true,
+            levelUpChannelId: body.levelUpChannelId || undefined,
+          });
+          return send(res, 200, { ok: true, config: updated });
         }
 
         default:

@@ -124,6 +124,39 @@ class TicketService {
     return { embeds: [embed], components: [row] };
   }
 
+  // Erstellt oder findet den dedizierten Support-Kanal mit Ticket-Panel
+  public async ensureSupportChannel(guild: Guild): Promise<TextChannel> {
+    const existing = guild.channels.cache.find(
+      (c) => c.isTextBased() && (c.name.includes("support") || c.name.includes("ticket-support"))
+    );
+    if (existing && existing.type === ChannelType.GuildText) {
+      return existing as TextChannel;
+    }
+
+    const infoCat = guild.channels.cache.find(
+      (c) => c.type === ChannelType.GuildCategory && (c.name.toLowerCase().includes("info") || c.name.toLowerCase().includes("start"))
+    );
+
+    const ch = await guild.channels.create({
+      name: "📩・support",
+      type: ChannelType.GuildText,
+      parent: infoCat?.id || undefined,
+      topic: "Offizieller Support-Kanal von GermanyLanGame • Öffne hier ein Ticket bei Fragen oder Problemen",
+      permissionOverwrites: [
+        {
+          id: guild.roles.everyone.id,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory],
+          deny: [PermissionFlagsBits.SendMessages],
+        },
+      ],
+      reason: "Automatischer Setup des Support-Kanals",
+    });
+
+    const { embeds, components } = this.createPanelEmbed();
+    await ch.send({ embeds, components });
+    return ch;
+  }
+
   // Öffnet ein neues Ticket für ein Mitglied
   public async createTicket(guild: Guild, user: User, client: Client): Promise<TextChannel> {
     const cfg = this.getConfig(guild.id);

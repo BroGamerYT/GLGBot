@@ -2,6 +2,7 @@ import { Events, Message, EmbedBuilder, MessageFlags } from "discord.js";
 import { BotEvent } from "../types";
 import { securityService } from "../services/securityService";
 import { stickyService } from "../services/stickyService";
+import { statsService } from "../services/statsService";
 
 const messageCreateEvent: BotEvent<Events.MessageCreate> = {
   name: Events.MessageCreate,
@@ -48,6 +49,28 @@ const messageCreateEvent: BotEvent<Events.MessageCreate> = {
         content: null,
         embeds: [embed],
       });
+    }
+
+    // Level-System: XP für Nachricht gutschreiben
+    if (message.guild) {
+      const res = statsService.addMessageXp(message.guild, message.author);
+      if (res && res.leveledUp) {
+        const cfg = statsService.getConfig(message.guild.id);
+        if (cfg.levelUpNotifications) {
+          const levelEmbed = new EmbedBuilder()
+            .setColor(0xfee75c)
+            .setTitle("🎉 Level-Up!")
+            .setDescription(`Herzlichen Glückwunsch <@${message.author.id}>! Du hast **Level ${res.newLevel}** erreicht! 🚀`)
+            .setTimestamp();
+
+          const targetChannel = cfg.levelUpChannelId
+            ? (message.guild.channels.cache.get(cfg.levelUpChannelId) as any)
+            : message.channel;
+          if (targetChannel && "send" in targetChannel) {
+            targetChannel.send({ embeds: [levelEmbed] }).catch(() => null);
+          }
+        }
+      }
     }
   },
 };

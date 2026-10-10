@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { Mic, Radio, LayoutDashboard, Shield, LogOut, Gift, ScrollText, LifeBuoy, FileText, Archive, Newspaper, Palette, Ticket } from "lucide-react";
+import { Mic, Radio, LayoutDashboard, Shield, LogOut, Gift, ScrollText, LifeBuoy, FileText, Archive, Newspaper, Palette, Ticket, Trophy } from "lucide-react";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
 
 export const metadata: Metadata = {
@@ -125,6 +125,13 @@ export default async function RootLayout({
               >
                 <Ticket className="w-4 h-4 text-indigo-400" />
                 Support-Tickets
+              </Link>
+              <Link
+                href="/stats"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
+              >
+                <Trophy className="w-4 h-4 text-amber-400" />
+                Level & Rangliste
               </Link>
               <div className="my-2 border-t border-discord-border" />
               <Link

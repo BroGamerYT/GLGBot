@@ -44,6 +44,10 @@ const ALLOWED = new Set([
   "POST tickets/post-panel",
   "POST tickets/close",
   "POST tickets/send-message",
+  "POST tickets/ensure-support-channel",
+  "GET stats",
+  "GET stats/user",
+  "POST stats/config",
 ]);
 
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {

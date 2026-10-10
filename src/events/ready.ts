@@ -6,6 +6,8 @@ import { liveStreamService } from "../services/liveStreamService";
 import { backupService } from "../services/backupService";
 import { startInternalApi } from "../api/internalApi";
 import { gameNewsService } from "../services/gameNewsService";
+import { ticketService } from "../services/ticketService";
+import { statsService } from "../services/statsService";
 
 const readyEvent: BotEvent<Events.ClientReady> = {
   name: Events.ClientReady,
@@ -40,6 +42,16 @@ const readyEvent: BotEvent<Events.ClientReady> = {
 
     // Automatischer Poller für Twitch-Stream Benachrichtigungen
     streamNotificationService.startPoller(client);
+
+    // Dedizierten Support-Kanal prüfen / erstellen
+    const guildId = process.env.GUILD_ID;
+    const guild = guildId ? client.guilds.cache.get(guildId) : null;
+    if (guild) {
+      ticketService.ensureSupportChannel(guild).catch((e) => console.error("[TicketService] Fehler beim Support-Kanal Setup:", e));
+    }
+
+    // Voice- & Talk-Partner Tracker starten
+    statsService.startVoiceTracker(client);
   },
 };
 

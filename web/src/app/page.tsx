@@ -301,6 +301,232 @@ export default function DashboardOverviewPage() {
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
+
+        {/* Support & Tickets Card */}
+        <div className="bg-discord-card border border-discord-border p-6 rounded-2xl flex flex-col justify-between space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                  <Hash className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-lg">Support- & Tickets</h3>
+                  <p className="text-xs text-gray-400">Privater Support & Transkripte</p>
+                </div>
+              </div>
+              <span className="flex items-center gap-1.5 text-xs text-discord-green bg-discord-green/10 px-2.5 py-1 rounded-full font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Aktiviert
+              </span>
+            </div>
+
+            <p className="text-sm text-gray-300">
+              Automatische Ticket-Kanal Erstellung, Live-Chat aus dem Web, 1-Klick Buttons und vollständige Chat-Transkripte.
+            </p>
+
+            <div className="bg-discord-dark p-3.5 rounded-xl border border-discord-border/50 text-xs text-gray-400 space-y-1.5">
+              <div className="flex justify-between">
+                <span>Support-Kanal:</span>
+                <span className="text-white font-medium">#📩・support</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Transkript-Archiv:</span>
+                <span className="text-emerald-400 font-medium">Aktiv (Web-Download)</span>
+              </div>
+            </div>
+          </div>
+
+          <Link
+            href="/tickets"
+            className="w-full py-2.5 px-4 rounded-xl bg-discord-border/50 hover:bg-discord-border text-white text-sm font-medium flex items-center justify-center gap-2 transition-all"
+          >
+            Ticket-Zentrale öffnen
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        {/* Level & Voice Stats Card */}
+        <div className="bg-discord-card border border-discord-border p-6 rounded-2xl flex flex-col justify-between space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-lg">Level & Talk-Stats</h3>
+                  <p className="text-xs text-gray-400">XP, Online-Zeit & Top-Duos</p>
+                </div>
+              </div>
+              <span className="flex items-center gap-1.5 text-xs text-discord-green bg-discord-green/10 px-2.5 py-1 rounded-full font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Aktiviert
+              </span>
+            </div>
+
+            <p className="text-sm text-gray-300">
+              Echtzeit-Tracking von Chat-XP, Voice-Anwesenheit und Erfassung von Talk-Partnerschaften („Wer labert mit wem am längsten“).
+            </p>
+
+            <div className="bg-discord-dark p-3.5 rounded-xl border border-discord-border/50 text-xs text-gray-400 space-y-1.5">
+              <div className="flex justify-between">
+                <span>Ranglisten-Befehle:</span>
+                <span className="text-white font-medium">/rank, /leaderboard</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Voice-Partner:</span>
+                <span className="text-cyan-400 font-medium">/voice-stats, /top-voice</span>
+              </div>
+            </div>
+          </div>
+
+          <Link
+            href="/stats"
+            className="w-full py-2.5 px-4 rounded-xl bg-discord-border/50 hover:bg-discord-border text-white text-sm font-medium flex items-center justify-center gap-2 transition-all"
+          >
+            Ranglisten & Stats öffnen
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </div>
+
+      {/* Server Konzepte & Vorlagen Section */}
+      <div className="space-y-6 pt-6 border-t border-discord-border">
+        <div>
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Server className="w-5 h-5 text-discord-blurple" />
+            Server-Konzepte & Vorlagen
+          </h2>
+          <p className="text-xs text-gray-400 mt-1">
+            Wähle ein empfohlenes Architektur-Konzept für deine Community oder nutze die vorbereiteten Vorlagen.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Concept 1: Gaming & Allrounder */}
+          <div className="bg-discord-card border-2 border-discord-blurple/50 rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-1 rounded-full bg-discord-blurple/20 text-discord-blurple text-[11px] font-bold uppercase tracking-wider">
+                  Empfohlen für GLG
+                </span>
+                <span className="text-xs text-discord-green font-semibold">Aktiv genutzt</span>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-white">🎮 Gaming & Community-Hub</h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  Perfekt ausbalanciert für Zocker, Freunde und offene Server-Communitys.
+                </p>
+              </div>
+
+              <div className="space-y-2 text-xs text-gray-300">
+                <div className="flex items-center gap-2">
+                  <span className="text-discord-green font-bold">✓</span>
+                  <span>Eingangszone: Regeln, Gast-Rolle & Support</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-discord-green font-bold">✓</span>
+                  <span>VoiceMaster: „Join to Create“ mit Auto-Cleanup</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-discord-green font-bold">✓</span>
+                  <span>Gaming-Feeds: Free-Games & Game-News Tracker</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-discord-green font-bold">✓</span>
+                  <span>Belohnung: Level-System & Talkzeit-Rangliste</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-discord-border/50 mt-4 flex items-center justify-between text-xs">
+              <span className="text-gray-400">Status: Vollständig aktiv</span>
+              <Link href="/voice" className="text-discord-blurple hover:underline font-semibold">
+                Anpassen →
+              </Link>
+            </div>
+          </div>
+
+          {/* Concept 2: Streamer & Creator */}
+          <div className="bg-discord-card border border-discord-border rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 text-[11px] font-bold uppercase tracking-wider">
+                  Creator-Fokus
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-white">📺 Streamer & Creator-Lounge</h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  Ideal für Twitch- & YouTube-Streamer mit Fokus auf Community-Reichweite.
+                </p>
+              </div>
+
+              <div className="space-y-2 text-xs text-gray-300">
+                <div className="flex items-center gap-2">
+                  <span className="text-discord-green font-bold">✓</span>
+                  <span>Automatische Live-Stream Kanäle bei Stream-Start</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-discord-green font-bold">✓</span>
+                  <span>Ankündigungskanal mit @bn.live Pings</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-discord-green font-bold">✓</span>
+                  <span>Streamer-Rolle (@Live-Streamer) mit Farb-Prio</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-discord-border/50 mt-4 flex items-center justify-between text-xs">
+              <span className="text-gray-400">Modul aktiv</span>
+              <Link href="/live" className="text-red-400 hover:underline font-semibold">
+                Streamer anpassen →
+              </Link>
+            </div>
+          </div>
+
+          {/* Concept 3: E-Sports & Security */}
+          <div className="bg-discord-card border border-discord-border rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-1 rounded-full bg-yellow-500/10 text-yellow-400 text-[11px] font-bold uppercase tracking-wider">
+                  Sicherheit & Clan
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-white">🛡️ Clan, E-Sports & Sicherheit</h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  Schwerpunkt auf Rollenhierarchie, Anti-Nuke, Backups und Audit-Logs.
+                </p>
+              </div>
+
+              <div className="space-y-2 text-xs text-gray-300">
+                <div className="flex items-center gap-2">
+                  <span className="text-discord-green font-bold">✓</span>
+                  <span>Anti-Nuke Schutz (max. 3 Aktionen/min) & Anti-Phishing</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-discord-green font-bold">✓</span>
+                  <span>Lückenloses Audit-Logging im geschützten Kanal</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-discord-green font-bold">✓</span>
+                  <span>Tägliche automatische 24h-Backups mit 1-Klick-Restore</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-discord-border/50 mt-4 flex items-center justify-between text-xs">
+              <span className="text-gray-400">Anti-Nuke & Backups aktiv</span>
+              <Link href="/backups" className="text-yellow-400 hover:underline font-semibold">
+                Backups prüfen →
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
