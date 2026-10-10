@@ -74,10 +74,10 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
   - [ ] Automatisierter Cronjob (jeden Donnerstag 17:00 Uhr für Epic Games Store).
   - [ ] Steam 100%-Discounts API-Polling.
   - [ ] Automatischer Post im Ankündigungskanal mit Bild, Link und `@FreeGames`-Ping.
-- [ ] **Auto-Move & Temporäre Voice-Kanäle:**
-  - [ ] "Join to Create"-Masterkanal konfigurieren.
-  - [ ] Beim Betreten dynamisch neuen Kanal `🔊・Lobby von [Name]` anlegen und Nutzer verschieben.
-  - [ ] Kanal automatisch löschen, sobald sich 0 Personen darin aufhalten.
+- [x] **Auto-Move & Temporäre Voice-Kanäle:**
+  - [x] "Join to Create"-Masterkanal konfigurieren (`/setup-voice`).
+  - [x] Beim Betreten dynamisch neuen Kanal `🔊・Lobby von [Name]` anlegen und Nutzer verschieben.
+  - [x] Kanal automatisch löschen, sobald sich 0 Personen darin aufhalten.
 - [ ] **Rollen-Management & Onboarding:**
   - [ ] Auto-Rolle bei Serverbeitritt (`on_member_join`).
   - [ ] Interaktives Rollen-Panel mit Buttons (Gaming-Rollen, Stream-Pings, Notification-Filter).
