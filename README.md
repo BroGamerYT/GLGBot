@@ -152,8 +152,8 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | **Audit-Logs** | `/logs` | 🔒 Admin | Stille Protokollierung von Server-Aktionen (`SuppressNotifications`). |
 | **Server-Backups** | `/backups` | 🔒 Admin | 1-Klick Snapshots aller Rollen & Kanäle, JSON Download & Upload, Cross-Server Transfer & Owner-Schutz. |
 | **Server-Regeln** | `/rules` | 🔒 Admin | Regel-Editor mit Vorschau, 1-Klick-Veröffentlichung und Regel-Sperre (Server erst nach Bestätigung sichtbar). |
-| **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 47 Slash-Befehle mit Beschreibungen. |
-| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.21.0. |
+| **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 49 Slash-Befehle mit Beschreibungen. |
+| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.22.0. |
 
 ---
 
@@ -294,13 +294,21 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
   * `/economy geben | abziehen | setzen | reset`: Konten manuell anpassen, mit Grund im Log.
   * Volle Verwaltung im Dashboard unter `/economy` (nur für eingeloggte Admins sichtbar).
 
-### 12. ⚡ 1-Klick Server-Templates & Auto-Setup Wizard
-* **5 Vorlagen:** 🎮 *Gaming Clan & E-Sport*, 🌐 *Multi-Gaming Community*, 💻 *Coding / Dev / Tech*, 🌸 *Anime, Manga & Hangout*, 🔴 *Content Creator & Streamer*.
-* **4 Stile für Kanalnamen:** *Modern mit Emojis* (`💬・hauptchat`), *Clean & Minimalistisch* (`hauptchat`), *Aesthetic mit Trennzeichen* (`〢・hauptchat`), *Box & Bold* (`「💬」hauptchat`).
-* **Rollen & Rechte:** Legt `@Inhaber`, `@Admin`, `@Mod`, `@Member`, `@Gast` mit sicheren Berechtigungen, schreibgeschützten Info-Kanälen und abgeschottetem Team-Bereich an.
-* **Automatisches Sicherheits-Backup:** Vor jedem Ausrollen wird ein Backup erstellt – jederzeit per `/backup restore` wiederherstellbar.
-* **Optionaler Wipe-Modus:** Vorhandene Kanäle werden auf Wunsch vorher bereinigt; ohne Wipe werden nur fehlende Kanäle ergänzt.
-* **Verfügbar über:** Dashboard-Seite `/templates` und Slash-Befehl `/server-setup`.
+### 12. ⚡ 1-Klick Server-Templates & Live Kanal-Designer
+* **8 Vorlagen von Klein bis Groß:**
+  * 🌱 **Minimal Starter (Kompakt):** Schlank & übersichtlich für Freunde oder Kleingruppen (3 Kategorien, 7 Kanäle).
+  * 🎮 **Gaming Clan & E-Sport (Standard):** Strukturierte Lobbys, Info-Hub & geschützter Teambereich.
+  * 🌐 **Multi-Gaming Community (Groß):** Getrennte Spielbereiche (CS2, Valorant, Minecraft) und Gaming-Lounge.
+  * 🏰 **Mega-Community & Netzwerk (Mega):** Das 8-Kategorien-Flaggschiff (32 Kanäle, VIP-Lounge, Stage, Gaming-Hub, Support & Leitung).
+  * 🏆 **E-Sport & Turniere (Pro):** Für Scrims, Matches, Taktikboards, Coaches, Caster und Zuschauer.
+  * 💻 **Coding / Dev / Tech (Standard):** Entwickler-Foren, Code-Review & Pair-Programming.
+  * 🌸 **Anime, Manga & Hangout (Standard):** Fan-Art Showcase, Manga-Ecke & Watch-Party Kino.
+  * 🔴 **Content Creator & Streamer (Standard):** Stream-Alerts, VIP-Bereich & Fan-Talk.
+* **10 Design- & Schriftstile:**
+  * *Small Caps* (`💬・ʜᴀᴜᴘᴛᴄʜᴀᴛ`), *Bold Sans* (`💬・𝗵𝗮𝘂𝗽𝘁𝗰𝗵𝗮𝘁`), *Aesthetic Small Caps* (`〢・ʜᴀᴜᴘᴛᴄʜᴀᴛ`), *Aesthetic Pipe* (`〢・hauptchat`), *Boxed Small Caps* (`「💬」ʜᴀᴜᴘᴛᴄʜᴀᴛ`), *Box & Bold* (`「💬」hauptchat`), *Cyber & Neon* (`◈・ʜᴀᴜᴘᴛᴄʜᴀᴛ`), *Gothic / Fraktur* (`⚔・𝖍𝖆𝖚𝖕𝖙𝖈𝖍𝖆𝖙`), *Modern mit Emojis* (`💬・hauptchat`), *Clean & Minimalistisch* (`hauptchat`).
+* **✨ Live Kanal-Designer Tool (`/templates`):** Textfeld für Kanalnamen, Live-Vorschau aller 10 Schriftarten, 1-Klick-Kopieren sowie Live-Umbenennen bestehender Discord-Kanäle direkt aus dem Web.
+* **Befehle:** `/server-setup` (Vorlagen ausrollen), `/channel-style` (Kanäle stylisch umbenennen) und `/font` (Text in Unicode-Fonts umwandeln).
+* **Automatisches Sicherheits-Backup:** Vor jedem Ausrollen wird ein Snapshot-Backup erstellt – jederzeit per `/backup restore` wiederherstellbar. Optionaler Wipe-Modus für sauberen Neuanfang.
 
 ### 13. 🖼️ Rangkarte mit Badges & Willkommens-Hintergrund
 * **Grafische Rangkarte (`/rank`):**
@@ -312,7 +320,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 
 ---
 
-## 💻 Befehlsübersicht (47 Slash-Befehle)
+## 💻 Befehlsübersicht (49 Slash-Befehle)
 
 | Befehl | Beschreibung | Berechtigung |
 |---|---|---|
@@ -354,7 +362,9 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | `/stream-panel` | Steuer-Panel für den Live-Kanal (Passwort, Limit, Name, Sperren, Bitrate). | Kanäle verwalten |
 | `/setup-roles set \| panel \| auto \| status` | Rollen & Rollen-Panel einrichten (`auto` legt alle Rollen und Kanäle an). | Rollen verwalten |
 | `/setup-all [bereich] [regel_sperre]` | Alle fehlenden Rollen & Kanäle auf einmal einrichten. | Administrator |
-| `/server-setup [template] [style] [wipe]` | 1-Klick Server-Templates: Richtet komplette Server-Struktur mit wählbarem Stil ein. | Administrator |
+| `/server-setup [template] [style] [wipe]` | 1-Klick Server-Templates: Richtet komplette Server-Strukturen von klein bis groß mit wählbarem Stil ein. | Administrator |
+| `/channel-style [stil] [name] [kanal]` | Discord-Kanal in stylische Schriftarten & Symbole (Small Caps, Bold, Gothic etc.) umbenennen. | Kanäle verwalten |
+| `/font <text> [stil]` | Text in stylische Unicode-Schriften (Small Caps, Bold Sans, Gothic, Monospace etc.) umwandeln. | Alle |
 | `/economy geben \| abziehen \| setzen \| reset` | Wirtschaftssystem verwalten und Nutzer-Guthaben anpassen. | Administrator |
 | `/modules status \| enable \| disable \| toggle` | Funktionen (Module) an- oder ausschalten. | Administrator |
 | `/server-stats einrichten \| entfernen \| status` | Statistik-Kanäle mit Live-Zählern ganz oben. | Kanäle verwalten |

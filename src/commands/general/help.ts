@@ -92,17 +92,19 @@ const helpCommand: Command = {
           inline: false,
         },
         {
-          name: "🔧 Sonstiges",
+          name: "🔧 Sonstiges & Schriftarten",
           value:
             "`/help` • Diese Übersicht\n" +
-            "`/ping` • Zeigt, wie schnell der Bot antwortet",
+            "`/ping` • Zeigt, wie schnell der Bot antwortet\n" +
+            "`/font <text> [stil]` • Wandelt Text in stylische Unicode-Schriften (Small Caps, Bold, Gothic etc.) um",
           inline: false,
         },
         {
           name: "⚙️ Administration & Backups",
           value:
             "`/setup-all` • Richtet alle fehlenden Rollen & Kanäle auf einmal ein\n" +
-            "`/server-setup` • 1-Klick Server-Templates (Gaming, Dev, Anime, Streamer) einrichten\n" +
+            "`/server-setup` • 1-Klick Server-Templates (Kompakt bis Mega, 10 Schriftstile) einrichten\n" +
+            "`/channel-style` • Benennt Kanäle in stylische Schriftarten & Designs um\n" +
             "`/modules status|enable|disable|toggle` • Funktionen an- oder ausschalten\n" +
             "`/economy geben|abziehen|setzen|reset` • Nutzerguthaben als Admin verwalten\n" +
             "`/server-stats einrichten|entfernen` • Live-Zähler-Kanäle ganz oben\n" +

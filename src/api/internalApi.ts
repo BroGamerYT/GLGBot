@@ -30,6 +30,7 @@ import { releaseService } from "../services/releaseService";
 import { economyService } from "../services/economyService";
 import { templateService } from "../services/templateService";
 import { authCodeService } from "../services/authCodeService";
+import { CHANNEL_STYLES } from "../utils/fontUtils";
 
 /**
  * Interne Schnittstelle für das Web-Dashboard.
@@ -548,9 +549,20 @@ export function startInternalApi(client: Client) {
         // ---------------- Server-Templates & Setup Wizard ----------------
         case "GET /templates": {
           const isOwner = actorId === guild.ownerId || (!!actorId && guildAccessService.isBotOwner(actorId, client));
+          const channels = guild.channels.cache
+            .filter((c) => !c.isThread())
+            .map((c) => ({
+              id: c.id,
+              name: c.name,
+              type: c.type,
+              parentId: c.parentId,
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+
           return send(res, 200, {
             templates: templateService.getTemplates(),
             styles: templateService.getStyles(),
+            channels,
             isOwner,
           });
         }
@@ -580,6 +592,61 @@ export function startInternalApi(client: Client) {
 
           moduleService.enableModule(guild.id, "templates");
           return send(res, 200, result);
+        }
+
+        case "POST /channels/rename-style": {
+          const actor = await getActor();
+          const canManage =
+            !!actor &&
+            (actor.permissions.has(PermissionFlagsBits.ManageChannels) ||
+              actor.permissions.has(PermissionFlagsBits.Administrator) ||
+              actor.id === guild.ownerId);
+          if (!canManage) {
+            return send(res, 403, { error: "Dafür benötigst du die Berechtigung „Kanäle verwalten“." });
+          }
+          const body = await readBody(req);
+          const { channelId, styleId, customName, customIcon } = body;
+          if (!channelId || !styleId) {
+            return send(res, 400, { error: "channelId und styleId erforderlich." });
+          }
+          const targetChannel = guild.channels.cache.get(channelId);
+          if (!targetChannel) {
+            return send(res, 404, { error: "Kanal nicht gefunden." });
+          }
+
+          const preset = CHANNEL_STYLES.find((s) => s.id === styleId) || CHANNEL_STYLES[0];
+          let baseName = String(customName || "").trim();
+          if (!baseName) {
+            baseName = targetChannel.name
+              .replace(/^[^\w\s\u00C0-\u024F\u1E00-\u1EFF\u1D00-\u1D7F]+/gu, "")
+              .replace(/^[・|〢「」◈›‹•\-_\s]+/gu, "")
+              .trim();
+            if (!baseName) baseName = targetChannel.name;
+          }
+
+          const defaultIcon =
+            targetChannel.type === ChannelType.GuildVoice
+              ? "🔊"
+              : targetChannel.type === ChannelType.GuildAnnouncement
+              ? "📢"
+              : targetChannel.type === ChannelType.GuildCategory
+              ? "📁"
+              : "💬";
+          const icon = customIcon || defaultIcon;
+
+          let formattedName = "";
+          if (targetChannel.type === ChannelType.GuildCategory) {
+            formattedName = preset.formatCategory(baseName, icon);
+          } else if (targetChannel.type === ChannelType.GuildVoice) {
+            formattedName = preset.formatVoice(baseName, icon);
+          } else {
+            formattedName = preset.formatText(baseName, icon);
+          }
+          if (formattedName.length > 100) formattedName = formattedName.substring(0, 100);
+
+          const oldName = targetChannel.name;
+          await targetChannel.setName(formattedName, `Kanal-Styling Webinterface durch ${actor?.user?.tag || "Admin"}`);
+          return send(res, 200, { ok: true, channelId, oldName, newName: formattedName, styleName: preset.name });
         }
 
         // ---------------- Geplante Ankündigungen ----------------

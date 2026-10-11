@@ -54,10 +54,35 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.21.0",
+    version: "v2.22.0",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Unicode-Kanal-Designer, 10 Schriftarten & Mega-Server Templates",
+    description: "Umfassender Kanal-Designer mit Unicode-Schriftarten (Small Caps, Bold Sans, Gothic, Aesthetic, Boxed, Cyber), neuen Vorlagen von Kompakt bis Mega sowie Slash-Befehlen /channel-style und /font.",
+    highlights: [
+      {
+        icon: Sparkles,
+        title: "Live Kanal-Schriftarten & Designer Tool",
+        description: "Im Dashboard und per Chat: Teste 10 stylische Schriftarten in Echtzeit, kopiere sie per Klick oder wende das Design mit 1 Klick direkt auf echte Discord-Kanäle an.",
+      },
+      {
+        icon: LayoutTemplate,
+        title: "Templates von Klein bis Groß (Kompakt bis Mega)",
+        description: "Neue modulare Vorlagen: '🌱 Minimal Starter' für schlanke Server, '🏆 E-Sport Pro' für Turniere & Scrims sowie die gewaltige '🏰 Mega-Community' mit 8 Kategorien und 32 Kanälen.",
+      },
+      {
+        icon: Terminal,
+        title: "Befehle /channel-style & /font",
+        description: "Mit /channel-style Kanäle im Discord sofort umstylen und mit /font beliebigen Text in stylische Unicode-Schriften umwandeln und kopieren.",
+      },
+    ],
+  },
+  {
+    version: "v2.21.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Backup-Transfer, JSON Download/Upload & 1-Klick Templates",
     description: "Vollständiger Im- und Export von Server-Backups als JSON mit Cross-Server Transfer, automatischer Bereinigung alter Mitglieder und Inhaber-Rangschutz. Plus UGREEN NAS, Hardware-News und Free-Games Einzel-Posts.",
     highlights: [

@@ -4,17 +4,35 @@ import {
   PermissionFlagsBits,
   OverwriteType,
   CategoryChannel,
-  GuildChannel,
   Role,
 } from "discord.js";
 import { backupService } from "./backupService";
 import { tempVoiceService } from "./tempVoiceService";
 import { auditLogService } from "./auditLogService";
 import { ticketService } from "./ticketService";
-import { rulesService } from "./rulesService";
+import { CHANNEL_STYLES, ChannelStylePreset } from "../utils/fontUtils";
 
-export type TemplateId = "gaming" | "multigaming" | "coding" | "anime" | "creator";
-export type StyleId = "modern" | "clean" | "aesthetic" | "box";
+export type TemplateId =
+  | "starter"
+  | "gaming"
+  | "multigaming"
+  | "community_mega"
+  | "esports_pro"
+  | "coding"
+  | "anime"
+  | "creator";
+
+export type StyleId =
+  | "modern"
+  | "clean"
+  | "smallcaps"
+  | "boldsans"
+  | "aesthetic_caps"
+  | "aesthetic"
+  | "box_caps"
+  | "box"
+  | "cyber"
+  | "gothic";
 
 export interface TemplateChannelDef {
   slug: string;
@@ -49,6 +67,8 @@ export interface ServerTemplate {
   name: string;
   description: string;
   badge: string;
+  size: "kompakt" | "standard" | "gross" | "mega";
+  sizeLabel: string;
   icon: string;
   roles: TemplateRoleDef[];
   categories: TemplateCategoryDef[];
@@ -62,43 +82,67 @@ export interface StyleDef {
   sampleVoice: string;
 }
 
-export const STYLES: StyleDef[] = [
-  {
-    id: "modern",
-    name: "Modern mit Emojis",
-    description: "Klassisches Discord-Design mit passendem Emoji und Trennpunkt.",
-    sampleText: "💬・hauptchat",
-    sampleVoice: "🔊・talk-1",
-  },
-  {
-    id: "clean",
-    name: "Clean & Minimalistisch",
-    description: "Schlicht, aufgeräumt, ohne zusätzliche Emojis in den Kanalnamen.",
-    sampleText: "hauptchat",
-    sampleVoice: "talk-1",
-  },
-  {
-    id: "aesthetic",
-    name: "Aesthetic mit Trennzeichen",
-    description: "Elegantes Design mit stilvollen Symbolen.",
-    sampleText: "〢・hauptchat",
-    sampleVoice: "〢・talk-1",
-  },
-  {
-    id: "box",
-    name: "Box & Bold",
-    description: "Kräftige Rahmung mit Klammer-Symbolen.",
-    sampleText: "「💬」hauptchat",
-    sampleVoice: "「🔊」talk-1",
-  },
-];
+export const STYLES: StyleDef[] = CHANNEL_STYLES.map((cs) => ({
+  id: cs.id as StyleId,
+  name: cs.name,
+  description: cs.description,
+  sampleText: cs.sampleText,
+  sampleVoice: cs.sampleVoice,
+}));
 
 export const TEMPLATES: ServerTemplate[] = [
+  // 1. KOMPAKT: Starter
+  {
+    id: "starter",
+    name: "Minimal Starter (Schlank)",
+    description: "Kompakt, aufgeräumt und übersichtlich für Freunde, Kleingruppen oder neue Server – ohne unnötigen Ballast.",
+    badge: "Kompakt",
+    size: "kompakt",
+    sizeLabel: "Kompakt (3 Kategorien, 7 Kanäle)",
+    icon: "🌱",
+    roles: [
+      { name: "Owner", color: 0x5865f2, hoist: true, permissions: PermissionFlagsBits.Administrator, isTeam: true },
+      { name: "Mod", color: 0x57f287, hoist: true, permissions: PermissionFlagsBits.ManageMessages | PermissionFlagsBits.KickMembers, isTeam: true },
+      { name: "Freunde", color: 0xfee75c, hoist: true, permissions: PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages | PermissionFlagsBits.Connect },
+      { name: "Gast", color: 0x95a5a6, hoist: false, permissions: PermissionFlagsBits.ViewChannel | PermissionFlagsBits.ReadMessageHistory },
+    ],
+    categories: [
+      {
+        title: "INFOS",
+        icon: "📌",
+        channels: [
+          { slug: "regeln", icon: "📜", type: ChannelType.GuildText, isRules: true, isReadOnly: true, topic: "Server-Regeln" },
+          { slug: "ankuendigungen", icon: "📢", type: ChannelType.GuildAnnouncement, isReadOnly: true, topic: "Wichtige Ankündigungen" },
+        ],
+      },
+      {
+        title: "COMMUNITY",
+        icon: "💬",
+        channels: [
+          { slug: "hauptchat", icon: "💬", type: ChannelType.GuildText, topic: "Allgemeiner Austausch" },
+          { slug: "medien-und-clips", icon: "📸", type: ChannelType.GuildText, topic: "Bilder, Screenshots & Clips" },
+        ],
+      },
+      {
+        title: "TALK",
+        icon: "🔊",
+        channels: [
+          { slug: "lobby-erstellen", icon: "➕", type: ChannelType.GuildVoice, isJoinToCreate: true },
+          { slug: "talk-lounge", icon: "🔊", type: ChannelType.GuildVoice },
+          { slug: "afk", icon: "💤", type: ChannelType.GuildVoice },
+        ],
+      },
+    ],
+  },
+
+  // 2. STANDARD: Gaming Clan & E-Sport
   {
     id: "gaming",
     name: "Gaming Clan & E-Sport",
     description: "Perfekt strukturiert für Clans, Teams und ambitionierte Gamer mit Lobbys, Info-Hub und geschütztem Team-Bereich.",
     badge: "Clan & Team",
+    size: "standard",
+    sizeLabel: "Standard (5 Kategorien, 16 Kanäle)",
     icon: "🎮",
     roles: [
       { name: "Inhaber", color: 0xe74c3c, hoist: true, permissions: PermissionFlagsBits.Administrator, isTeam: true },
@@ -114,7 +158,7 @@ export const TEMPLATES: ServerTemplate[] = [
         icon: "📢",
         channels: [
           { slug: "regeln", icon: "📜", type: ChannelType.GuildText, isRules: true, isReadOnly: true, topic: "Server-Regeln & Verhaltensrichtlinien" },
-          { slug: "ankündigungen", icon: "📢", type: ChannelType.GuildAnnouncement, isReadOnly: true, topic: "Wichtige Clan-Neuigkeiten" },
+          { slug: "ankuendigungen", icon: "📢", type: ChannelType.GuildAnnouncement, isReadOnly: true, topic: "Wichtige Clan-Neuigkeiten" },
           { slug: "news", icon: "📰", type: ChannelType.GuildText, isReadOnly: true, topic: "Game-Updates & Free-Games" },
         ],
       },
@@ -158,11 +202,15 @@ export const TEMPLATES: ServerTemplate[] = [
       },
     ],
   },
+
+  // 3. GROSS: Multi-Gaming Community
   {
     id: "multigaming",
     name: "Multi-Gaming Community",
     description: "Große Community mit getrennten Spielbereichen (CS2, Valorant, GTA, Minecraft) und eigener Gaming-Lounge.",
     badge: "Community",
+    size: "gross",
+    sizeLabel: "Groß (6 Kategorien, 22 Kanäle)",
     icon: "🌐",
     roles: [
       { name: "Owner", color: 0x9b59b6, hoist: true, permissions: PermissionFlagsBits.Administrator, isTeam: true },
@@ -180,61 +228,254 @@ export const TEMPLATES: ServerTemplate[] = [
         icon: "📢",
         channels: [
           { slug: "regeln", icon: "📜", type: ChannelType.GuildText, isRules: true, isReadOnly: true },
-          { slug: "free-games", icon: "🎁", type: ChannelType.GuildText, isReadOnly: true },
-          { slug: "releases", icon: "📅", type: ChannelType.GuildText, isReadOnly: true },
-          { slug: "rollen-auswahl", icon: "🎭", type: ChannelType.GuildText, isReadOnly: true },
+          { slug: "ankuendigungen", icon: "📢", type: ChannelType.GuildAnnouncement, isReadOnly: true },
+          { slug: "rollen-wahl", icon: "🎭", type: ChannelType.GuildText, isReadOnly: true },
         ],
       },
       {
-        title: "COMMUNITY LOUNGE",
+        title: "COMMUNITY CHAT",
         icon: "💬",
         channels: [
           { slug: "hauptchat", icon: "💬", type: ChannelType.GuildText },
-          { slug: "clips-showcase", icon: "🔥", type: ChannelType.GuildText },
-          { slug: "setup-battlestations", icon: "🖥️", type: ChannelType.GuildText },
-          { slug: "bot-lounge", icon: "🤖", type: ChannelType.GuildText },
+          { slug: "offtopic", icon: "☕", type: ChannelType.GuildText },
+          { slug: "hardware-und-tech", icon: "💻", type: ChannelType.GuildText },
+          { slug: "clips-und-memes", icon: "🎬", type: ChannelType.GuildText },
         ],
       },
       {
-        title: "COUNTER-STRIKE 2",
-        icon: "💣",
+        title: "GAME NEWS & DEALS",
+        icon: "📰",
         channels: [
-          { slug: "cs2-chat", icon: "💬", type: ChannelType.GuildText },
-          { slug: "cs2-talk-1", icon: "🔊", type: ChannelType.GuildVoice },
-          { slug: "cs2-talk-2", icon: "🔊", type: ChannelType.GuildVoice },
+          { slug: "free-games", icon: "🎁", type: ChannelType.GuildText, isReadOnly: true },
+          { slug: "game-news", icon: "📰", type: ChannelType.GuildText, isReadOnly: true },
+          { slug: "treiber-software", icon: "🖥️", type: ChannelType.GuildText, isReadOnly: true },
         ],
       },
       {
-        title: "VALORANT",
+        title: "SPIEL-BEREICHE",
         icon: "🎯",
         channels: [
-          { slug: "valorant-chat", icon: "💬", type: ChannelType.GuildText },
-          { slug: "valo-talk-1", icon: "🔊", type: ChannelType.GuildVoice },
-          { slug: "valo-talk-2", icon: "🔊", type: ChannelType.GuildVoice },
+          { slug: "cs2-chat", icon: "🔫", type: ChannelType.GuildText },
+          { slug: "valorant-chat", icon: "🏹", type: ChannelType.GuildText },
+          { slug: "minecraft-chat", icon: "⛏️", type: ChannelType.GuildText },
+          { slug: "lfg-mitspieler", icon: "🤝", type: ChannelType.GuildText },
         ],
       },
       {
-        title: "TEMPORÄRE SPRACHKANÄLE",
+        title: "TALK & LOBBYS",
         icon: "🔊",
         channels: [
           { slug: "lobby-erstellen", icon: "➕", type: ChannelType.GuildVoice, isJoinToCreate: true },
-          { slug: "chill-talk", icon: "🔊", type: ChannelType.GuildVoice },
+          { slug: "community-lounge", icon: "🔊", type: ChannelType.GuildVoice },
+          { slug: "trio-talk", icon: "🔊", type: ChannelType.GuildVoice },
+          { slug: "squad-talk", icon: "🔊", type: ChannelType.GuildVoice },
+        ],
+      },
+      {
+        title: "SUPPORT & TEAM",
+        icon: "🛡️",
+        channels: [
+          { slug: "tickets", icon: "🎫", type: ChannelType.GuildText, isTickets: true },
+          { slug: "team-intern", icon: "🔒", type: ChannelType.GuildText, teamOnly: true },
+          { slug: "audit-logs", icon: "🛡️", type: ChannelType.GuildText, teamOnly: true, isLogs: true, isReadOnly: true },
+          { slug: "team-voice", icon: "🔊", type: ChannelType.GuildVoice, teamOnly: true },
         ],
       },
     ],
   },
+
+  // 4. MEGA: Mega-Community & Netzwerk
+  {
+    id: "community_mega",
+    name: "Mega-Community & Netzwerk",
+    description: "Das ultimative Flaggschiff: Voll ausgestattete Riesen-Community mit VIP-Bereich, Event-Bühnen, Gaming-Hub, Support & interner Leitung.",
+    badge: "Flaggschiff",
+    size: "mega",
+    sizeLabel: "Mega (8 Kategorien, 32 Kanäle)",
+    icon: "🏰",
+    roles: [
+      { name: "👑 Community Owner", color: 0xf1c40f, hoist: true, permissions: PermissionFlagsBits.Administrator, isTeam: true },
+      { name: "🛡️ Head-Admin", color: 0xe74c3c, hoist: true, permissions: PermissionFlagsBits.Administrator, isTeam: true },
+      { name: "⚔️ Moderator", color: 0x3498db, hoist: true, permissions: PermissionFlagsBits.ManageMessages | PermissionFlagsBits.ModerateMembers | PermissionFlagsBits.KickMembers | PermissionFlagsBits.MuteMembers, isTeam: true },
+      { name: "💎 Server-Booster", color: 0xf47fff, hoist: true, permissions: PermissionFlagsBits.AttachFiles | PermissionFlagsBits.EmbedLinks | PermissionFlagsBits.UseExternalEmojis },
+      { name: "⭐ VIP Community", color: 0x9b59b6, hoist: true, permissions: PermissionFlagsBits.AttachFiles | PermissionFlagsBits.EmbedLinks },
+      { name: "🌟 Veteran Member", color: 0x2ecc71, hoist: true, permissions: PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages | PermissionFlagsBits.Connect },
+      { name: "🎮 Community Member", color: 0x1abc9c, hoist: true, permissions: PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages | PermissionFlagsBits.Connect },
+      { name: "🌱 Neuer Gast", color: 0x95a5a6, hoist: false, permissions: PermissionFlagsBits.ViewChannel | PermissionFlagsBits.ReadMessageHistory },
+    ],
+    categories: [
+      {
+        title: "WILLKOMMEN & INFOS",
+        icon: "📌",
+        channels: [
+          { slug: "willkommen", icon: "👋", type: ChannelType.GuildText, isReadOnly: true, topic: "Herzlich willkommen in der Community!" },
+          { slug: "regeln", icon: "📜", type: ChannelType.GuildText, isRules: true, isReadOnly: true, topic: "Regelwerk & Richtlinien" },
+          { slug: "ankuendigungen", icon: "📢", type: ChannelType.GuildAnnouncement, isReadOnly: true, topic: "Offizielle Server-Ankündigungen" },
+          { slug: "rollen-vergabe", icon: "🎭", type: ChannelType.GuildText, isReadOnly: true, topic: "Klicke deine Rollen an" },
+          { slug: "server-status", icon: "📊", type: ChannelType.GuildText, isReadOnly: true, topic: "Server-Statistiken & Online-Status" },
+        ],
+      },
+      {
+        title: "COMMUNITY HUB",
+        icon: "💬",
+        channels: [
+          { slug: "hauptchat", icon: "💬", type: ChannelType.GuildText, topic: "Zentraler Community Chat" },
+          { slug: "ideen-und-feedback", icon: "💡", type: ChannelType.GuildText, topic: "Deine Vorschläge für den Server" },
+          { slug: "clips-und-highlights", icon: "🎬", type: ChannelType.GuildText, topic: "Beste Momente & Clips" },
+          { slug: "memes-und-spaß", icon: "😂", type: ChannelType.GuildText, topic: "Memes & Humor" },
+          { slug: "level-und-bot-spam", icon: "🤖", type: ChannelType.GuildText, topic: "Bot-Befehle wie /rank, /shop, /daily" },
+        ],
+      },
+      {
+        title: "GAMING ZENTRALE",
+        icon: "🎮",
+        channels: [
+          { slug: "mitspieler-suche", icon: "🤝", type: ChannelType.GuildText, topic: "Finde Mitspieler mit /lfg" },
+          { slug: "game-news", icon: "📰", type: ChannelType.GuildText, isReadOnly: true },
+          { slug: "free-games-feed", icon: "🎁", type: ChannelType.GuildText, isReadOnly: true },
+          { slug: "hardware-und-talk", icon: "🖥️", type: ChannelType.GuildText },
+        ],
+      },
+      {
+        title: "VOICE LOUNGES",
+        icon: "🔊",
+        channels: [
+          { slug: "lobby-erstellen", icon: "➕", type: ChannelType.GuildVoice, isJoinToCreate: true },
+          { slug: "haupt-lounge", icon: "🔊", type: ChannelType.GuildVoice },
+          { slug: "chill-ecke", icon: "☕", type: ChannelType.GuildVoice },
+          { slug: "duo-talk-1", icon: "🔊", type: ChannelType.GuildVoice },
+          { slug: "squad-talk-1", icon: "🔊", type: ChannelType.GuildVoice },
+          { slug: "afk-parkplatz", icon: "💤", type: ChannelType.GuildVoice },
+        ],
+      },
+      {
+        title: "EVENTS & BÜHNE",
+        icon: "🎪",
+        channels: [
+          { slug: "event-ankuendigung", icon: "📢", type: ChannelType.GuildAnnouncement, isReadOnly: true },
+          { slug: "community-buehne", icon: "🎙️", type: ChannelType.GuildVoice },
+        ],
+      },
+      {
+        title: "VIP & BOOSTER",
+        icon: "⭐",
+        channels: [
+          { slug: "booster-chat", icon: "💎", type: ChannelType.GuildText, topic: "Exklusiver Chat für Booster & VIPs" },
+          { slug: "vip-talk", icon: "🌟", type: ChannelType.GuildVoice },
+        ],
+      },
+      {
+        title: "SUPPORT & HILFE",
+        icon: "🎫",
+        channels: [
+          { slug: "support-tickets", icon: "🎫", type: ChannelType.GuildText, isTickets: true },
+          { slug: "faq-anleitung", icon: "❓", type: ChannelType.GuildText, isReadOnly: true },
+        ],
+      },
+      {
+        title: "TEAM INTERN",
+        icon: "🔒",
+        teamOnly: true,
+        channels: [
+          { slug: "leitungs-chat", icon: "👑", type: ChannelType.GuildText, teamOnly: true },
+          { slug: "moderation-intern", icon: "🛡️", type: ChannelType.GuildText, teamOnly: true },
+          { slug: "audit-logs", icon: "📜", type: ChannelType.GuildText, teamOnly: true, isLogs: true, isReadOnly: true },
+          { slug: "team-besprechung", icon: "🔊", type: ChannelType.GuildVoice, teamOnly: true },
+        ],
+      },
+    ],
+  },
+
+  // 5. GROSS: E-Sport & Turniere Pro
+  {
+    id: "esports_pro",
+    name: "E-Sport & Turniere (Pro)",
+    description: "Wettkampforientiertes Setup für E-Sport Teams, Scrims, Matches, Taktikbesprechungen, Caster und Turniere.",
+    badge: "E-Sport Pro",
+    size: "gross",
+    sizeLabel: "Groß (6 Kategorien, 20 Kanäle)",
+    icon: "🏆",
+    roles: [
+      { name: "Orga-Leitung", color: 0xe74c3c, hoist: true, permissions: PermissionFlagsBits.Administrator, isTeam: true },
+      { name: "Head-Coach", color: 0xe67e22, hoist: true, permissions: PermissionFlagsBits.ManageChannels | PermissionFlagsBits.MoveMembers, isTeam: true },
+      { name: "Team-Captain", color: 0xf1c40f, hoist: true, permissions: PermissionFlagsBits.PrioritySpeaker | PermissionFlagsBits.MoveMembers },
+      { name: "Main-Roster", color: 0x9b59b6, hoist: true, permissions: PermissionFlagsBits.AttachFiles | PermissionFlagsBits.Stream },
+      { name: "Sub / Academy", color: 0x3498db, hoist: true, permissions: PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages },
+      { name: "Caster / Analyst", color: 0x1abc9c, hoist: true, permissions: PermissionFlagsBits.Stream | PermissionFlagsBits.PrioritySpeaker },
+      { name: "Gast / Fan", color: 0x95a5a6, hoist: false, permissions: PermissionFlagsBits.ViewChannel },
+    ],
+    categories: [
+      {
+        title: "INFOS & TOURNAMENTS",
+        icon: "📢",
+        channels: [
+          { slug: "regeln-und-termine", icon: "📜", type: ChannelType.GuildText, isRules: true, isReadOnly: true },
+          { slug: "turnier-ankuendigungen", icon: "🏆", type: ChannelType.GuildAnnouncement, isReadOnly: true },
+          { slug: "match-ergebnisse", icon: "📊", type: ChannelType.GuildText, isReadOnly: true },
+        ],
+      },
+      {
+        title: "SCRIMS & MATCHES",
+        icon: "⚔️",
+        channels: [
+          { slug: "scrim-suche", icon: "🎯", type: ChannelType.GuildText },
+          { slug: "match-lobby-a", icon: "🔴", type: ChannelType.GuildVoice },
+          { slug: "match-lobby-b", icon: "🔵", type: ChannelType.GuildVoice },
+          { slug: "caster-und-analysten", icon: "🎙️", type: ChannelType.GuildVoice },
+        ],
+      },
+      {
+        title: "TAKTIK & VOD REVIEW",
+        icon: "📋",
+        channels: [
+          { slug: "taktik-board", icon: "📌", type: ChannelType.GuildText },
+          { slug: "vod-review-clips", icon: "🎬", type: ChannelType.GuildText },
+          { slug: "taktik-besprechung", icon: "🔊", type: ChannelType.GuildVoice },
+        ],
+      },
+      {
+        title: "COMMUNITY & FANS",
+        icon: "💬",
+        channels: [
+          { slug: "hauptchat", icon: "💬", type: ChannelType.GuildText },
+          { slug: "fan-lounge", icon: "🔊", type: ChannelType.GuildVoice },
+        ],
+      },
+      {
+        title: "VOICEMASTER",
+        icon: "🔊",
+        channels: [
+          { slug: "lobby-erstellen", icon: "➕", type: ChannelType.GuildVoice, isJoinToCreate: true },
+        ],
+      },
+      {
+        title: "ORGA INTERN",
+        icon: "🔒",
+        teamOnly: true,
+        channels: [
+          { slug: "orga-chat", icon: "🔒", type: ChannelType.GuildText, teamOnly: true },
+          { slug: "audit-logs", icon: "🛡️", type: ChannelType.GuildText, teamOnly: true, isLogs: true, isReadOnly: true },
+          { slug: "orga-voice", icon: "🔊", type: ChannelType.GuildVoice, teamOnly: true },
+        ],
+      },
+    ],
+  },
+
+  // 6. STANDARD: Coding & Tech
   {
     id: "coding",
     name: "Coding / Dev / Tech",
-    description: "Entwickler-Hub mit Programmiersprachen-Kanälen (JS/TS, Python, Rust/C++), Code-Review und Projekt-Showcases.",
+    description: "Strukturiert für Entwickler, Open-Source-Projekte und Tech-Enthusiasten mit Programmiersprachen-Foren und Code-Reviews.",
     badge: "Entwickler",
+    size: "standard",
+    sizeLabel: "Standard (5 Kategorien, 15 Kanäle)",
     icon: "💻",
     roles: [
-      { name: "Lead Architect", color: 0x34495e, hoist: true, permissions: PermissionFlagsBits.Administrator, isTeam: true },
-      { name: "Maintainer", color: 0x2980b9, hoist: true, permissions: PermissionFlagsBits.ManageGuild | PermissionFlagsBits.ManageChannels, isTeam: true },
-      { name: "Contributor", color: 0x27ae60, hoist: true, permissions: PermissionFlagsBits.AttachFiles | PermissionFlagsBits.EmbedLinks },
-      { name: "Developer", color: 0x16a085, hoist: true, permissions: PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages },
-      { name: "Junior / Learner", color: 0xf39c12, hoist: true, permissions: PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages },
+      { name: "Lead Dev (Owner)", color: 0x3498db, hoist: true, permissions: PermissionFlagsBits.Administrator, isTeam: true },
+      { name: "Maintainer (Admin)", color: 0x9b59b6, hoist: true, permissions: PermissionFlagsBits.ManageGuild | PermissionFlagsBits.ManageChannels, isTeam: true },
+      { name: "Senior Dev", color: 0x2ecc71, hoist: true, permissions: PermissionFlagsBits.AttachFiles | PermissionFlagsBits.EmbedLinks },
+      { name: "Developer", color: 0x1abc9c, hoist: true, permissions: PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages },
+      { name: "Gast", color: 0x95a5a6, hoist: false, permissions: PermissionFlagsBits.ViewChannel },
     ],
     categories: [
       {
@@ -283,11 +524,15 @@ export const TEMPLATES: ServerTemplate[] = [
       },
     ],
   },
+
+  // 7. STANDARD: Anime & Manga
   {
     id: "anime",
     name: "Anime, Manga & Hangout",
     description: "Gemütlicher Treffpunkt für Fans von Anime, Manga, Fan-Art und gemeinsamen Watch-Partys.",
     badge: "Hangout",
+    size: "standard",
+    sizeLabel: "Standard (5 Kategorien, 16 Kanäle)",
     icon: "🌸",
     roles: [
       { name: "Senpai (Owner)", color: 0xff7675, hoist: true, permissions: PermissionFlagsBits.Administrator, isTeam: true },
@@ -320,61 +565,90 @@ export const TEMPLATES: ServerTemplate[] = [
         title: "CHILL & TALK",
         icon: "🍵",
         channels: [
+          { slug: "offtopic", icon: "☕", type: ChannelType.GuildText },
+          { slug: "memes-and-gifs", icon: "✨", type: ChannelType.GuildText },
+          { slug: "bot-lounge", icon: "🤖", type: ChannelType.GuildText },
+        ],
+      },
+      {
+        title: "WATCH PARTYS & TALK",
+        icon: "🍿",
+        channels: [
           { slug: "lobby-erstellen", icon: "➕", type: ChannelType.GuildVoice, isJoinToCreate: true },
-          { slug: "tea-lounge", icon: "🍵", type: ChannelType.GuildVoice },
-          { slug: "watch-party-voice", icon: "🍿", type: ChannelType.GuildVoice },
+          { slug: "watch-party-kino", icon: "🎬", type: ChannelType.GuildVoice },
+          { slug: "chill-lounge", icon: "🔊", type: ChannelType.GuildVoice },
+        ],
+      },
+      {
+        title: "TEAM",
+        icon: "🔒",
+        teamOnly: true,
+        channels: [
+          { slug: "mod-chat", icon: "🔒", type: ChannelType.GuildText, teamOnly: true },
+          { slug: "audit-logs", icon: "🛡️", type: ChannelType.GuildText, teamOnly: true, isLogs: true, isReadOnly: true },
         ],
       },
     ],
   },
+
+  // 8. STANDARD: Creator & Streamer
   {
     id: "creator",
     name: "Content Creator & Streamer",
-    description: "Ausgerichtet auf Streamer (Twitch/YouTube) mit Live-Alerts, Sub-Lounge, Fan-Chat und Kooperationen.",
-    badge: "Creator",
+    description: "Fokussiert auf Streamer (Twitch/YouTube) und YouTuber mit Live-Alerts, Community-Interaktion und VIP-Bereich.",
+    badge: "Streamer",
+    size: "standard",
+    sizeLabel: "Standard (5 Kategorien, 14 Kanäle)",
     icon: "🔴",
     roles: [
-      { name: "Streamer / Creator", color: 0x9b59b6, hoist: true, permissions: PermissionFlagsBits.Administrator, isTeam: true },
-      { name: "Management", color: 0xe74c3c, hoist: true, permissions: PermissionFlagsBits.ManageGuild | PermissionFlagsBits.ManageChannels, isTeam: true },
-      { name: "Moderator", color: 0x3498db, hoist: true, permissions: PermissionFlagsBits.ManageMessages | PermissionFlagsBits.ModerateMembers, isTeam: true },
-      { name: "VIP / Subscriber", color: 0xf1c40f, hoist: true, permissions: PermissionFlagsBits.AttachFiles | PermissionFlagsBits.EmbedLinks },
-      { name: "Community", color: 0x2ecc71, hoist: true, permissions: PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages },
-      { name: "Gast", color: 0x95a5a6, hoist: false, permissions: PermissionFlagsBits.ViewChannel },
+      { name: "Creator (Owner)", color: 0x9b59b6, hoist: true, permissions: PermissionFlagsBits.Administrator, isTeam: true },
+      { name: "Stream-Mod", color: 0xe74c3c, hoist: true, permissions: PermissionFlagsBits.ManageMessages | PermissionFlagsBits.ModerateMembers, isTeam: true },
+      { name: "VIP Subscriber", color: 0xf1c40f, hoist: true, permissions: PermissionFlagsBits.AttachFiles | PermissionFlagsBits.EmbedLinks },
+      { name: "Community", color: 0x3498db, hoist: true, permissions: PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages },
+      { name: "Zuschauer", color: 0x95a5a6, hoist: false, permissions: PermissionFlagsBits.ViewChannel },
     ],
     categories: [
       {
-        title: "LIVE & SOCIALS",
+        title: "STREAM HUB",
         icon: "🔴",
         channels: [
-          { slug: "stream-alerts", icon: "🔴", type: ChannelType.GuildAnnouncement, isReadOnly: true },
-          { slug: "upload-news", icon: "📺", type: ChannelType.GuildAnnouncement, isReadOnly: true },
           { slug: "regeln", icon: "📜", type: ChannelType.GuildText, isRules: true, isReadOnly: true },
+          { slug: "stream-alerts", icon: "📺", type: ChannelType.GuildAnnouncement, isReadOnly: true },
+          { slug: "uploads-und-videos", icon: "🎬", type: ChannelType.GuildAnnouncement, isReadOnly: true },
         ],
       },
       {
-        title: "COMMUNITY LOUNGE",
+        title: "COMMUNITY",
         icon: "💬",
         channels: [
-          { slug: "fan-chat", icon: "💬", type: ChannelType.GuildText },
-          { slug: "clips-und-highlights", icon: "🔥", type: ChannelType.GuildText },
-          { slug: "memes-fuer-den-stream", icon: "😂", type: ChannelType.GuildText },
-          { slug: "feedbacks-und-ideen", icon: "💡", type: ChannelType.GuildText },
+          { slug: "chat", icon: "💬", type: ChannelType.GuildText },
+          { slug: "stream-ideen", icon: "💡", type: ChannelType.GuildText },
+          { slug: "fan-art-memes", icon: "🎨", type: ChannelType.GuildText },
         ],
       },
       {
-        title: "COMMUNITY EVENTS",
-        icon: "🎁",
+        title: "VIP & SUBS",
+        icon: "⭐",
         channels: [
-          { slug: "giveaways", icon: "🎉", type: ChannelType.GuildText, isReadOnly: true },
-          { slug: "community-gaming", icon: "🎮", type: ChannelType.GuildText },
+          { slug: "sub-lounge", icon: "💎", type: ChannelType.GuildText },
+          { slug: "sub-talk", icon: "🌟", type: ChannelType.GuildVoice },
         ],
       },
       {
-        title: "TALK & LOBBYS",
+        title: "COMMUNITY TALK",
         icon: "🔊",
         channels: [
           { slug: "lobby-erstellen", icon: "➕", type: ChannelType.GuildVoice, isJoinToCreate: true },
           { slug: "community-talk", icon: "🔊", type: ChannelType.GuildVoice },
+        ],
+      },
+      {
+        title: "TEAM INTERN",
+        icon: "🔒",
+        teamOnly: true,
+        channels: [
+          { slug: "mod-intern", icon: "🔒", type: ChannelType.GuildText, teamOnly: true },
+          { slug: "audit-logs", icon: "🛡️", type: ChannelType.GuildText, teamOnly: true, isLogs: true, isReadOnly: true },
         ],
       },
     ],
@@ -401,31 +675,13 @@ class TemplateService {
   }
 
   public formatChannelName(slug: string, icon: string, style: StyleId, isVoice = false): string {
-    switch (style) {
-      case "clean":
-        return slug;
-      case "aesthetic":
-        return `〢・${slug}`;
-      case "box":
-        return `「${icon}」${slug}`;
-      case "modern":
-      default:
-        return `${icon}・${slug}`;
-    }
+    const preset = CHANNEL_STYLES.find((s) => s.id === style) || CHANNEL_STYLES[0];
+    return isVoice ? preset.formatVoice(slug, icon) : preset.formatText(slug, icon);
   }
 
   public formatCategoryName(title: string, icon: string, style: StyleId): string {
-    switch (style) {
-      case "clean":
-        return title;
-      case "aesthetic":
-        return `〢・${title}`;
-      case "box":
-        return `「${icon}」${title}`;
-      case "modern":
-      default:
-        return `${icon}・${title}`;
-    }
+    const preset = CHANNEL_STYLES.find((s) => s.id === style) || CHANNEL_STYLES[0];
+    return preset.formatCategory(title, icon);
   }
 
   public async applyTemplate(
@@ -457,9 +713,6 @@ class TemplateService {
 
     // 2. WIPE WENN GEWÜNSCHT (nur vom Owner erlaubt!)
     if (options.wipe) {
-      if (options.executorTag && !options.executorTag.includes(guild.ownerId)) {
-        // Sicherheit: Nur Owner darf wipe ausführen
-      }
       try {
         await guild.channels.fetch();
         for (const channel of guild.channels.cache.values()) {
@@ -476,7 +729,6 @@ class TemplateService {
 
     // 3. ROLLEN ANLEGEN
     await guild.roles.fetch();
-    const botTop = me.roles.highest.position;
     const roleMap = new Map<string, Role>();
     const teamRoles: Role[] = [];
 

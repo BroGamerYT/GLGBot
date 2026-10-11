@@ -24,11 +24,14 @@ const serverSetupCommand: Command = {
         .setDescription("Die gewünschte Server-Vorlage")
         .setRequired(true)
         .addChoices(
-          { name: "🎮 Gaming Clan & E-Sport", value: "gaming" },
-          { name: "🌐 Multi-Gaming Community", value: "multigaming" },
-          { name: "💻 Coding / Dev / Tech", value: "coding" },
-          { name: "🌸 Anime, Manga & Hangout", value: "anime" },
-          { name: "🔴 Content Creator & Streamer", value: "creator" }
+          { name: "🌱 Minimal Starter (Kompakt)", value: "starter" },
+          { name: "🎮 Gaming Clan & E-Sport (Standard)", value: "gaming" },
+          { name: "🌐 Multi-Gaming Community (Groß)", value: "multigaming" },
+          { name: "🏰 Mega-Community & Netzwerk (Mega)", value: "community_mega" },
+          { name: "🏆 E-Sport & Turniere (Pro)", value: "esports_pro" },
+          { name: "💻 Coding / Dev / Tech (Standard)", value: "coding" },
+          { name: "🌸 Anime, Manga & Hangout (Standard)", value: "anime" },
+          { name: "🔴 Content Creator & Streamer (Standard)", value: "creator" }
         )
     )
     .addStringOption((opt) =>
@@ -38,9 +41,15 @@ const serverSetupCommand: Command = {
         .setRequired(true)
         .addChoices(
           { name: "Modern mit Emojis (z. B. 💬・hauptchat)", value: "modern" },
-          { name: "Clean & Minimalistisch (z. B. hauptchat)", value: "clean" },
-          { name: "Aesthetic mit Trennzeichen (z. B. 〢・hauptchat)", value: "aesthetic" },
-          { name: "Box & Bold (z. B. 「💬」hauptchat)", value: "box" }
+          { name: "Small Caps (z. B. 💬・ʜᴀᴜᴘᴛᴄʜᴀᴛ)", value: "smallcaps" },
+          { name: "Bold Sans (z. B. 💬・𝗵𝗮𝘂𝗽𝘁𝗰𝗵𝗮𝘁)", value: "boldsans" },
+          { name: "Aesthetic Small Caps (z. B. 〢・ʜᴀᴜᴘᴛᴄʜᴀᴛ)", value: "aesthetic_caps" },
+          { name: "Aesthetic Pipe (z. B. 〢・hauptchat)", value: "aesthetic" },
+          { name: "Box Small Caps (z. B. 「💬」ʜᴀᴜᴘᴛᴄʜᴀᴛ)", value: "box_caps" },
+          { name: "Box & Bold (z. B. 「💬」hauptchat)", value: "box" },
+          { name: "Cyber & Neon (z. B. ◈・ʜᴀᴜᴘᴛᴄʜᴀᴛ)", value: "cyber" },
+          { name: "Gothic / Fraktur (z. B. ⚔・𝖍𝖆𝖚𝖕𝖙𝖈𝖍𝖆𝖙)", value: "gothic" },
+          { name: "Clean & Minimalistisch (z. B. hauptchat)", value: "clean" }
         )
     )
     .addBooleanOption((opt) =>

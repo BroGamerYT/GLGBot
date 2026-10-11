@@ -120,6 +120,7 @@ const COMMANDS: { group: string; items: [string, string, string][] }[] = [
       ["/giveaway start | end | reroll", "Verlosung mit Teilnahme-Button starten (Dauer, Gewinner, Preis, optional Rolle), vorzeitig beenden oder neu auslosen.", "Server verwalten"],
       ["/free-games list", "Zeigt alle aktuell kostenlosen Spiele (ephemeral, nur für dich sichtbar).", "Alle"],
       ["/releases uebersicht | post-woche", "Game-Release-Kalender: Übersicht aller kommenden Blockbuster, Triple-A Titel und großen Spiele-Updates nach Zeitraum & Plattform filtern oder die Wochen-Releases im Kanal posten.", "Alle"],
+      ["/font <text> [stil]", "Wandelt jeden Text in stylische Unicode-Schriftarten (Small Caps, Bold Sans, Gothic, Double-Struck, Monospace, Bubble etc.) um.", "Alle"],
       ["/ping", "Prüft die Latenz und Erreichbarkeit des Bots.", "Alle"],
       ["/twitch-live start | stop", "Sich selbst als live melden bzw. Live-Status vorzeitig beenden.", "Alle"],
     ],
@@ -158,7 +159,8 @@ const COMMANDS: { group: string; items: [string, string, string][] }[] = [
     group: "Administration & Server-Setup",
     items: [
       ["/setup-all [bereich] [regel_sperre]", "Richtet alle fehlenden Rollen & Kanäle auf einmal ein (wie die Dashboard-Seite „Server einrichten“).", "Administrator"],
-      ["/server-setup [template] [style] [wipe]", "1-Klick Server-Templates: Richtet eine komplette Server-Struktur (Gaming, Dev, Anime, Streamer) mit wählbarem Design-Stil und automatischem Sicherheits-Backup ein.", "Administrator"],
+      ["/server-setup [template] [style] [wipe]", "1-Klick Server-Templates: Richtet komplette Server-Strukturen von klein bis groß (Kompakt, Standard, Groß, Mega) mit 10 wählbaren Schriftstilen und Auto-Backup ein.", "Administrator"],
+      ["/channel-style [stil] [name] [kanal]", "Benennt Kanäle und Kategorien in stylische Unicode-Schriftarten & Designs (Small Caps, Bold Sans, Gothic, Aesthetic, Boxed etc.) um.", "Kanäle verwalten"],
       ["/birthday setup [kanal] [rolle]", "Legt den Kanal für Glückwünsche fest und erstellt die Geburtstags-Rolle (24 Std.).", "Server verwalten"],
       ["/server-stats einrichten | entfernen | status", "Statistik-Kanäle ganz oben (Mitglieder, Online, Im Voice, Gerade live, Boosts), Aktualisierung alle 10 Min.", "Kanäle verwalten"],
       ["/modules status | enable | disable | toggle", "Schaltet einzelne Funktionen (Module) an oder aus – wie die Dashboard-Seite „Module“. Daten bleiben erhalten.", "Administrator"],
