@@ -37,6 +37,14 @@ const readyEvent: BotEvent<Events.ClientReady> = {
       status: "online",
     });
 
+    // Discord Application-Besitzer abrufen (für automatische Bot-Owner Erkennung)
+    client.application?.fetch()
+      .then((app) => {
+        const ownerTag = (app.owner as any)?.tag || (app.owner as any)?.name || app.owner?.id;
+        console.log(`👑 Bot-Besitzer erkannt: ${ownerTag} (${app.owner?.id})`);
+      })
+      .catch((e) => console.warn("[Ready] Konnte Application-Info nicht abrufen:", e));
+
     // Eingebaute Befehlsnamen (inkl. deutscher Namen) dürfen eigene Befehle nicht überschreiben
     customCommandService.setReserved(
       [...client.commands.values()].flatMap((c: any) => {

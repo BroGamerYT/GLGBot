@@ -16,6 +16,11 @@ import { customCommandService } from "./customCommandService";
 export const HARD_GUILD_LIMIT = 5;
 
 const ACCESS_FILE = path.join(process.cwd(), "data", "guild_access.json");
+const BOT_OWNER_FILE = path.join(process.cwd(), "data", "bot_owner.json");
+
+interface BotOwnerData {
+  owners: { id: string; name?: string; addedAt: number; addedBy?: string }[];
+}
 
 interface AccessData {
   /** Im Dashboard freigegebene Server */
@@ -40,6 +45,98 @@ class GuildAccessService {
     writeJsonAtomic(ACCESS_FILE, this.data);
   }
 
+  public getStoredOwners(): { id: string; name?: string; addedAt?: number; addedBy?: string }[] {
+    const d = readJsonFile<BotOwnerData>(BOT_OWNER_FILE, { owners: [] });
+    return d.owners || [];
+  }
+
+  public addBotOwner(id: string, name?: string, addedBy?: string): boolean {
+    if (!/^\d{15,25}$/.test(id)) return false;
+    const d = readJsonFile<BotOwnerData>(BOT_OWNER_FILE, { owners: [] });
+    d.owners = d.owners || [];
+    if (!d.owners.some((o) => o.id === id)) {
+      d.owners.push({ id, name, addedAt: Date.now(), addedBy });
+      fs.mkdirSync(path.dirname(BOT_OWNER_FILE), { recursive: true });
+      writeJsonAtomic(BOT_OWNER_FILE, d);
+      return true;
+    }
+    return false;
+  }
+
+  public removeBotOwner(id: string): boolean {
+    const d = readJsonFile<BotOwnerData>(BOT_OWNER_FILE, { owners: [] });
+    d.owners = d.owners || [];
+    const prev = d.owners.length;
+    d.owners = d.owners.filter((o) => o.id !== id);
+    if (d.owners.length !== prev) {
+      fs.mkdirSync(path.dirname(BOT_OWNER_FILE), { recursive: true });
+      writeJsonAtomic(BOT_OWNER_FILE, d);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Liefert alle erkannten Bot-Besitzer:
+   * 1. Gespeicherte IDs in data/bot_owner.json
+   * 2. BOT_OWNER_ID in .env
+   * 3. DASHBOARD_USER_IDS in .env
+   * 4. Discord Application Owner (der Ersteller des Bots im Dev-Portal)
+   * 5. Owner des Haupt-Servers
+   */
+  public getBotOwnerIds(client?: Client): Set<string> {
+    const ids = new Set<string>();
+
+    // 1. Gespeicherte Owner
+    for (const o of this.getStoredOwners()) {
+      if (o.id) ids.add(o.id);
+    }
+
+    // 2. BOT_OWNER_ID
+    for (const id of splitIds(process.env.BOT_OWNER_ID)) {
+      ids.add(id);
+    }
+
+    // 3. DASHBOARD_USER_IDS
+    for (const id of splitIds(process.env.DASHBOARD_USER_IDS)) {
+      ids.add(id);
+    }
+
+    // 4. Discord Application Owner
+    if (client?.application?.owner) {
+      const owner = client.application.owner as any;
+      if (owner.members && typeof owner.members.values === "function") {
+        if (owner.ownerId) ids.add(owner.ownerId);
+        for (const m of owner.members.values()) {
+          if (m?.id) ids.add(m.id);
+          if (m?.user?.id) ids.add(m.user.id);
+        }
+      } else if (owner.id) {
+        ids.add(owner.id);
+      }
+    }
+
+    // 5. Haupt-Server Owner
+    if (client && this.mainGuildId) {
+      const main = client.guilds.cache.get(this.mainGuildId);
+      if (main?.ownerId) ids.add(main.ownerId);
+    }
+
+    return ids;
+  }
+
+  public isBotOwner(userId: string, client?: Client): boolean {
+    if (!userId) return false;
+    return this.getBotOwnerIds(client).has(userId);
+  }
+
+  /** Primäre Bot-Owner ID für Rückwärtskompatibilität */
+  public getBotOwnerId(client?: Client): string | null {
+    const all = this.getBotOwnerIds(client);
+    if (all.size > 0) return [...all][0];
+    return null;
+  }
+
   public get mainGuildId(): string {
     return (process.env.GUILD_ID || "").trim();
   }
@@ -61,21 +158,12 @@ class GuildAccessService {
   }
 
   public isAllowed(guildId: string): boolean {
-    // Ohne GUILD_ID und ohne Liste: keine Einschränkung (Einzel-Installation ohne Konfiguration)
     if (this.getEnvGuildIds().length === 0 && this.data.allowed.length === 0) return true;
     return this.getAllowedIds().includes(guildId);
   }
 
-  public isMain(guildId: string) {
+  public isMain(guildId: string): boolean {
     return !!this.mainGuildId && guildId === this.mainGuildId;
-  }
-
-  /** Bot-Besitzer: BOT_OWNER_ID aus der .env, sonst der Owner des Haupt-Servers */
-  public getBotOwnerId(client: Client): string | null {
-    const fromEnv = (process.env.BOT_OWNER_ID || "").trim();
-    if (fromEnv) return fromEnv;
-    const main = this.mainGuildId ? client.guilds.cache.get(this.mainGuildId) : undefined;
-    return main?.ownerId || null;
   }
 
   public getEntries() {

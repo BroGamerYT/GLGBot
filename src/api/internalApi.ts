@@ -162,8 +162,7 @@ export function startInternalApi(client: Client) {
         // ---------------- Free-Games ----------------
         // ---------------- Server-Freigabe (nur Bot-Besitzer) ----------------
         case "GET /guild-access": {
-          const ownerId = guildAccessService.getBotOwnerId(client);
-          const isOwner = !!actorId && actorId === ownerId;
+          const isOwner = !!actorId && guildAccessService.isBotOwner(actorId, client);
           if (!isOwner) return send(res, 200, { isOwner: false });
           const clientId = client.user?.id || process.env.CLIENT_ID || "";
           const invite = (id: string) =>
@@ -188,7 +187,7 @@ export function startInternalApi(client: Client) {
           });
         }
         case "POST /guild-access/add": {
-          if (!actorId || actorId !== guildAccessService.getBotOwnerId(client)) {
+          if (!actorId || !guildAccessService.isBotOwner(actorId, client)) {
             return send(res, 403, { error: "Nur der Bot-Besitzer darf Server freigeben." });
           }
           const body = await readBody(req);
@@ -200,7 +199,7 @@ export function startInternalApi(client: Client) {
           return send(res, 200, { ok: true });
         }
         case "POST /guild-access/purge": {
-          if (!actorId || actorId !== guildAccessService.getBotOwnerId(client)) {
+          if (!actorId || !guildAccessService.isBotOwner(actorId, client)) {
             return send(res, 403, { error: "Nur der Bot-Besitzer darf Daten löschen." });
           }
           const body = await readBody(req);
@@ -209,7 +208,7 @@ export function startInternalApi(client: Client) {
           return send(res, 200, { ok: true });
         }
         case "POST /guild-access/remove": {
-          if (!actorId || actorId !== guildAccessService.getBotOwnerId(client)) {
+          if (!actorId || !guildAccessService.isBotOwner(actorId, client)) {
             return send(res, 403, { error: "Nur der Bot-Besitzer darf Freigaben entfernen." });
           }
           const body = await readBody(req);

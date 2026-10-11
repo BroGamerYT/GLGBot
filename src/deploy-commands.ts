@@ -77,4 +77,9 @@ async function deploy() {
   }
 }
 
-deploy();
+deploy()
+  .then(() => setTimeout(() => process.exit(0), 100))
+  .catch((err) => {
+    console.error(err);
+    setTimeout(() => process.exit(1), 100);
+  });
