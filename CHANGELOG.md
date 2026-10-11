@@ -6,6 +6,19 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.18.1] - 2026-10-11
+
+### Hinzugefügt
+* **Community-Badges & Aktivitäts-Meilensteine auf der Rangkarte (`/rank` & Embed):**
+  * Automatische Abzeichen für Server-Inhaber (`👑 Inhaber`), Teammitglieder (`🛡️ Admin`, `⚔️ Mod`), Level-Meilensteine (`👑 Max-Level`, `💎 Level 20+`, `⭐ Level 10+`), Streak-Champions (`🔥 30d Serie`, `🔥 7d Serie`), Chat-Veteranen (`💬 1k+ Club`), Voice-Dauernutzer (`🎙️ 50h Voice`) und Economy-Vermögen (`🪙 Tycoon`).
+  * Werden als stilvolle Badge-Pills direkt auf der `@napi-rs/canvas` Rangkarte und als Feld im `/rank` Embed gerendert.
+* **Eigenes Hintergrundbild für die Willkommens-Karte (Dashboard `/welcome`):**
+  * Einstellbare Bild-URL für individuelle Banner auf der grafischen Willkommenskarte.
+  * Automatischer Glassmorphismus-Filter mit dunkler Tönung und Akzentschimmer sorgt für perfekte Lesbarkeit des Textes und Avatars.
+  * Live-Vorschau im Dashboard aktualisiert sich sofort mit dem eigenen Hintergrundbild.
+* **Windows-Installer Erweiterung (`install_windows.bat`):**
+  * Optionaler 1-Klick Setup-Dialog für Desktop-Verknüpfung von `start.bat` und automatischen Start beim Windows-Boot via PowerShell.
+
 ## [2.18.0] - 2026-10-11
 
 ### Hinzugefügt

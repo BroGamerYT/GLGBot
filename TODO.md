@@ -2,7 +2,7 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.18.0 (siehe History ganz unten)
+**Aktueller Stand:** v2.18.1 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
@@ -93,7 +93,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
   * [x] Nutzer-Avatar (Online-Status-Punkt weggelassen - Discord liefert ihn nicht zuverlässig).
   * [x] Aktuelles Level & Ranglistenplatz (#1, #2, ...).
   * [x] Visueller Fortschrittsbalken mit XP bis zum nächsten Level.
-  * [ ] Community-Badges / Meilensteine auf der Karte.
+  * [x] Community-Badges / Meilensteine auf der Karte (👑 Inhaber, 🛡️ Team, 💎 Level, 💬 Talker, 🎙️ Voice, 🔥 Streak, 🪙 Tycoon).
 
 ---
 
@@ -172,7 +172,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
   * [x] Benutzername, Tag und Server-Mitgliederzähler (`Du bist Mitglied #1.248!`).
 * [x] Automatische Rollenvergabe (Autorole) bei Beitritt – **nur wenn die Regel-Sperre aus ist**. `@Gast` bekommt man bei uns erst mit „Regeln akzeptieren“; wer sie sofort bekommt, sieht den ganzen Server, ohne die Regeln zu lesen.
 * [x] Im Web-Dashboard konfigurierbar: Willkommenskanal, Farbe, Überschrift, Untertitel und Text (mit Vorschau).
-* [ ] Eigenes Hintergrundbild für die Willkommens-Karte.
+* [x] Eigenes Hintergrundbild für die Willkommens-Karte (im Dashboard per URL einstellbar mit Glassmorphismus-Filter).
 
 ---
 
@@ -301,8 +301,8 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
   * [x] System-Prüfung: Prüft, ob Node.js & Git vorhanden sind (mit automatischem Download-Hinweis).
   * [x] Legt die `.env` an und öffnet sie im Editor zum Ausfüllen.
   * [x] Automatischer Build (`npm install` und `npm run build` für Bot & Web).
-  * [ ] Optionale Autostart-Einrichtung (Start beim Windows-Boot).
-  * [ ] Desktop-Verknüpfung (vorerst: `start.bat` im Projektordner).
+  * [x] Optionale Autostart-Einrichtung (Start beim Windows-Boot).
+  * [x] Desktop-Verknüpfung (vorerst: `start.bat` im Projektordner).
 * [x] **🐧 Linux 1-Klick Setup-Skript (`install_linux.sh`):**
   * [x] Automatisches Setup-Skript für Debian/Ubuntu/Proxmox-Container.
   * [x] Richtet Node.js 22 LTS und PM2 mit Autostart ein (Caddy weiterhin von Hand, siehe README).
@@ -323,7 +323,9 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.18.0 (Aktuell):**
+* [x] **v2.18.1 (Aktuell):**
+  * [x] Community-Badges & Aktivitäts-Meilensteine auf der Rangkarte (`/rank`), eigenes Hintergrundbild für Willkommens-Karten mit Glassmorphismus-Filter (Dashboard `/welcome`), Windows-Installer Autostart & Desktop-Verknüpfung.
+* [x] **v2.18.0:**
   * [x] 1-Klick Server-Templates & Auto-Setup Wizard (Modul „Server-Templates“), 5 Template-Profile (Gaming, Multi-Gaming, Coding, Anime, Creator), 4 Design-Stile (Modern, Clean, Aesthetic, Box), Rollen- & Berechtigungs-Hardening, Auto-Snapshot vor Ausführung, Slash-Befehl `/server-setup` & Web-Dashboard `/templates`.
 * [x] **v2.17.0:**
   * [x] Community-Wirtschaft & Belohnungs-Shop (Modul „Wirtschaft & Belohnungs-Shop“), Server-Währung (Coins 🪙), `/balance`, `/pay`, `/shop`, `/economy`, Dashboard `/economy`, Coins in `/daily` & `/rank`.

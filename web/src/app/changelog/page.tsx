@@ -29,6 +29,8 @@ import {
   Coins,
   ShoppingBag,
   LayoutTemplate,
+  Award,
+  Image as ImageIcon,
 } from "lucide-react";
 
 export const metadata = {
@@ -52,10 +54,30 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.18.0",
+    version: "v2.18.1",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Community-Badges & Willkommens-Hintergrund",
+    description: "Visuelle Meilenstein-Badges auf der Rangkarte (/rank), individuelles Hintergrundbild für Willkommenskarten mit Glassmorphismus-Filter und Windows-Installer Autostart-Option.",
+    highlights: [
+      {
+        icon: Award,
+        title: "Community-Badges & Aktivitäts-Meilensteine",
+        description: "Automatische Abzeichen für Inhaber, Admins, Mods, Level-Meilensteine, Daily-Streaks, Chat- und Voice-Veteranen direkt auf der grafischen Rangkarte.",
+      },
+      {
+        icon: ImageIcon,
+        title: "Eigenes Hintergrundbild für Willkommenskarten",
+        description: "Individuelle Banner-URL im Web-Dashboard einstellbar. Automatischer Glassmorphismus-Filter garantiert stets optimale Textlesbarkeit.",
+      },
+    ],
+  },
+  {
+    version: "v2.18.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "1-Klick Server-Templates & Auto-Setup",
     description: "Komplette Server-Strukturen (Gaming Clan, Multi-Gaming, Dev/Tech, Anime, Creator) mit flexiblen Design-Stilen, Berechtigungs-Hardening und automatischem Snapshot-Backup.",
     highlights: [

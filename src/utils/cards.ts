@@ -124,6 +124,7 @@ export interface RankCardData {
   voice: string;
   streak: number;
   accent?: string;
+  badges?: string[];
 }
 
 export async function renderRankCard(d: RankCardData): Promise<Buffer> {
@@ -143,14 +144,40 @@ export async function renderRankCard(d: RankCardData): Promise<Buffer> {
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = "#ffffff";
-  ctx.font = '40px "Inter ExtraBold"';
-  ctx.fillText(fit(ctx, d.displayName, 430), left, 92);
+  ctx.font = '38px "Inter ExtraBold"';
+  ctx.fillText(fit(ctx, d.displayName, 380), left, 88);
   ctx.fillStyle = "#8b90a0";
-  ctx.font = '20px "Inter"';
-  ctx.fillText(fit(ctx, `@${d.username}`, 430), left, 122);
+  ctx.font = '18px "Inter"';
+  ctx.fillText(fit(ctx, `@${d.username}`, 240), left, 116);
+
+  // Badges & Meilensteine (Pills)
+  if (d.badges && d.badges.length > 0) {
+    let bx = left;
+    const by = 127;
+    ctx.font = '12px "Inter SemiBold"';
+    for (const badge of d.badges.slice(0, 4)) {
+      const textWidth = ctx.measureText(badge).width;
+      const pw = textWidth + 14;
+      const ph = 22;
+      // Pill-Hintergrund
+      ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+      roundRect(ctx, bx, by, pw, ph, 11);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.16)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // Pill-Text
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#e0e3ed";
+      ctx.fillText(badge, bx + pw / 2, by + ph / 2 + 1);
+      bx += pw + 8;
+    }
+  }
 
   // Rang & Level rechts oben
   ctx.textAlign = "right";
+  ctx.textBaseline = "alphabetic";
   ctx.fillStyle = "#8b90a0";
   ctx.font = '18px "Inter SemiBold"';
   ctx.fillText("RANG", 820, 60);
@@ -163,9 +190,9 @@ export async function renderRankCard(d: RankCardData): Promise<Buffer> {
 
   // Fortschrittsbalken
   const barX = left;
-  const barY = 165;
+  const barY = 168;
   const barW = W - left - 50;
-  const barH = 30;
+  const barH = 28;
   ctx.fillStyle = "#232734";
   roundRect(ctx, barX, barY, barW, barH, barH / 2);
   ctx.fill();
@@ -181,14 +208,14 @@ export async function renderRankCard(d: RankCardData): Promise<Buffer> {
   }
   ctx.textAlign = "left";
   ctx.fillStyle = "#c9cdd8";
-  ctx.font = '18px "Inter SemiBold"';
+  ctx.font = '17px "Inter SemiBold"';
   ctx.fillText(
     d.isMaxLevel ? "MAX LEVEL erreicht" : `${d.currentXp.toLocaleString("de-DE")} / ${d.requiredXp.toLocaleString("de-DE")} XP bis Level ${d.level + 1}`,
     barX,
-    barY + barH + 30
+    barY + barH + 28
   );
   ctx.textAlign = "right";
-  ctx.fillText(`${pct}%`, barX + barW, barY + barH + 30);
+  ctx.fillText(`${pct}%`, barX + barW, barY + barH + 28);
 
   // Kennzahlen unten
   const stats: [string, string][] = [
@@ -220,6 +247,7 @@ export interface WelcomeCardData {
   title: string;
   subtitle?: string;
   accent?: string;
+  backgroundImageUrl?: string | null;
 }
 
 export async function renderWelcomeCard(d: WelcomeCardData): Promise<Buffer> {
@@ -229,7 +257,25 @@ export async function renderWelcomeCard(d: WelcomeCardData): Promise<Buffer> {
   const accent = d.accent || "#5865f2";
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext("2d");
-  background(ctx, W, H, accent);
+
+  const bgImg = await fetchImage(d.backgroundImageUrl);
+  if (bgImg) {
+    ctx.save();
+    roundRect(ctx, 0, 0, W, H, 28);
+    ctx.clip();
+    ctx.drawImage(bgImg, 0, 0, W, H);
+    // Dunkler Glassmorphismus-Filter für optimale Lesbarkeit
+    ctx.fillStyle = "rgba(13, 15, 21, 0.78)";
+    ctx.fillRect(0, 0, W, H);
+    const glow = ctx.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, W * 0.7);
+    glow.addColorStop(0, accent + "33");
+    glow.addColorStop(1, "transparent");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  } else {
+    background(ctx, W, H, accent);
+  }
 
   const avatar = await fetchImage(d.avatarUrl);
   drawAvatar(ctx, avatar, W / 2, 130, 78, accent, d.displayName);

@@ -642,6 +642,7 @@ export function startInternalApi(client: Client) {
             accent: body?.accent,
             card: typeof body?.card === "boolean" ? body.card : undefined,
             autoRoleId: body?.autoRoleId !== undefined ? String(body.autoRoleId || "") : undefined,
+            backgroundImageUrl: body?.backgroundImageUrl !== undefined ? String(body.backgroundImageUrl || "") : undefined,
           });
           return send(res, 200, { ok: true, config: cfg });
         }
@@ -653,6 +654,7 @@ export function startInternalApi(client: Client) {
               title: typeof body?.title === "string" ? body.title.slice(0, 40) : undefined,
               subtitle: typeof body?.subtitle === "string" ? body.subtitle.slice(0, 120) : undefined,
               accent: /^#[0-9a-f]{6}$/i.test(String(body?.accent || "")) ? body.accent : undefined,
+              backgroundImageUrl: typeof body?.backgroundImageUrl === "string" ? body.backgroundImageUrl.trim() : undefined,
             } as any);
             return send(res, 200, { image: `data:image/png;base64,${png.toString("base64")}` });
           } catch (e: any) {

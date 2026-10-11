@@ -17,6 +17,7 @@ export interface WelcomeConfig {
   accent: string;
   card: boolean;
   autoRoleId?: string;
+  backgroundImageUrl?: string;
 }
 
 export const WELCOME_DEFAULTS: WelcomeConfig = {
@@ -25,6 +26,7 @@ export const WELCOME_DEFAULTS: WelcomeConfig = {
   subtitle: "Du bist Mitglied #{count} auf {server}",
   accent: "#5865f2",
   card: true,
+  backgroundImageUrl: undefined,
 };
 
 const store = new GuildStore<WelcomeConfig>("welcome.json", () => ({ ...WELCOME_DEFAULTS }));
@@ -55,6 +57,9 @@ class WelcomeService {
       if (typeof patch.accent === "string" && /^#[0-9a-f]{6}$/i.test(patch.accent)) c.accent = patch.accent;
       if (typeof patch.card === "boolean") c.card = patch.card;
       if (patch.autoRoleId !== undefined) c.autoRoleId = patch.autoRoleId || undefined;
+      if (patch.backgroundImageUrl !== undefined) {
+        c.backgroundImageUrl = patch.backgroundImageUrl && patch.backgroundImageUrl.trim().length > 0 ? patch.backgroundImageUrl.trim() : undefined;
+      }
     });
   }
 
@@ -72,6 +77,7 @@ class WelcomeService {
       title: cfg.title,
       subtitle: cfg.subtitle ? fillPlain(cfg.subtitle, member) : undefined,
       accent: cfg.accent,
+      backgroundImageUrl: cfg.backgroundImageUrl,
     });
     return new AttachmentBuilder(png, { name: "willkommen.png" });
   }

@@ -11,6 +11,7 @@ interface WelcomeConfig {
   accent: string;
   card: boolean;
   autoRoleId?: string;
+  backgroundImageUrl?: string;
 }
 
 interface Data {
@@ -67,7 +68,17 @@ export default function WelcomePage() {
 
   async function showPreview() {
     if (!form) return;
-    const json = await call("welcome/preview", { title: form.title, subtitle: form.subtitle, accent: form.accent }, null, "preview");
+    const json = await call(
+      "welcome/preview",
+      {
+        title: form.title,
+        subtitle: form.subtitle,
+        accent: form.accent,
+        backgroundImageUrl: form.backgroundImageUrl,
+      },
+      null,
+      "preview"
+    );
     if (json?.image) setPreview(json.image);
   }
 
@@ -123,16 +134,30 @@ export default function WelcomePage() {
               Grafische Karte anhängen
             </label>
             {form.card && (
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
-                <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} maxLength={40} placeholder="Überschrift" className={input} />
-                <input type="color" value={form.accent} onChange={(e) => setForm({ ...form, accent: e.target.value })} className="h-10 w-14 rounded-lg bg-discord-dark border border-discord-border" />
-                <input
-                  value={form.subtitle}
-                  onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
-                  maxLength={120}
-                  placeholder="Untertitel"
-                  className={`${input} sm:col-span-2`}
-                />
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
+                  <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} maxLength={40} placeholder="Überschrift" className={input} />
+                  <input type="color" value={form.accent} onChange={(e) => setForm({ ...form, accent: e.target.value })} className="h-10 w-14 rounded-lg bg-discord-dark border border-discord-border" />
+                  <input
+                    value={form.subtitle}
+                    onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
+                    maxLength={120}
+                    placeholder="Untertitel"
+                    className={`${input} sm:col-span-2`}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-gray-400 font-medium">Eigenes Hintergrundbild (optional, Bild-URL)</label>
+                  <input
+                    value={form.backgroundImageUrl || ""}
+                    onChange={(e) => setForm({ ...form, backgroundImageUrl: e.target.value })}
+                    placeholder="https://example.com/banner.png (leer lassen für Standard-Raster)"
+                    className={input}
+                  />
+                  <p className="text-[11px] text-gray-500">
+                    Unterstützt PNG/JPG-Weblinks (z. B. von Discord, Imgur oder CDN). Wird automatisch mit einem dezenten Glassmorphismus-Filter abgedunkelt.
+                  </p>
+                </div>
               </div>
             )}
             <p className="text-[11px] text-gray-500">
