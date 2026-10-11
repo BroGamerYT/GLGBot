@@ -5,9 +5,10 @@ Ursprünglich für die Community *Germany LanGame* gebaut – jetzt für jeden S
 
 **Funktionen:** VoiceMaster (Join-to-Create), Live-Streamer-Rolle & Twitch-/YouTube-Alerts, Level-System mit Talk-Partner-Tracking,
 Moderation mit Gefängnis-System (`/knast`), Support-Tickets mit Transkripten, Regeln mit Freischaltung, Rollen-Panel,
-Gratis-Spiele (Epic, Steam, GOG), Game- & Treiber-News, Audit-Logs und Server-Backups.
+Gratis-Spiele (Epic, Steam, GOG), Game- & Treiber-News mit Kachel-Magazin, Release-Kalender, Community-Wirtschaft & Belohnungs-Shop,
+1-Klick Server-Templates mit Auto-Backup, Silent Audit-Logs und Server-Backups.
 
-> Sprache von Bot und Dashboard: **Deutsch**. Eine Installation ist für **einen** Discord-Server gedacht (`GUILD_ID`).
+> Sprache von Bot und Dashboard: **Deutsch**. Ein Bot kann bis zu **5 Discord-Server** gleichzeitig betreuen (Haupt-Server via `GUILD_ID`, weitere über das Dashboard oder `ALLOWED_GUILD_IDS` freigebbar).
 
 ---
 
@@ -126,12 +127,18 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | :--- | :--- | :--- | :--- |
 | **Server-Übersicht** | `/` | 🔒 Admin | Live-Zähler für Mitglieder, Kanäle, Rollen und Schnellaktionen. |
 | **Server einrichten** | `/setup` | 🔒 Admin | Bereiche ankreuzen, ein Klick legt alle fehlenden Rollen & Kanäle an (Vorhandenes wird nur verknüpft). |
+| **1-Klick Templates** | `/templates` | 🔒 Admin | Vorkonfigurierte Community-Vorlagen (Gaming, Streamer, Dev, Anime) mit Stilen und Auto-Backup. |
 | **Server-Freigabe** | `/servers` | 👑 Bot-Besitzer | Bis zu 5 Server freigeben, Einladungs-Links, Belegung „x / 5“, Freigabe entfernen. |
+| **Community-Wirtschaft & Shop** | `/economy` | 🌍 Öffentlich | Shop für exklusive Rollen & Badges, Guthaben-Übersicht und Transaktionen; Admins können Kontostände verwalten. |
+| **Release-Kalender** | `/releases` | 🌍 Öffentlich | Interaktiver Kalender für kommende Gaming-Blockbuster mit Plattform- (PC, PS5, Xbox, Switch) und Zeitfiltern. |
+| **Gratis-Spiele** | `/free-games` | 🌍 Öffentlich | Magazin für 100% kostenlose Vollversionen (Epic Games, Steam, GOG) mit Deep-Links; Admins verwalten Scan-Stores. |
+| **Game-News & Treiber** | `/news` | 🌍 Öffentlich | Modernes Kachel-Magazin mit Volltext-Modal, Live-Suche & Treiber-Updates; Admins verwalten Quellen. |
+| **Level & Talk-Rangliste** | `/stats` | 🌍 Öffentlich | Top Levels (bis Stufe 25), Voice-Zeiten, Talk-Duos, XP-Regelwerk und Nutzer-Aufschlüsselung. |
 | **Geburtstage** | `/birthdays` | 🔒 Admin | Kanal, Geburtstags-Rolle und Glückwunsch-Text einstellen, nächste Geburtstage sehen. |
 | **Geplante Ankündigungen** | `/announcements` | 🔒 Admin | Nachrichten/Embeds zu einem Zeitpunkt senden - einmalig, täglich oder wöchentlich. |
 | **Statistik-Kanäle** | `/server-stats` | 🔒 Admin | Live-Zähler ganz oben (Mitglieder, Online, Voice, Live, Boosts) mit eigenem Text. |
 | **Game-Server** | `/game-servers` | 🔒 Admin | Minecraft-, Source-(CS2, Rust, ARK …) und Port-Abfrage (z. B. TeamSpeak), Prüfung alle 2 Minuten. |
-| **Willkommens-Karte** | `/welcome` | 🔒 Admin | Grafische Karte für neue Mitglieder mit Vorschau & Test, optional automatische Rolle (nur ohne Regel-Sperre). |
+| **Willkommens-Karte** | `/welcome` | 🔒 Admin | Grafische Canvas-Karte mit Vorschau, Test, individuellem Hintergrundbild und Willkommens-Rolle. |
 | **Clip der Woche** | `/clips` | 🔒 Admin | Clip-Kanal, Wochentag und Uhrzeit der Kür, Live-Ranking der letzten 7 Tage, Gewinner-Historie, „Jetzt küren“. |
 | **Web-Konsole** | `/console` | 🛡️ Nachrichten verwalten | Kanäle live mitlesen, als Bot schreiben, antworten oder löschen - alles im Audit-Log. |
 | **Eigene Befehle** | `/custom-commands` | 🔒 Admin | Eigene `/befehle` (z. B. `/ts`) mit Text- oder Embed-Antwort, optional auch als `!befehl`. |
@@ -139,17 +146,14 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | **Benutzerverwaltung** | `/users` | 🔒 Admin | Mitgliederliste mit Nickname-Änderung, Rollen-Zuweisung, XP-Korrektur und Admin-Notizen. |
 | **Moderation & Knast** | `/moderation` | 🔒 Admin | Warns, Timeouts, Kicks, Bans, Gefängnis-System (`/knast`), Bad-Name-Filter und Schimpfwort-Blacklist. |
 | **Support-Tickets** | `/tickets` | 🔒 Admin | Live-Chat mit 2s Polling, Transkripte mit Embeds/Avataren und Support-Kategorie-Setup. |
-| **Level & Talk-Rangliste** | `/stats` | 🌍 Öffentlich | Top Levels (bis Stufe 25), Voice-Zeiten, Talk-Duos, XP-Regelwerk und Nutzer-Aufschlüsselung. |
 | **VoiceMaster Lobbies** | `/voice` | 🔒 Admin | Join-to-Create Konfiguration, Master-Kanal & interaktives Steuerungs-Panel. |
 | **Live-Streamer Manager** | `/live` | 🔒 Admin | Automatische Twitch-/YouTube-Erkennung, Stream-Alerts und temporäre Kanäle. |
 | **Rollen & Verifikation** | `/roles` | 🔒 Admin | Regel-Akzeptanz (`@Gast`) und Benachrichtigungs-Rollen `bn.live`, `bn.free`, `bn.gamenews`, `bn.treiber`. |
-| **Gratis-Spiele** | `/free-games` | 🔒 Admin | Scan nach 100% kostenlosen Vollversionen (Epic Games, Steam, GOG) mit Deep-Links. |
-| **Game-News & Treiber** | `/news` | 🔒 Admin | Patchnotes & Updates für Spiele (`#game-news`) und getrennt davon neue NVIDIA-/AMD-/Intel-Treiber (`#treiber-news`), eigene Steam-Spiele per Link. |
 | **Audit-Logs** | `/logs` | 🔒 Admin | Stille Protokollierung von Server-Aktionen (`SuppressNotifications`). |
 | **Server-Backups** | `/backups` | 🔒 Admin | 1-Klick JSON-Snapshots aller Rollen, Kanäle und Einstellungen mit Wiederherstellung. |
 | **Server-Regeln** | `/rules` | 🔒 Admin | Regel-Editor mit Vorschau, 1-Klick-Veröffentlichung und Regel-Sperre (Server erst nach Bestätigung sichtbar). |
-| **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 41 Slash-Befehle mit Beschreibungen. |
-| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.14.0. |
+| **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 47 Slash-Befehle mit Beschreibungen. |
+| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.18.2. |
 
 ---
 
@@ -237,31 +241,75 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 ### 9. 📰 Game-News & 🖥️ Treiber-News
 * **Getrennte Kanäle & Rollen:** `#📰・game-news` (Rolle `bn.gamenews`) für Spiel-Updates und `#🖥️・treiber-news` (Rolle `bn.treiber`) für Treiber - jeder sieht nur, was er abonniert hat.
 * **Quellen:** Steam-Ankündigungen & Patchnotes jedes Steam-Spiels (Vorschläge wie GTA V, CS2, Rust … oder eigenes Spiel per Link/App-ID), Minecraft-Versionen, NVIDIA GeForce, AMD Radeon, AMD Ryzen Chipsatz, Intel Arc (AMD/Intel als Beta).
+* **Interaktives Kachel-Magazin (`/news`):** Besucher ohne Login sehen ein visuelles Kachel-Magazin mit Titelbildern, Teaser-Texten, relativer Zeitanzeige, Live-Suche und Kategoriefiltern (*Alle*, *Spiele*, *Patchnotes*, *Treiber*).
+* **Volltext-Modal:** Klick auf eine Kachel öffnet formatierte Patchnotes mit Bildern, Listen und Direkt-Aktionen (*Im Web öffnen*, *In Steam öffnen*, *Treiber-Download*).
 * Detailansicht im Dashboard mit „Was ist enthalten?“ und den letzten Beiträgen; Verlauf aller Änderungen; angepinnte Übersicht im Kanal.
 * Prüfung alle 15 Minuten, beim Hinzufügen wird nichts Altes gepostet.
 
+### 10. 📅 Game-Release-Kalender & Blockbuster-Radar
+* **Live-Radar für Neuerscheinungen:** Übersicht der wichtigsten kommenden Spiele mit Veröffentlichungsdatum, Genres, Entwicklern/Publishern, hochauflösenden Covern und Plattform-Tags (`PC`, `PS5`, `Xbox`, `Switch`).
+* **Slash-Befehl `/releases`:**
+  * `/releases uebersicht`: Filterbar nach Zeitraum (*Diese Woche*, *Nächste Woche*, *Dieser Monat*, *Dieses Quartal*, *2026/2027*) und Plattform.
+  * `/releases post-woche`: Postet ein optisch ansprechendes Release-Embed der Woche direkt in den News-Kanal.
+* **Öffentliches Dashboard (`/releases`):** Frei ohne Login zugänglich mit Monatsnavigation, Plattform-Filtern und Suchfunktion.
+
+### 11. 💰 Community-Wirtschaft & Belohnungs-Shop
+* **Server-Währung (Coins):**
+  * Konfigurierbarer Währungsname (z. B. *Coins*, *Credits*) und Symbol (`🪙`).
+  * Einnahmequellen: Chat-Nachrichten, Voice-Aktivität und täglicher Bonus via `/daily` mit Serien-Multiplikator.
+* **Belohnungs-Shop (`/shop`):**
+  * Rollen- und Badge-Belohnungen direkt im Web oder via Slash-Command erwerben.
+  * Bestätigungs-Dialoge und Prüfung auf bereits besessene Rollen/Badges oder Rollen-Hierarchien.
+* **Transaktionen & Guthaben:**
+  * `/balance`: Zeigt das persönliche Guthaben, den Wohlstands-Rang und die letzten Transaktionen an.
+  * `/pay <mitglied> <betrag>`: Sichere Geldüberweisung zwischen Mitgliedern.
+* **Admin-Finanzverwaltung:**
+  * `/economy geben | abziehen | setzen | reset`: Manuelle Anpassung beliebiger Konten mit Notizen im Revisions-Log.
+  * Volle Verwaltung im Dashboard unter `/economy` mit Suchfunktion und Transaktions-Historie.
+
+### 12. ⚡ 1-Klick Server-Templates & Auto-Setup Wizard
+* **Vorkonfigurierte Community-Vorlagen:**
+  * **Gaming & Esports:** Spiele-Lobbys, Turniere, Team-Kanäle, VoiceMaster und Patchnotes.
+  * **Streamer & Creator:** Live-Alerts, Community-Clips, Fan-Art und VIP-Lounge.
+  * **Developer & Tech:** Git-Feeds, Release-Notes, Tech-Support und Code-Diskussionen.
+  * **Anime & Chill:** Rollenspiel, Medien-Galerien, Musik und gemütliche Talk-Ecken.
+* **Design-Stile wählbar:** *Clean* (schlicht ohne Icons), *Modern* (dezente System-Icons), *Aesthetic* (Gaming & Pastell), *Cyberpunk/Sci-Fi*.
+* **Automatisches Sicherheits-Backup:** Erstellt vor jeder Template-Anwendung automatisch einen vollständigen Snapshot (`data/backups/`), der jederzeit mit einem Klick wiederhergestellt werden kann.
+* **Einrichtungs-Modus:** Wahlweise Ergänzen fehlender Kanäle (*Non-destructive*) oder vollständiges Zurücksetzen (*Wipe & Rebuild*).
+* **Verfügbar über:** Dashboard-Seite `/templates` und Slash-Befehl `/server-setup`.
+
+### 13. 🖼️ Canvas-Rangkarte mit Badges & Custom Willkommens-Hintergrund
+* **Canvas-Rangkarte (`/rank`):**
+  * Generiert ein hochauflösendes Bild mit Avatar, Farbverlauf, Level, XP-Fortschrittsbalken, Chat-/Voice-Statistik und Daily-Streak.
+  * **Dynamische Badges:** Bis zu 5 Abzeichen (VIP, Booster, Supporter, Streamer, Staff) werden direkt auf der Rangkarte gerendert.
+* **Willkommens-Karte (`/welcome`):**
+  * Hochauflösende Begrüßungsgrafik beim Beitritt eines neuen Mitglieds mit Server-Avatar, Nutzer-Name und Mitgliederzähler.
+  * Individuelles Hintergrundbild konfigurierbar (URL oder Upload), anpassbare Farbpaletten und Textfarben im Dashboard mit Live-Canvas-Vorschau und Test-Button.
+
 ---
 
-## 💻 Befehlsübersicht (41 Slash-Befehle)
+## 💻 Befehlsübersicht (47 Slash-Befehle)
 
 | Befehl | Beschreibung | Berechtigung |
 |---|---|---|
 | `/help` | Übersicht aller Befehle mit Link zum Dashboard. | Alle |
 | `/ping` | Zeigt die Latenz des Bots (im Chat auch `!ping`). | Alle |
-| `/rank [mitglied]` | Grafische Rangkarte (Bild) mit Level, Rang, Fortschritt, XP-Herkunft und Daily-Serie. | Alle |
-| `/level status [oeffentlich]` | Eigener Level-Status: wie viele XP / Nachrichten / Voice-Minuten bis zum nächsten Level fehlen (nur für dich sichtbar). | Alle |
-| `/level sync-roles [mitglied]` | Verdiente Level-Belohnungsrollen nachträglich vergeben. | Alle |
-| `/daily` | Tägliche XP-Belohnung mit Streak-Bonus. | Alle |
+| `/rank [mitglied]` | Grafische Canvas-Rangkarte mit Level, Badges, Rang, Fortschritt, XP-Herkunft und Daily-Serie. | Alle |
+| `/level status \| sync-roles` | Eigener Level-Fortschritt bzw. verdiente Belohnungsrollen nachträglich vergeben. | Alle |
+| `/daily` | Tägliche Belohnung: Coins und XP mit Streak-Bonus. | Alle |
+| `/balance [mitglied]` | Zeigt das aktuelle Coin-Guthaben, Vermögens-Rang und die letzten Transaktionen an. | Alle |
+| `/pay <mitglied> <betrag>` | Überweist Coins sicher an ein anderes Mitglied. | Alle |
+| `/shop uebersicht \| kaufen [artikel]` | Belohnungs-Shop: Exklusive Rollen und Badges mit Coins durchstöbern oder kaufen. | Alle |
+| `/releases uebersicht \| post-woche` | Game-Release-Kalender: Kommende Blockbuster nach Zeitraum & Plattform filtern oder im Kanal posten. | Alle |
 | `/serverstatus` | Live-Status der eingetragenen Game-Server. | Alle |
 | `/lfg <spiel> <spieler> [rang] [beschreibung]` | Mitspieler suchen - volle Gruppe bekommt eine eigene Lobby. | Alle |
 | `/birthday set \| remove \| list \| setup` | Geburtstag eintragen (nur Tag & Monat), nächste Geburtstage, Kanal & Rolle einrichten. | Alle / Server verwalten |
-| `/leaderboard` | Top-Ranglisten für Level, Voice-Zeit und Talk-Duos. | Alle |
-| `/voice-stats` | Eigene Voice-Zeit und Top-Gesprächspartner. | Alle |
-| `/top-voice` | Rangliste der meisten Sprachzeit. | Alle |
+| `/leaderboard [kategorie]` | Top-Ranglisten für Gesamt-XP, Voice-Zeit, Chat-Aktivität und Reichtum. | Alle |
+| `/voice-stats [mitglied]` | Eigene Voice-Zeit und Top-Gesprächspartner. | Alle |
+| `/top-voice` | Rangliste der aktivsten Sprach-Duos und Voice-Nutzer. | Alle |
 | `/suggest neu \| status` | Vorschlag mit Abstimmungs-Buttons einreichen bzw. Status setzen. | Alle / Server verwalten |
 | `/giveaway start \| end \| reroll` | Verlosungen mit Teilnahme-Button und automatischer Ziehung. | Server verwalten |
-| `/free-games list` | Aktuell kostenlose Spiele (nur für dich sichtbar). | Alle |
-| `/free-games post \| einstellungen` | Sofort posten bzw. Stores an/aus. | Server verwalten |
+| `/free-games list \| post \| einstellungen` | Aktuell kostenlose Spiele anzeigen (nur für dich), sofort posten oder Stores an/aus. | Alle / Server verwalten |
 | `/twitch-live start \| stop` | Sich selbst als live melden bzw. beenden. | Alle |
 | `/voice lock \| unlock \| hide \| unhide \| name \| limit \| bitrate \| permit \| reject \| transfer \| claim` | Eigene Lobby steuern. | Lobby-Besitzer |
 | `/warn <mitglied> <grund>` | Verwarnung mit XP-Abzug. | Mitglieder moderieren |
@@ -275,17 +323,20 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | `/sticky set \| remove` | Hinweis als letzte Nachricht im Kanal fixieren. | Nachrichten verwalten |
 | `/dm <nachricht> [empfaenger]` | Private Nachricht im Namen des Servers. | Nachrichten verwalten |
 | `/setup-voice set \| status \| disable` | Join-to-Create einrichten. | Kanäle verwalten |
-| `/voice-panel` / `/interface` | Voice-Steuerungs-Panel posten. | Kanäle verwalten |
+| `/voice-panel` | Voice-Steuerungs-Panel posten. | Kanäle verwalten |
+| `/interface` | Alternatives Steuerungs-Panel für Voice-Lobbys posten. | Kanäle verwalten |
 | `/setup-live set \| status \| disable` | Live-Rolle, Kategorie und Kanal-Art einrichten. | Kanäle verwalten |
 | `/streamer add \| edit \| remove \| list \| check` | Twitch-/YouTube-Alerts verwalten. | Kanäle verwalten |
 | `/stream-panel` | Steuer-Panel für den Live-Kanal (Passwort, Limit, Name, Sperren, Bitrate). | Kanäle verwalten |
 | `/setup-roles set \| panel \| auto \| status` | Rollen & Rollen-Panel einrichten (`auto` legt alle Rollen und Kanäle an). | Rollen verwalten |
 | `/setup-all [bereich] [regel_sperre]` | Alle fehlenden Rollen & Kanäle auf einmal einrichten. | Administrator |
+| `/server-setup [template] [style] [wipe]` | 1-Klick Server-Templates: Richtet komplette Server-Struktur mit wählbarem Stil ein. | Administrator |
+| `/economy geben \| abziehen \| setzen \| reset` | Wirtschaftssystem verwalten und Nutzer-Guthaben anpassen. | Administrator |
 | `/modules status \| enable \| disable \| toggle` | Funktionen (Module) an- oder ausschalten. | Administrator |
 | `/server-stats einrichten \| entfernen \| status` | Statistik-Kanäle mit Live-Zählern ganz oben. | Kanäle verwalten |
 | `/setup-rules post \| lock \| unlock` | Regeln posten, Regel-Sperre an/aus. | Administrator |
 | `/setup-tickets` | Ticket-Panel posten. | Administrator |
-| `/setup-logs` | Audit-Log-Kanal einrichten. | Administrator |
+| `/setup-logs set \| toggle` | Audit-Log-Kanal einrichten und Kategorien an/aus. | Administrator |
 | `/logs list \| search` | Audit-Log durchsuchen. | Audit-Log anzeigen |
 | `/backup create \| list \| restore \| export \| delete` | Server-Backups verwalten. | Administrator |
 
@@ -331,7 +382,7 @@ Ein Bot kann bis zu **5 Discord-Server** gleichzeitig betreuen - aber nur Server
 
 ## 🔐 Authentifizierung & Rechte
 
-* **Öffentliche Seiten:** `/hilfe`, `/changelog` und `/stats` sind ohne Login direkt zugänglich.
+* **Öffentliche Seiten:** `/hilfe`, `/changelog`, `/stats`, `/free-games`, `/news`, `/releases` und `/economy` sind ohne Login direkt für Gäste und Besucher zugänglich.
 * **Geschützte Admin-Bereiche:** Anmeldung erfolgt über Discord OAuth2. Zugriff haben Server-Owner, Mitglieder mit *Administrator* oder *Server verwalten*, sowie alle in `DASHBOARD_ROLE_IDS` bzw. `DASHBOARD_USER_IDS` hinterlegten Accounts.
 * **Automatischer Logout:** Die Rechte werden jede Minute bei Discord neu geprüft. Wird der Admin-Zugang entzogen oder der Server verlassen, ist man beim nächsten Klick abgemeldet.
 * **Öffentliche Statistik:** Ohne Login sind nur Level und XP sichtbar - Moderationsfälle und Gesprächspartner nur für eingeloggte Admins.
