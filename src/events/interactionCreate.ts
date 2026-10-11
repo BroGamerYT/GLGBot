@@ -60,6 +60,18 @@ const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
       return;
     }
 
+    // Modul-Prüfung für Buttons, Dropdowns & Formulare (z. B. Ticket-Button bei ausgeschaltetem Ticket-Modul)
+    if ((interaction.isButton() || interaction.isStringSelectMenu() || interaction.isModalSubmit()) && interaction.guildId) {
+      const modId = moduleService.moduleForComponent(interaction.customId);
+      if (modId && !moduleService.isEnabled(interaction.guildId, modId)) {
+        const name = moduleService.getModuleById(modId)?.name || modId;
+        await interaction
+          .reply({ content: `⚠️ Das Modul **${name}** ist auf diesem Server aktuell ausgeschaltet.`, ephemeral: true })
+          .catch(() => null);
+        return;
+      }
+    }
+
     // 2. Dropdown Menüs (Voice & Streamer Panel)
     if (interaction.isStringSelectMenu()) {
       if (

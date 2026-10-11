@@ -11,6 +11,7 @@ import {
   TextChannel,
 } from "discord.js";
 import { rolePanelService } from "./rolePanelService";
+import { moduleService } from "./moduleService";
 
 /**
  * Gratis-Spiele-Tracker (ähnlich PatchBot).
@@ -506,6 +507,7 @@ class FreeGamesService {
     if (!this.running) {
       this.running = (async () => {
         for (const guild of client.guilds.cache.values()) {
+          if (!moduleService.isEnabled(guild.id, "freeGames")) continue; // Modul ausgeschaltet
           const r = await this.postFreeGames(guild).catch((e) => {
             console.error("[FreeGames] Fehler im automatischen Check:", e);
             return { count: 0 };

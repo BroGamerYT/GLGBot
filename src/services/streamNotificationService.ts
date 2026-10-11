@@ -9,6 +9,7 @@ import {
   MessageFlags,
 } from "discord.js";
 import { liveStreamService } from "./liveStreamService";
+import { moduleService } from "./moduleService";
 
 export interface StreamNotification {
   id: string;
@@ -427,6 +428,7 @@ class StreamNotificationService {
       try {
         const guild = this.client.guilds.cache.get(notif.guildId);
         if (!guild) continue;
+        if (!moduleService.isEnabled(guild.id, "live")) continue; // Modul ausgeschaltet
 
         let isNowLive = false;
         let streamData: any = null;

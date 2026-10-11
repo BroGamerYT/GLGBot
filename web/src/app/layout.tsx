@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { Mic, Radio, LayoutDashboard, Shield, LogOut, Gift, ScrollText, LifeBuoy, FileText, Archive, Newspaper, Palette, Ticket, Trophy, Sparkles, LogIn, Gavel, Wand2 } from "lucide-react";
+import { Mic, Radio, LayoutDashboard, Shield, LogOut, Gift, ScrollText, LifeBuoy, FileText, Archive, Newspaper, Palette, Ticket, Trophy, Sparkles, LogIn, Gavel, Wand2, Blocks } from "lucide-react";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
 import { BRANDING, BOT_INITIALS, DASHBOARD_HOST } from "@/lib/branding";
 
@@ -124,6 +124,13 @@ export default async function RootLayout({
               >
                 <Wand2 className="w-4 h-4 text-indigo-300" />
                 Server einrichten
+              </Link>
+              <Link
+                href="/modules"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
+              >
+                <Blocks className="w-4 h-4 text-indigo-300" />
+                Module
               </Link>
               <Link
                 href="/voice"

@@ -19,6 +19,10 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
   * Alle Bot-Funktionen sind jetzt in 15 eigenständige Module unterteilt (`voice`, `live`, `levels`, `tickets`, `moderation`, `prison`, `freeGames`, `gameNews`, `auditLogs`, `rules`, `roles`, `sticky`, `suggestions`, `giveaways`, `daily`).
   * Jederzeit per Discord-Befehl `/modules status`, `/modules enable`, `/modules disable` und `/modules toggle` oder per interner API umschaltbar.
   * Dynamische Event-Gates für Befehle, Nachrichten, Voice-Events und Streamer-Status.
+  * Dashboard-Seite **„Module“** (`/modules`) mit Schaltern pro Modul, sortiert nach Kategorie.
+  * Ausgeschaltete Module pausieren auch ihre Hintergrund-Aufgaben (Free-Games- & News-Check, Twitch-/YouTube-Abfrage, Voice-XP) und ihre Buttons/Panels (Ticket-Button, Rollen-Panel, Voice- & Streamer-Panel, Vorschläge, Giveaways). Offene Tickets lassen sich weiterhin schließen.
+  * „Server einrichten“ bietet nur Bereiche eingeschalteter Module an.
+  * Ausschalten löscht keine Daten - beim Wieder-Einschalten ist alles wie vorher.
 * **Öffentlicher Gast-Zugang für Free Games & Game News:**
   * Kostenlose Spiele (`/free-games`) und Game-News (`/news`) sind jetzt im Web-Dashboard für alle Gäste ohne Discord-Login lesbar.
   * Admin-Steuerelemente (Discord-Repost, Feed-Konfiguration, Hinzufügen-Formulare) bleiben geschützt und werden nur eingeloggten Administratoren angezeigt.

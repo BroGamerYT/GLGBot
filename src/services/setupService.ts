@@ -7,6 +7,19 @@ import { ticketService } from "./ticketService";
 import { auditLogService } from "./auditLogService";
 import { prisonService } from "./prisonService";
 import { createVoicePanelComponents, createVoicePanelEmbed } from "../commands/voice/voicePanel";
+import { moduleService, BotModuleId } from "./moduleService";
+
+/** Welches abschaltbare Bot-Modul gehört zu welchem Einrichtungs-Bereich? */
+const BOT_MODULE_FOR: Record<string, BotModuleId> = {
+  roles: "roles",
+  rules: "rules",
+  lock: "rules",
+  voice: "voice",
+  live: "live",
+  tickets: "tickets",
+  logs: "auditLogs",
+  prison: "prison",
+};
 
 /**
  * Komplett-Einrichtung: legt für ausgewählte Bereiche alle fehlenden Rollen & Kanäle an.
@@ -92,6 +105,13 @@ class SetupService {
     };
   }
 
+  /** Ist das zugehörige Modul eingeschaltet? (siehe /modules) */
+  public getModuleEnabled(guildId: string): Record<SetupModule, boolean> {
+    const out = {} as Record<SetupModule, boolean>;
+    for (const m of SETUP_MODULES) out[m] = moduleService.isEnabled(guildId, BOT_MODULE_FOR[m]);
+    return out;
+  }
+
   public isRunning(guildId: string) {
     return this.running.has(guildId);
   }
@@ -120,6 +140,9 @@ class SetupService {
       for (const m of modules) {
         const result: ModuleResult = { module: m, label: MODULE_INFO[m].label, ok: true, items: [] };
         try {
+          if (!moduleService.isEnabled(guild.id, BOT_MODULE_FOR[m])) {
+            throw new Error("Das Modul ist ausgeschaltet - zuerst unter „Module“ bzw. mit /modules einschalten.");
+          }
           await this.runModule(guild, m, result.items);
         } catch (e: any) {
           result.ok = false;

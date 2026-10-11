@@ -11,6 +11,7 @@ import {
   MessageFlags,
 } from "discord.js";
 import { NEWS_CATALOG, NEWS_INCLUDES, NewsSourceType, steamImage } from "../config/newsCatalog";
+import { moduleService } from "./moduleService";
 
 /**
  * Game-News (ähnlich PatchBot): Spiel-Updates & Treiber-Releases in Discord-Kanäle posten.
@@ -484,6 +485,7 @@ class GameNewsService {
     for (const [guildId, { feeds }] of Object.entries(this.data.guilds)) {
       const guild = this.client.guilds.cache.get(guildId);
       if (!guild) continue;
+      if (!moduleService.isEnabled(guildId, "gameNews")) continue; // Modul ausgeschaltet
 
       for (const feed of feeds.filter((f) => f.enabled)) {
         try {

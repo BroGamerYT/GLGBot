@@ -181,7 +181,8 @@ class ModuleService {
   private saveConfig() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(CONFIG_FILE, JSON.stringify(this.config, null, 2), "utf-8");
+      fs.writeFileSync(CONFIG_FILE + ".tmp", JSON.stringify(this.config, null, 2), "utf-8");
+      fs.renameSync(CONFIG_FILE + ".tmp", CONFIG_FILE);
     } catch (e) {
       console.error("[ModuleService] Fehler beim Speichern der Modul-Konfiguration:", e);
     }
@@ -227,6 +228,23 @@ class ModuleService {
 
   public getModuleById(moduleId: string): BotModuleInfo | undefined {
     return BOT_MODULES.find((m) => m.id === moduleId);
+  }
+
+  /**
+   * Zu welchem Modul gehört ein Button / Dropdown / Formular (customId)?
+   * null = gehört zu keinem abschaltbaren Modul.
+   * Ticket schließen & Transkript bleiben immer nutzbar, damit offene Tickets nicht hängen bleiben.
+   */
+  public moduleForComponent(customId: string): BotModuleId | null {
+    const id = customId.toLowerCase();
+    if (id === "role_btn_rules") return "rules";
+    if (id.startsWith("role_btn_")) return "roles";
+    if (id.startsWith("voice_") || id.startsWith("modal_voice_")) return "voice";
+    if (id.startsWith("stream_") || id.startsWith("modal_stream_")) return "live";
+    if (id === "btn_ticket_create") return "tickets";
+    if (id.startsWith("btn_sugg_")) return "suggestions";
+    if (id.startsWith("giveaway_")) return "giveaways";
+    return null;
   }
 
   public isCommandEnabled(

@@ -45,6 +45,7 @@ interface ModuleResult {
 interface SetupData {
   modules: ModuleInfo[];
   status: Record<ModuleId, boolean>;
+  moduleEnabled?: Record<ModuleId, boolean>;
   running: boolean;
   botPermissions: { administrator: boolean; manageRoles: boolean; manageChannels: boolean };
 }
@@ -79,7 +80,7 @@ export default function SetupPage() {
       if (!res.ok) throw new Error(json.error);
       setData(json);
       if (preselect) {
-        setSelected(new Set(json.modules.map((m: ModuleInfo) => m.id).filter((id: ModuleId) => !json.status[id] && !OPT_IN.includes(id))));
+        setSelected(new Set(json.modules.map((m: ModuleInfo) => m.id).filter((id: ModuleId) => !json.status[id] && !OPT_IN.includes(id) && json.moduleEnabled?.[id] !== false)));
       }
     } catch (e: any) {
       setError(e.message || "Konnte den Status nicht laden.");
@@ -219,6 +220,7 @@ export default function SetupPage() {
             {data?.modules.map((m) => {
               const { icon: Icon, color, link } = ICONS[m.id];
               const done = data.status[m.id];
+              const moduleOff = data.moduleEnabled?.[m.id] === false;
               const checked = selected.has(m.id);
               return (
                 <label
@@ -231,7 +233,7 @@ export default function SetupPage() {
                     type="checkbox"
                     checked={checked}
                     onChange={() => toggle(m.id)}
-                    disabled={running}
+                    disabled={running || moduleOff}
                     className="mt-1 w-4 h-4 accent-discord-blurple"
                   />
                   <Icon className={`w-5 h-5 mt-0.5 shrink-0 ${color}`} />
@@ -248,6 +250,11 @@ export default function SetupPage() {
                         </span>
                       )}
                       {OPT_IN.includes(m.id) && <span className="text-[10px] text-orange-400">optional</span>}
+                      {moduleOff && (
+                        <Link href="/modules" onClick={(e) => e.stopPropagation()} className="text-[10px] text-gray-400 underline">
+                          Modul ausgeschaltet
+                        </Link>
+                      )}
                     </div>
                     <p className="text-xs text-gray-400 mt-1">{m.description}</p>
                   </div>

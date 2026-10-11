@@ -118,6 +118,7 @@ export function startInternalApi(client: Client) {
           return send(res, 200, {
             modules: SETUP_MODULES.map((id) => ({ id, ...MODULE_INFO[id] })),
             status: setupService.getStatus(guild),
+            moduleEnabled: setupService.getModuleEnabled(guild.id),
             running: setupService.isRunning(guild.id),
             botPermissions: {
               administrator: !!me?.permissions.has(PermissionFlagsBits.Administrator),

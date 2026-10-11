@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { Guild, User, Client, ChannelType, GuildMember } from "discord.js";
 import { readJsonFile, writeJsonAtomic } from "../utils/jsonFile";
+import { moduleService } from "./moduleService";
 
 export interface TalkPartnerEntry {
   tag: string;
@@ -376,6 +377,7 @@ class StatsService {
 
     this.trackerInterval = setInterval(() => {
       for (const guild of client.guilds.cache.values()) {
+        if (!moduleService.isEnabled(guild.id, "levels")) continue; // Modul ausgeschaltet
         const afkChannelId = guild.afkChannelId;
         const cfg = this.getConfig(guild.id);
 
