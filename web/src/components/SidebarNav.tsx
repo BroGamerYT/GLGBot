@@ -33,6 +33,7 @@ import {
   AlarmClock,
   Zap,
   HandHeart,
+  MonitorPlay,
 } from "lucide-react";
 
 interface NavItem {
@@ -74,6 +75,7 @@ const GROUPS: NavGroup[] = [
       { href: "/stats", label: "Level & Rangliste", icon: Trophy, color: "text-amber-400" },
       { href: "/free-games", label: "Free-Games", icon: Gift, color: "text-discord-green" },
       { href: "/news", label: "Game-News", icon: Newspaper, color: "text-orange-400" },
+      { href: "/game-servers", label: "Game-Server", icon: MonitorPlay, color: "text-emerald-400" },
       { href: "/birthdays", label: "Geburtstage", icon: Cake, color: "text-pink-400" },
       { href: "/welcome", label: "Willkommens-Karte", icon: HandHeart, color: "text-pink-300" },
     ],

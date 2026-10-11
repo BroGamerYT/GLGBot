@@ -2,13 +2,14 @@ import { ChannelType, Client, Guild, PermissionFlagsBits, VoiceChannel } from "d
 import { GuildStore } from "../utils/guildStore";
 import { moduleService } from "./moduleService";
 import { liveStreamService } from "./liveStreamService";
+import { gameServerService } from "./gameServerService";
 
 /**
  * Live-Statistik-Kanäle: gesperrte Sprachkanäle ganz oben, deren Name einen Zähler zeigt
  * (z. B. "👥・Mitglieder: 1.250"). Discord erlaubt nur 2 Umbenennungen pro 10 Minuten und Kanal,
  * deshalb wird alle 10 Minuten aktualisiert und nur, wenn sich der Wert geändert hat.
  */
-export type CounterId = "members" | "humans" | "online" | "voice" | "live" | "boosts";
+export type CounterId = "members" | "humans" | "online" | "voice" | "live" | "boosts" | "gameservers";
 
 export const COUNTERS: Record<CounterId, { label: string; template: string; description: string }> = {
   members: { label: "Mitglieder (alle)", template: "👥・Mitglieder: {count}", description: "Alle Mitglieder inkl. Bots" },
@@ -17,6 +18,7 @@ export const COUNTERS: Record<CounterId, { label: string; template: string; desc
   voice: { label: "Im Voice", template: "🔊・Im Voice: {count}", description: "Mitglieder in Sprachkanälen (ohne AFK-Kanal)" },
   live: { label: "Gerade live", template: "🔴・Gerade live: {count}", description: "Mitglieder, die gerade streamen" },
   boosts: { label: "Server-Boosts", template: "🚀・Boosts: {count}", description: "Anzahl der Server-Boosts" },
+  gameservers: { label: "Game-Server online", template: "🎮・Game-Server: {count}", description: "Wie viele eingetragene Game-Server online sind (z. B. 2/3)" },
 };
 
 interface CounterConfig {
@@ -42,6 +44,15 @@ class StatsChannelsService {
     return store.get(guildId);
   }
 
+  /** Anzeige-Wert eines Zählers (Zahl, bei Game-Servern "online/gesamt"). */
+  public display(guild: Guild, id: CounterId): string {
+    if (id === "gameservers") {
+      const { online, total } = gameServerService.onlineCount(guild.id);
+      return `${online}/${total}`;
+    }
+    return this.count(guild, id).toLocaleString("de-DE");
+  }
+
   /** Aktueller Wert eines Zählers. */
   public count(guild: Guild, id: CounterId): number {
     switch (id) {
@@ -57,11 +68,13 @@ class StatsChannelsService {
         return liveStreamService.getActiveEntries(guild.id).length;
       case "boosts":
         return guild.premiumSubscriptionCount || 0;
+      case "gameservers":
+        return gameServerService.onlineCount(guild.id).online;
     }
   }
 
-  public render(template: string, value: number): string {
-    const name = (template || "{count}").replace(/{count}/g, value.toLocaleString("de-DE"));
+  public render(template: string, value: string): string {
+    const name = (template || "{count}").replace(/{count}/g, value);
     return name.slice(0, 100);
   }
 
@@ -96,7 +109,7 @@ class StatsChannelsService {
       const template = (w?.template || current?.template || COUNTERS[id].template).slice(0, 90);
       if (w?.enabled) {
         let channel = current?.channelId ? guild.channels.cache.get(current.channelId) : undefined;
-        const name = this.render(template, this.count(guild, id));
+        const name = this.render(template, this.display(guild, id));
         if (!channel) {
           channel = await guild.channels.create({
             name,
@@ -147,7 +160,7 @@ class StatsChannelsService {
       if (!c?.enabled || !c.channelId) continue;
       const channel = guild.channels.cache.get(c.channelId);
       if (!channel) continue;
-      const name = this.render(c.template, this.count(guild, id));
+      const name = this.render(c.template, this.display(guild, id));
       if (name !== channel.name) {
         await (channel as VoiceChannel).setName(name).catch((e) => console.warn(`[StatsChannels] ${guild.name}: ${e?.message || e}`));
         c.lastName = name;

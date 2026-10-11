@@ -85,6 +85,9 @@ const ALLOWED = new Set([
   "POST welcome",
   "POST welcome/preview",
   "POST welcome/test",
+  "GET game-servers",
+  "POST game-servers",
+  "POST game-servers/delete",
 ]);
 
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {

@@ -46,10 +46,30 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.12.0",
+    version: "v2.13.0",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Game-Server-Status",
+    description: "Minecraft-, CS2-/Source- und TeamSpeak-Server live im Blick - im Dashboard, mit /serverstatus und als Statistik-Kanal.",
+    highlights: [
+      {
+        icon: Radio,
+        title: "Live-Status",
+        description: "Online/offline, Spieler, Map und Version - alle 2 Minuten aktualisiert, Adresse mit einem Klick kopieren.",
+      },
+      {
+        icon: Tag,
+        title: "Zähler-Kanal",
+        description: "Neuer Statistik-Kanal „🎮・Game-Server: 2/3“ zeigt, wie viele eurer Server gerade laufen.",
+      },
+    ],
+  },
+  {
+    version: "v2.12.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Grafische Rang- & Willkommens-Karten",
     description: "/rank zeigt jetzt eine echte Rangkarte als Bild, und neue Mitglieder werden mit einer eigenen Willkommens-Karte begrüßt.",
     highlights: [

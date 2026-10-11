@@ -2,7 +2,7 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.12.0 (siehe History ganz unten)
+**Aktueller Stand:** v2.13.0 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
@@ -99,10 +99,10 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-### 8. 🌐 TeamSpeak- & Game-Server Status-Widget
-* [ ] Live-Status-Abfrage für eigene Game-Server (TeamSpeak 3 / CS2 / Minecraft / etc.) – Server-Adressen im Dashboard einstellbar.
-* [ ] Anzeige im Web-Dashboard (Online-Status, Spieleranzahl, IP zum Kopieren).
-* [ ] Discord-Slash-Befehl `/serverstatus` mit Live-Embed.
+### 8. 🌐 TeamSpeak- & Game-Server Status-Widget ✅ v2.13.0
+* [x] Live-Status-Abfrage für eigene Game-Server (TeamSpeak 3 / CS2 / Minecraft / etc.) – Server-Adressen im Dashboard einstellbar.
+* [x] Anzeige im Web-Dashboard (Online-Status, Spieleranzahl, IP zum Kopieren).
+* [x] Discord-Slash-Befehl `/serverstatus` mit Live-Embed.
 
 ---
 
@@ -183,7 +183,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
   * [x] `👥・Mitglieder: 1.250`
   * [x] `🔊・Im Voice: 24`
   * [x] `🔴・Gerade Live: 3`
-  * [ ] `🎮・Game Server: Online` *(kommt mit Punkt 8)*
+  * [x] `🎮・Game-Server: 2/3` *(v2.13.0)*
 * [x] Vollständig konfigurierbar im Web-Dashboard (welche Counter aktiv sind, Emojis und Beschriftungen).
 
 ---
@@ -324,7 +324,9 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.12.0 (Aktuell):**
+* [x] **v2.13.0 (Aktuell):**
+  * [x] Game-Server-Status (Minecraft, Source/Steam, Port-Check), `/serverstatus`, Statistik-Kanal „Game-Server“.
+* [x] **v2.12.0:**
   * [x] Grafische Rangkarte bei `/rank`, Willkommens-Karte mit Dashboard-Seite, automatische Rolle (nur ohne Regel-Sperre).
 * [x] **v2.11.0:**
   * [x] `/lfg` Mitspieler-Suche mit eigener Lobby, eigene Befehle im Dashboard.

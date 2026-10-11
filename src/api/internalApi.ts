@@ -22,6 +22,7 @@ import { birthdayService, DEFAULT_BIRTHDAY_MESSAGE } from "../services/birthdayS
 import { announcementService } from "../services/announcementService";
 import { customCommandService, MAX_CUSTOM_COMMANDS } from "../services/customCommandService";
 import { welcomeService, WELCOME_DEFAULTS } from "../services/welcomeService";
+import { gameServerService, MAX_GAME_SERVERS, DEFAULT_PORTS } from "../services/gameServerService";
 import { moduleService } from "../services/moduleService";
 import { liveStreamService } from "../services/liveStreamService";
 
@@ -207,7 +208,7 @@ export function startInternalApi(client: Client) {
               enabled: !!cfg.counters[id]?.enabled,
               template: cfg.counters[id]?.template || COUNTERS[id].template,
               channelId: cfg.counters[id]?.channelId || null,
-              value: statsChannelsService.count(guild, id),
+              value: statsChannelsService.display(guild, id),
             })),
           });
         }
@@ -425,6 +426,36 @@ export function startInternalApi(client: Client) {
           } catch (e: any) {
             return send(res, 400, { error: e?.message || "Senden fehlgeschlagen." });
           }
+        }
+
+        // ---------------- Game-Server-Status ----------------
+        case "GET /game-servers": {
+          if (!isLoggedIn) return send(res, 401, { error: "Bitte einloggen." });
+          const fresh = (req.url || "").includes("refresh=1");
+          if (fresh) await gameServerService.checkGuild(guild.id);
+          return send(res, 200, {
+            max: MAX_GAME_SERVERS,
+            defaultPorts: DEFAULT_PORTS,
+            servers: gameServerService.list(guild.id).map((s) => ({ ...s, status: gameServerService.getStatus(s.id) || null })),
+          });
+        }
+        case "POST /game-servers": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageGuild) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Server verwalten“." });
+          }
+          const result = gameServerService.save(guild.id, await readBody(req));
+          if ("error" in result) return send(res, 400, { error: result.error });
+          const status = await gameServerService.check(result.item);
+          return send(res, 200, { ok: true, item: result.item, status });
+        }
+        case "POST /game-servers/delete": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageGuild) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Server verwalten“." });
+          }
+          const body = await readBody(req);
+          return send(res, 200, { ok: gameServerService.remove(guild.id, String(body?.id || "")) });
         }
 
         // ---------------- Komplett-Einrichtung ----------------

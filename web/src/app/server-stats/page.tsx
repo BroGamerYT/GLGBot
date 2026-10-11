@@ -10,7 +10,7 @@ interface Counter {
   template: string;
   enabled: boolean;
   channelId: string | null;
-  value: number;
+  value: string;
 }
 
 export default function ServerStatsPage() {
@@ -120,7 +120,7 @@ export default function ServerStatsPage() {
                       <p className="font-semibold text-white text-sm">{c.label}</p>
                       <p className="text-xs text-gray-400">{c.description}</p>
                     </div>
-                    <span className="text-xs text-gray-500 shrink-0">aktuell: {c.value.toLocaleString("de-DE")}</span>
+                    <span className="text-xs text-gray-500 shrink-0">aktuell: {c.value}</span>
                   </div>
                   {c.enabled && (
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -131,7 +131,7 @@ export default function ServerStatsPage() {
                         className="flex-1 bg-discord-dark border border-discord-border rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-discord-blurple"
                       />
                       <span className="text-xs text-gray-400 shrink-0">
-                        Vorschau: <span className="text-white">🔊 {c.template.replace(/{count}/g, c.value.toLocaleString("de-DE"))}</span>
+                        Vorschau: <span className="text-white">🔊 {c.template.replace(/{count}/g, c.value)}</span>
                       </span>
                     </div>
                   )}

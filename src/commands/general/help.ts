@@ -69,6 +69,7 @@ const helpCommand: Command = {
           name: "🎮 Gaming & Benachrichtigungen",
           value:
             "`/free-games list|post` • Kostenlose Spiele von Epic, Steam & GOG\n" +
+            "`/serverstatus` • Live-Status unserer Game-Server\n" +
             "`/twitch-live start|stop` • Verwaltet persönliche Live-Stream Kanäle\n" +
             "`/setup-live` • Richtet Live-Rolle & Live-Kanäle ein\n" +
             "`/stream-panel` • Steuer-Panel für deinen Live-Kanal (Passwort, Limit, Name)\n" +

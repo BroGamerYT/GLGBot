@@ -6,6 +6,17 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.13.0] - 2026-10-11
+
+### Hinzugefügt
+* **Game-Server-Status (Dashboard „Game-Server“, `/serverstatus`):** Bis zu 10 eigene Server pro Discord-Server, Prüfung alle 2 Minuten.
+  * **Minecraft (Java):** online, Spieler, Version, MOTD.
+  * **Source/Steam (A2S):** CS2, CS:GO, Rust, ARK, Garry's Mod, TF2, Valheim … - Spieler, Map, Spiel.
+  * **Port-Check:** nur online/offline, z. B. für TeamSpeak oder eine Webseite.
+  * Eigene Anzeige-Adresse für Spieler (z. B. Domain statt LAN-IP) mit Kopieren-Knopf.
+* **Statistik-Kanal „Game-Server“:** zeigt z. B. `🎮・Game-Server: 2/3`.
+* Neues Modul „Game-Server-Status“ (auf neuen Servern zunächst aus).
+
 ## [2.12.0] - 2026-10-11
 
 ### Hinzugefügt

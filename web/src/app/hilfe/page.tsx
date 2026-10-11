@@ -97,6 +97,7 @@ const COMMANDS: { group: string; items: [string, string, string][] }[] = [
       ["/rank [mitglied]", "Grafische Rangkarte mit Level, Server-Rang, Fortschrittsbalken, Nachrichten, Voice-Zeit und Daily-Serie.", "Alle"],
       ["/level status", "Dein Level-Status: Fortschritt und wie viele Nachrichten / Voice-Minuten bis zum nächsten Level fehlen (nur für dich sichtbar).", "Alle"],
       ["/level sync-roles [mitglied]", "Vergibt nachträglich alle verdienten Level-Belohnungsrollen.", "Alle"],
+      ["/serverstatus", "Zeigt den Live-Status der eingetragenen Game-Server (Spieler, Map, Version, Adresse zum Kopieren).", "Alle"],
       ["/lfg [spiel] [spieler] [rang] [beschreibung]", "Mitspieler suchen: Gruppe mit Beitreten-Button. Ist sie voll, pingt der Bot alle, erstellt eine eigene Lobby und verschiebt alle, die im Voice sind.", "Alle"],
       ["/birthday set | remove | list", "Geburtstag eintragen (nur Tag & Monat), entfernen oder die nächsten Geburtstage anzeigen. Der Bot gratuliert am Tag selbst.", "Alle"],
       ["/daily", "Tägliche XP-Belohnung: 50 XP + 15 XP pro Streak-Tag (max. +150). Streak hält bis 36 Std. nach dem letzten Abholen.", "Alle"],

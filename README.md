@@ -118,6 +118,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | **Geburtstage** | `/birthdays` | 🔒 Admin | Kanal, Geburtstags-Rolle und Glückwunsch-Text einstellen, nächste Geburtstage sehen. |
 | **Geplante Ankündigungen** | `/announcements` | 🔒 Admin | Nachrichten/Embeds zu einem Zeitpunkt senden - einmalig, täglich oder wöchentlich. |
 | **Statistik-Kanäle** | `/server-stats` | 🔒 Admin | Live-Zähler ganz oben (Mitglieder, Online, Voice, Live, Boosts) mit eigenem Text. |
+| **Game-Server** | `/game-servers` | 🔒 Admin | Minecraft-, Source-(CS2, Rust, ARK …) und Port-Abfrage (z. B. TeamSpeak), Prüfung alle 2 Minuten. |
 | **Willkommens-Karte** | `/welcome` | 🔒 Admin | Grafische Karte für neue Mitglieder mit Vorschau & Test, optional automatische Rolle (nur ohne Regel-Sperre). |
 | **Eigene Befehle** | `/custom-commands` | 🔒 Admin | Eigene `/befehle` (z. B. `/ts`) mit Text- oder Embed-Antwort, optional auch als `!befehl`. |
 | **Module** | `/modules` | 🔒 Admin | Funktionen einzeln an- oder ausschalten – ausgeschaltete Module pausieren komplett, Daten bleiben erhalten. |
@@ -133,8 +134,8 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | **Audit-Logs** | `/logs` | 🔒 Admin | Stille Protokollierung von Server-Aktionen (`SuppressNotifications`). |
 | **Server-Backups** | `/backups` | 🔒 Admin | 1-Klick JSON-Snapshots aller Rollen, Kanäle und Einstellungen mit Wiederherstellung. |
 | **Server-Regeln** | `/rules` | 🔒 Admin | Regel-Editor mit Vorschau, 1-Klick-Veröffentlichung und Regel-Sperre (Server erst nach Bestätigung sichtbar). |
-| **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 40 Slash-Befehle mit Beschreibungen. |
-| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.12.0. |
+| **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 41 Slash-Befehle mit Beschreibungen. |
+| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.13.0. |
 
 ---
 
@@ -227,7 +228,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 
 ---
 
-## 💻 Befehlsübersicht (40 Slash-Befehle)
+## 💻 Befehlsübersicht (41 Slash-Befehle)
 
 | Befehl | Beschreibung | Berechtigung |
 |---|---|---|
@@ -237,6 +238,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | `/level status [oeffentlich]` | Eigener Level-Status: wie viele XP / Nachrichten / Voice-Minuten bis zum nächsten Level fehlen (nur für dich sichtbar). | Alle |
 | `/level sync-roles [mitglied]` | Verdiente Level-Belohnungsrollen nachträglich vergeben. | Alle |
 | `/daily` | Tägliche XP-Belohnung mit Streak-Bonus. | Alle |
+| `/serverstatus` | Live-Status der eingetragenen Game-Server. | Alle |
 | `/lfg <spiel> <spieler> [rang] [beschreibung]` | Mitspieler suchen - volle Gruppe bekommt eine eigene Lobby. | Alle |
 | `/birthday set \| remove \| list \| setup` | Geburtstag eintragen (nur Tag & Monat), nächste Geburtstage, Kanal & Rolle einrichten. | Alle / Server verwalten |
 | `/leaderboard` | Top-Ranglisten für Level, Voice-Zeit und Talk-Duos. | Alle |

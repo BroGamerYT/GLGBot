@@ -22,7 +22,8 @@ export type BotModuleId =
   | "announcements"
   | "lfg"
   | "customCommands"
-  | "welcome";
+  | "welcome"
+  | "gameServers";
 
 export interface BotModuleInfo {
   id: BotModuleId;
@@ -193,6 +194,14 @@ export const BOT_MODULES: BotModuleInfo[] = [
     emoji: "👋",
     category: "community",
     commands: [],
+  },
+  {
+    id: "gameServers",
+    name: "Game-Server-Status",
+    description: "Live-Status eigener Server (Minecraft, CS2 & andere Source-Spiele, TeamSpeak/Port-Check) im Dashboard und mit /serverstatus",
+    emoji: "🖥️",
+    category: "gaming",
+    commands: ["serverstatus"],
   },
   {
     id: "customCommands",

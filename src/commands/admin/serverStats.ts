@@ -4,7 +4,7 @@ import { COUNTERS, CounterId, statsChannelsService } from "../../services/statsC
 
 const IDS = Object.keys(COUNTERS) as CounterId[];
 /** Optionsnamen im Befehl (deutsch) */
-const OPT_NAME: Record<CounterId, string> = { members: "mitglieder", humans: "menschen", online: "online", voice: "voice", live: "live", boosts: "boosts" };
+const OPT_NAME: Record<CounterId, string> = { members: "mitglieder", humans: "menschen", online: "online", voice: "voice", live: "live", boosts: "boosts", gameservers: "gameserver" };
 
 const serverStatsCommand: Command = {
   data: new SlashCommandBuilder()
