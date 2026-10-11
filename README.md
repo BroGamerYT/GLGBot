@@ -112,6 +112,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | :--- | :--- | :--- | :--- |
 | **Server-Übersicht** | `/` | 🔒 Admin | Live-Zähler für Mitglieder, Kanäle, Rollen und Schnellaktionen. |
 | **Server einrichten** | `/setup` | 🔒 Admin | Bereiche ankreuzen, ein Klick legt alle fehlenden Rollen & Kanäle an (Vorhandenes wird nur verknüpft). |
+| **Module** | `/modules` | 🔒 Admin | Funktionen einzeln an- oder ausschalten – ausgeschaltete Module pausieren komplett, Daten bleiben erhalten. |
 | **Benutzerverwaltung** | `/users` | 🔒 Admin | Mitgliederliste mit Nickname-Änderung, Rollen-Zuweisung, XP-Korrektur und Admin-Notizen. |
 | **Moderation & Knast** | `/moderation` | 🔒 Admin | Warns, Timeouts, Kicks, Bans, Gefängnis-System (`/knast`), Bad-Name-Filter und Schimpfwort-Blacklist. |
 | **Support-Tickets** | `/tickets` | 🔒 Admin | Live-Chat mit 2s Polling, Transkripte mit Embeds/Avataren und Support-Kategorie-Setup. |
@@ -124,8 +125,8 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | **Audit-Logs** | `/logs` | 🔒 Admin | Stille Protokollierung von Server-Aktionen (`SuppressNotifications`). |
 | **Server-Backups** | `/backups` | 🔒 Admin | 1-Klick JSON-Snapshots aller Rollen, Kanäle und Einstellungen mit Wiederherstellung. |
 | **Server-Regeln** | `/rules` | 🔒 Admin | Regel-Editor mit Vorschau, 1-Klick-Veröffentlichung und Regel-Sperre (Server erst nach Bestätigung sichtbar). |
-| **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 33 Slash-Befehle mit Beschreibungen. |
-| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.6.0. |
+| **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 37 Slash-Befehle mit Beschreibungen. |
+| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.7.0. |
 
 ---
 
@@ -218,7 +219,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 
 ---
 
-## 💻 Befehlsübersicht (33 Slash-Befehle)
+## 💻 Befehlsübersicht (37 Slash-Befehle)
 
 | Befehl | Beschreibung | Berechtigung |
 |---|---|---|
@@ -226,10 +227,13 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | `/ping` | Zeigt die Latenz des Bots. | Alle |
 | `/rank [mitglied]` | Rangkarte mit Level, XP, Fortschritt und XP-Herkunft. | Alle |
 | `/level status [oeffentlich]` | Eigener Level-Status: wie viele XP / Nachrichten / Voice-Minuten bis zum nächsten Level fehlen (nur für dich sichtbar). | Alle |
+| `/level sync-roles [mitglied]` | Verdiente Level-Belohnungsrollen nachträglich vergeben. | Alle |
+| `/daily` | Tägliche XP-Belohnung mit Streak-Bonus. | Alle |
 | `/leaderboard` | Top-Ranglisten für Level, Voice-Zeit und Talk-Duos. | Alle |
 | `/voice-stats` | Eigene Voice-Zeit und Top-Gesprächspartner. | Alle |
 | `/top-voice` | Rangliste der meisten Sprachzeit. | Alle |
 | `/suggest neu \| status` | Vorschlag mit Abstimmungs-Buttons einreichen bzw. Status setzen. | Alle / Server verwalten |
+| `/giveaway start \| end \| reroll` | Verlosungen mit Teilnahme-Button und automatischer Ziehung. | Server verwalten |
 | `/free-games list` | Aktuell kostenlose Spiele (nur für dich sichtbar). | Alle |
 | `/free-games post \| einstellungen` | Sofort posten bzw. Stores an/aus. | Server verwalten |
 | `/twitch-live start \| stop` | Sich selbst als live melden bzw. beenden. | Alle |
@@ -248,8 +252,10 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | `/voice-panel` / `/interface` | Voice-Steuerungs-Panel posten. | Kanäle verwalten |
 | `/setup-live set \| status \| disable` | Live-Rolle, Kategorie und Kanal-Art einrichten. | Kanäle verwalten |
 | `/streamer add \| edit \| remove \| list \| check` | Twitch-/YouTube-Alerts verwalten. | Kanäle verwalten |
+| `/stream-panel` | Steuer-Panel für den Live-Kanal (Passwort, Limit, Name, Sperren, Bitrate). | Kanäle verwalten |
 | `/setup-roles set \| panel \| auto \| status` | Rollen & Rollen-Panel einrichten (`auto` legt alle Rollen und Kanäle an). | Rollen verwalten |
 | `/setup-all [bereich] [regel_sperre]` | Alle fehlenden Rollen & Kanäle auf einmal einrichten. | Administrator |
+| `/modules status \| enable \| disable \| toggle` | Funktionen (Module) an- oder ausschalten. | Administrator |
 | `/setup-rules post \| lock \| unlock` | Regeln posten, Regel-Sperre an/aus. | Administrator |
 | `/setup-tickets` | Ticket-Panel posten. | Administrator |
 | `/setup-logs` | Audit-Log-Kanal einrichten. | Administrator |

@@ -19,6 +19,10 @@ import {
   AlertTriangle,
   FolderTree,
   Lock,
+  Blocks,
+  PanelLeft,
+  CalendarCheck,
+  PartyPopper,
 } from "lucide-react";
 
 export const metadata = {
@@ -67,6 +71,30 @@ const RELEASES: Release[] = [
         title: "Modulares Feature-Toggle-System (/modules)",
         description:
           "Alle 15 Bot-Bereiche lassen sich einzeln über /modules oder das Dashboard aktivieren bzw. deaktivieren – dynamische Event-Gates schalten ungenutzte Funktionen sofort stumm.",
+      },
+      {
+        icon: Blocks,
+        title: "Dashboard-Seite „Module“",
+        description:
+          "Alle Module mit Schaltern auf einer Seite. Ausgeschaltete Module pausieren auch ihre Hintergrund-Aufgaben und Buttons – Daten und Einstellungen bleiben erhalten.",
+      },
+      {
+        icon: CalendarCheck,
+        title: "/daily mit Streak-Bonus",
+        description:
+          "Jeden Tag XP abholen: 50 XP plus 15 XP pro Streak-Tag (max. +150). Die Serie hält, solange man spätestens nach 36 Stunden wieder abholt.",
+      },
+      {
+        icon: PartyPopper,
+        title: "/giveaway & Level-Belohnungen",
+        description:
+          "Verlosungen mit Teilnahme-Button, automatischer Ziehung und Reroll. Dazu Level-Rollen-Belohnungen, die beim Level-Up automatisch vergeben werden (/level sync-roles für Nachzügler).",
+      },
+      {
+        icon: PanelLeft,
+        title: "Neues Dashboard-Menü",
+        description:
+          "Die Seitenleiste ist in Bereiche gegliedert (Start, Community, Server, Moderation, Hilfe) – mit Button-Optik, Hervorhebung der aktuellen Seite und auf-/zuklappbaren Bereichen.",
       },
       {
         icon: Gift,

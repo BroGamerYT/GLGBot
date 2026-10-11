@@ -36,6 +36,8 @@ const helpCommand: Command = {
           value:
             "`/rank [user]` • Zeigt dein Level, gesammelte XP und Rangkarte\n" +
             "`/level status` • Dein Level-Status: wie viele XP bis zum nächsten Level fehlen\n" +
+            "`/level sync-roles` • Holt verdiente Level-Belohnungsrollen nach\n" +
+            "`/daily` • Tägliche XP-Belohnung mit Streak-Bonus\n" +
             "`/leaderboard` • Die Top 10 aktivsten Server-Mitglieder",
           inline: false,
         },
@@ -57,6 +59,7 @@ const helpCommand: Command = {
           value:
             "`/setup-tickets` • Postet das Ticket-Panel für private Support-Anfragen\n" +
             "`/suggest neu|status` • Reiche Vorschläge mit Upvote/Downvote-Buttons ein\n" +
+            "`/giveaway start|end|reroll` • Verlosungen mit Teilnahme-Button\n" +
             "`/sticky set|remove` • Fixiert wichtige Hinweise als letzte Nachricht im Kanal",
           inline: false,
         },
@@ -66,6 +69,7 @@ const helpCommand: Command = {
             "`/free-games list|post` • Kostenlose Spiele von Epic, Steam & GOG\n" +
             "`/twitch-live start|stop` • Verwaltet persönliche Live-Stream Kanäle\n" +
             "`/setup-live` • Richtet Live-Rolle & Live-Kanäle ein\n" +
+            "`/stream-panel` • Steuer-Panel für deinen Live-Kanal (Passwort, Limit, Name)\n" +
             "`/streamer add|remove|list` • Richtet automatische Stream-Alerts ein",
           inline: false,
         },
@@ -80,6 +84,7 @@ const helpCommand: Command = {
           name: "⚙️ Administration & Backups",
           value:
             "`/setup-all` • Richtet alle fehlenden Rollen & Kanäle auf einmal ein\n" +
+            "`/modules status|enable|disable|toggle` • Funktionen an- oder ausschalten\n" +
             "`/backup create|list|restore` • Vollständige Rollen- & Kanal-Snapshots\n" +
             "`/setup-rules post|lock|unlock` • Regeln posten & Server bis zur Bestätigung sperren\n" +
             "`/setup-roles` • Erstellt das Rollenauswahl-Panel im Chat\n" +

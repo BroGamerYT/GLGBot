@@ -24,6 +24,10 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
   * „Server einrichten“ bietet nur Bereiche eingeschalteter Module an.
   * Ausschalten löscht keine Daten - beim Wieder-Einschalten ist alles wie vorher.
 * **Neues Dashboard-Menü:** Die Seitenleiste ist in Bereiche gegliedert (Start, Community, Server, Moderation, Hilfe), Einträge in Button-Optik mit Hervorhebung der aktuellen Seite. Bereiche lassen sich auf- und zuklappen, der Zustand wird im Browser gemerkt.
+* **`/daily` – Tägliche Belohnung mit Streak:** Einmal pro Tag XP abholen (50 XP + 15 XP pro Streak-Tag, max. +150 XP Bonus). Die Serie bleibt bestehen, solange man spätestens nach 36 Stunden wieder abholt.
+* **`/giveaway` – Verlosungen:** `start` (Dauer, Gewinner-Anzahl, Preis, optional Rollen-Voraussetzung und Kanal), `end` und `reroll`. Teilnahme per Button, Gewinner werden bei Ablauf automatisch gezogen.
+* **Level-Rollen-Belohnungen:** Für bestimmte Level hinterlegte Rollen werden beim Level-Up automatisch vergeben; `/level sync-roles` vergibt verdiente Rollen nachträglich.
+* **Schutz vor Massen-Erwähnungen:** Nachrichten mit mehr als 5 Erwähnungen werden gelöscht, der Absender bekommt 10 Minuten Timeout.
 * **Öffentlicher Gast-Zugang für Free Games & Game News:**
   * Kostenlose Spiele (`/free-games`) und Game-News (`/news`) sind jetzt im Web-Dashboard für alle Gäste ohne Discord-Login lesbar.
   * Admin-Steuerelemente (Discord-Repost, Feed-Konfiguration, Hinzufügen-Formulare) bleiben geschützt und werden nur eingeloggten Administratoren angezeigt.
