@@ -74,6 +74,16 @@ export default function FreeGamesPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((u) => {
+        if (u && !u.error && u.id) setIsAdmin(true);
+      })
+      .catch(() => {});
+  }, []);
 
   async function load() {
     setLoading(true);
@@ -158,25 +168,27 @@ export default function FreeGamesPage() {
             Kostenlose PC-Spiele von Epic, Steam, GOG & mehr - der Bot prüft alle 30 Minuten und postet neue automatisch.
           </p>
         </div>
-        <div className="flex gap-2 self-start sm:self-auto">
-          <button
-            onClick={() => post(false)}
-            disabled={busy !== null}
-            className="px-4 py-2.5 rounded-xl bg-discord-green hover:bg-discord-green/90 text-black font-semibold text-sm flex items-center gap-2 disabled:opacity-50"
-          >
-            {busy === "post" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            Neue jetzt posten
-          </button>
-          <button
-            onClick={() => post(true)}
-            disabled={busy !== null}
-            title="Alle aktuellen Spiele noch einmal posten (ohne Ping)"
-            className="px-3 py-2.5 rounded-xl bg-discord-card border border-discord-border hover:border-discord-blurple text-gray-200 text-sm flex items-center gap-2 disabled:opacity-50"
-          >
-            {busy === "repost" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Repeat className="w-4 h-4" />}
-            Alle erneut
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2 self-start sm:self-auto">
+            <button
+              onClick={() => post(false)}
+              disabled={busy !== null}
+              className="px-4 py-2.5 rounded-xl bg-discord-green hover:bg-discord-green/90 text-black font-semibold text-sm flex items-center gap-2 disabled:opacity-50"
+            >
+              {busy === "post" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              Neue jetzt posten
+            </button>
+            <button
+              onClick={() => post(true)}
+              disabled={busy !== null}
+              title="Alle aktuellen Spiele noch einmal posten (ohne Ping)"
+              className="px-3 py-2.5 rounded-xl bg-discord-card border border-discord-border hover:border-discord-blurple text-gray-200 text-sm flex items-center gap-2 disabled:opacity-50"
+            >
+              {busy === "repost" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Repeat className="w-4 h-4" />}
+              Alle erneut
+            </button>
+          </div>
+        )}
       </div>
 
       {message && (
@@ -191,44 +203,46 @@ export default function FreeGamesPage() {
         </div>
       )}
 
-      {/* Einstellungen */}
-      <div className="bg-discord-card border border-discord-border rounded-2xl p-6 shadow-xl">
-        <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-1">
-          <Settings2 className="w-5 h-5 text-discord-blurple" />
-          Welche Stores sollen gemeldet werden?
-        </h2>
-        <p className="text-xs text-gray-400 mb-5">
-          Änderungen werden sofort gespeichert. Kanal und Ping-Rolle stellst du unter{" "}
-          <Link href="/roles" className="text-discord-blurple hover:underline">Rollen & Rechte</Link> ein.
-        </p>
-        {settings ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {TOGGLES.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => toggle(t.key)}
-                className={`text-left p-4 rounded-xl border transition-all flex items-start gap-3 ${
-                  settings[t.key] ? "border-discord-green/40 bg-discord-green/5" : "border-discord-border bg-discord-dark hover:border-gray-600"
-                }`}
-              >
-                <span
-                  className={`mt-0.5 w-9 h-5 rounded-full relative shrink-0 transition-colors ${settings[t.key] ? "bg-discord-green" : "bg-gray-600"}`}
+      {/* Einstellungen (nur für Admins sichtbar) */}
+      {isAdmin && (
+        <div className="bg-discord-card border border-discord-border rounded-2xl p-6 shadow-xl">
+          <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-1">
+            <Settings2 className="w-5 h-5 text-discord-blurple" />
+            Welche Stores sollen gemeldet werden?
+          </h2>
+          <p className="text-xs text-gray-400 mb-5">
+            Änderungen werden sofort gespeichert. Kanal und Ping-Rolle stellst du unter{" "}
+            <Link href="/roles" className="text-discord-blurple hover:underline">Rollen & Rechte</Link> ein.
+          </p>
+          {settings ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {TOGGLES.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => toggle(t.key)}
+                  className={`text-left p-4 rounded-xl border transition-all flex items-start gap-3 ${
+                    settings[t.key] ? "border-discord-green/40 bg-discord-green/5" : "border-discord-border bg-discord-dark hover:border-gray-600"
+                  }`}
                 >
                   <span
-                    className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${settings[t.key] ? "left-[18px]" : "left-0.5"}`}
-                  />
-                </span>
-                <span>
-                  <span className="block text-sm font-semibold text-white">{t.label}</span>
-                  <span className="block text-xs text-gray-400 mt-0.5">{t.hint}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          !loading && <p className="text-sm text-gray-500">Einstellungen nicht verfügbar.</p>
-        )}
-      </div>
+                    className={`mt-0.5 w-9 h-5 rounded-full relative shrink-0 transition-colors ${settings[t.key] ? "bg-discord-green" : "bg-gray-600"}`}
+                  >
+                    <span
+                      className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${settings[t.key] ? "left-[18px]" : "left-0.5"}`}
+                    />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold text-white">{t.label}</span>
+                    <span className="block text-xs text-gray-400 mt-0.5">{t.hint}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            !loading && <p className="text-sm text-gray-500">Einstellungen nicht verfügbar.</p>
+          )}
+        </div>
+      )}
 
       {/* Aktuelle Spiele */}
       <div>

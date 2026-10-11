@@ -8,6 +8,7 @@ import { startInternalApi } from "../api/internalApi";
 import { gameNewsService } from "../services/gameNewsService";
 import { ticketService } from "../services/ticketService";
 import { statsService } from "../services/statsService";
+import { giveawayService } from "../services/giveawayService";
 
 const readyEvent: BotEvent<Events.ClientReady> = {
   name: Events.ClientReady,
@@ -52,6 +53,9 @@ const readyEvent: BotEvent<Events.ClientReady> = {
 
     // Voice- & Talk-Partner Tracker starten
     statsService.startVoiceTracker(client);
+
+    // Giveaway Scheduler starten
+    giveawayService.startScheduler(client);
   },
 };
 

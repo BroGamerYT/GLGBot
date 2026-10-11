@@ -4,6 +4,7 @@ import { securityService } from "../services/securityService";
 import { stickyService } from "../services/stickyService";
 import { statsService } from "../services/statsService";
 import { blacklistService } from "../services/blacklistService";
+import { moduleService } from "../services/moduleService";
 
 const messageCreateEvent: BotEvent<Events.MessageCreate> = {
   name: Events.MessageCreate,
@@ -15,12 +16,20 @@ const messageCreateEvent: BotEvent<Events.MessageCreate> = {
     const isPhishing = await securityService.handlePhishingMessage(message, client);
     if (isPhishing) return;
 
-    // Wortfilter & Blacklist-Schutz (zieht bei Verstoß XP ab)
-    const isBlacklisted = await blacklistService.handleMessage(message, client);
-    if (isBlacklisted) return;
+    // Mass-Mention-Schutz (>5 Mentions)
+    const isMassMention = await securityService.handleMassMention(message, client);
+    if (isMassMention) return;
 
-    // Sticky Messages aktualisieren
-    await stickyService.handleMessage(message);
+    // Wortfilter & Blacklist-Schutz (falls Moderations-Modul aktiv)
+    if (!message.guild || moduleService.isEnabled(message.guild.id, "moderation")) {
+      const isBlacklisted = await blacklistService.handleMessage(message, client);
+      if (isBlacklisted) return;
+    }
+
+    // Sticky Messages aktualisieren (falls Sticky-Modul aktiv)
+    if (!message.guild || moduleService.isEnabled(message.guild.id, "sticky")) {
+      await stickyService.handleMessage(message);
+    }
 
     // Entferne führendes @silent, falls die Nachricht lautlos gesendet wurde
     let content = message.content.trim().toLowerCase();
@@ -56,21 +65,26 @@ const messageCreateEvent: BotEvent<Events.MessageCreate> = {
       });
     }
 
-    // Level-System: XP für Nachricht gutschreiben
-    if (message.guild) {
+    // Level-System: XP für Nachricht gutschreiben (falls Level-Modul aktiv)
+    if (message.guild && moduleService.isEnabled(message.guild.id, "levels")) {
       const res = statsService.addMessageXp(message.guild, message.author);
       if (res && res.leveledUp) {
+        const syncRes = await statsService.syncUserRoleRewards(message.guild, message.member || message.author.id, res.newLevel);
         const cfg = statsService.getConfig(message.guild.id);
         if (cfg.levelUpNotifications) {
           const isMax = res.newLevel >= (cfg.maxLevel ?? 25);
+          let desc = isMax
+            ? `Wahnsinn <@${message.author.id}>! Du hast das **MAX-LEVEL ${res.newLevel}** erreicht! 👑🔥`
+            : `Herzlichen Glückwunsch <@${message.author.id}>! Du hast **Level ${res.newLevel}** erreicht! 🚀`;
+
+          if (syncRes.added.length > 0) {
+            desc += `\n\n🎁 **Neue Belohnungs-Rolle(n) freigeschaltet:**\n${syncRes.added.map((r) => `• <@&${r}>`).join("\n")}`;
+          }
+
           const levelEmbed = new EmbedBuilder()
             .setColor(isMax ? 0xffac33 : 0xfee75c)
             .setTitle(isMax ? "👑 MAXIMALES LEVEL ERREICHT!" : "🎉 Level-Up!")
-            .setDescription(
-              isMax
-                ? `Wahnsinn <@${message.author.id}>! Du hast das **MAX-LEVEL ${res.newLevel}** erreicht! 👑🔥`
-                : `Herzlichen Glückwunsch <@${message.author.id}>! Du hast **Level ${res.newLevel}** erreicht! 🚀`
-            )
+            .setDescription(desc)
             .setTimestamp();
 
           const targetChannel = cfg.levelUpChannelId

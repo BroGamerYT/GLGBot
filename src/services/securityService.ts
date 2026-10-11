@@ -285,6 +285,62 @@ class SecurityService {
     }
   }
 
+  // --- MASS-MENTION PRÜFUNG (>5 Mentions) ---
+  public async handleMassMention(message: Message, client: Client): Promise<boolean> {
+    if (message.author.bot || !message.guild) return false;
+    if (this.isWhitelisted(message.guild, message.author.id)) return false;
+
+    const userMentions = message.mentions.users.size;
+    const roleMentions = message.mentions.roles.size;
+    const hasEveryone = message.mentions.everyone ? 1 : 0;
+    const totalMentions = userMentions + roleMentions + hasEveryone;
+
+    if (totalMentions <= 5) return false;
+
+    try {
+      await message.delete().catch(() => {});
+
+      const member = message.member || (await message.guild.members.fetch(message.author.id).catch(() => null));
+      if (member && member.moderatable) {
+        await member.timeout(10 * 60 * 1000, `Mass-Mention Spam (${totalMentions} Erwähnungen)`).catch(() => {});
+      }
+
+      const warnEmbed = new EmbedBuilder()
+        .setColor(0xed4245)
+        .setTitle("🛡️ Mass-Mention Schutz")
+        .setDescription(
+          `Die Nachricht von <@${message.author.id}> wurde gelöscht, da sie **${totalMentions} Erwähnungen** enthielt (Limit: max. 5). Der Nutzer wurde für 10 Minuten stummgeschaltet.`
+        )
+        .setTimestamp();
+
+      const warnMsg = await (message.channel as any).send({ embeds: [warnEmbed] }).catch(() => null);
+      if (warnMsg) {
+        setTimeout(() => warnMsg.delete().catch(() => {}), 10000);
+      }
+
+      await auditLogService.log(
+        {
+          guildId: message.guild.id,
+          category: "message",
+          action: "MASS_MENTION_BLOCKED",
+          executor: { id: client.user?.id || "bot", tag: client.user?.tag || "Bot" },
+          target: { id: message.author.id, tag: message.author.tag },
+          details: {
+            channelId: message.channel.id,
+            mentionsCount: totalMentions,
+            actionTaken: "Nachricht gelöscht + 10 Min. Timeout",
+          },
+        },
+        client
+      ).catch(() => null);
+
+      return true;
+    } catch (err) {
+      console.error("[SecurityService] Fehler beim Mass-Mention Schutz:", err);
+      return false;
+    }
+  }
+
   // --- ANTI-RAID PRÜFUNG ---
   public async trackMemberJoin(guild: Guild, member: GuildMember, client: Client) {
     if (!this.config.antiRaid.enabled) return;

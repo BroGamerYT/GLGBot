@@ -3,16 +3,17 @@ import { BotEvent } from "../types";
 import { tempVoiceService } from "../services/tempVoiceService";
 import { auditLogService } from "../services/auditLogService";
 import { fetchAuditExecutor } from "../utils/auditExecutor";
+import { moduleService } from "../services/moduleService";
 
 const voiceStateUpdateEvent: BotEvent<Events.VoiceStateUpdate> = {
   name: Events.VoiceStateUpdate,
   execute: async (client, oldState: VoiceState, newState: VoiceState) => {
-    // 1. Audit Logging für Voice-Events
-    try {
-      const member = newState.member || oldState.member;
-      const guild = newState.guild || oldState.guild;
+    const guild = newState.guild || oldState.guild;
+    const member = newState.member || oldState.member;
 
-      if (member && guild) {
+    // 1. Audit Logging für Voice-Events (falls AuditLog-Modul aktiv)
+    try {
+      if (member && guild && moduleService.isEnabled(guild.id, "auditLogs")) {
         const memberInfo = {
           id: member.id,
           tag: member.user.tag,
@@ -139,11 +140,13 @@ const voiceStateUpdateEvent: BotEvent<Events.VoiceStateUpdate> = {
       console.error("[VoiceStateUpdate] Fehler beim Audit-Logging:", error);
     }
 
-    // 2. Temp-Voice & Join-to-Create Handler
-    try {
-      await tempVoiceService.handleVoiceStateUpdate(oldState, newState);
-    } catch (error) {
-      console.error("[VoiceStateUpdate Error] Fehler in handleVoiceStateUpdate:", error);
+    // 2. Temp-Voice & Join-to-Create Handler (falls Voice-Modul aktiv)
+    if (guild && moduleService.isEnabled(guild.id, "voice")) {
+      try {
+        await tempVoiceService.handleVoiceStateUpdate(oldState, newState);
+      } catch (error) {
+        console.error("[VoiceStateUpdate Error] Fehler in handleVoiceStateUpdate:", error);
+      }
     }
   },
 };

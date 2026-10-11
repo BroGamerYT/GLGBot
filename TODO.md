@@ -2,7 +2,7 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.6.0 (siehe History ganz unten)
+**Aktueller Stand:** v2.7.0 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
@@ -12,14 +12,14 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 ## 🚀 Priorität 1: Sofort anstehend
 
 ### 1. 🎁 Free Games & Game News öffentlich (Read-Only ohne Login)
-* [ ] **Middleware & Routen:**
-  * [ ] `/free-games` und `/news` in `web/src/middleware.ts` zu den öffentlichen Seiten (`isPublicPage`) hinzufügen.
-  * [ ] GET-Endpunkte `GET /api/bot/free-games` und `GET /api/bot/news` für Gäste freigeben (`isPublicApi`).
-* [ ] **UI-Anpassungen:**
-  * [ ] Login-Status im Client über `GET /api/auth/me` prüfen (es gibt kein `useSession` – das gehört zu NextAuth) in `web/src/app/free-games/page.tsx` und `web/src/app/news/page.tsx`.
-  * [ ] **Gast-Modus:** Alle Spiele-Karten, Filter, Countdowns, Store-Links und Treiber-Updates anzeigen.
-  * [ ] **Admin-Controls verbergen:** Buttons zum Manuellen Posten in Discord, Feed-Verwaltung und Webhook-Settings nur für eingeloggte Admins sichtbar machen.
-  * [ ] Öffentliche Navigation in Kopfzeile (`Header`) für Gäste um Free Games & News ergänzen.
+* [x] **Middleware & Routen:**
+  * [x] `/free-games` und `/news` in `web/src/middleware.ts` zu den öffentlichen Seiten (`isPublicPage`) hinzufügen.
+  * [x] GET-Endpunkte `GET /api/bot/free-games` und `GET /api/bot/news` für Gäste freigeben (`isPublicApi`).
+* [x] **UI-Anpassungen:**
+  * [x] Login-Status im Client über `GET /api/auth/me` prüfen in `web/src/app/free-games/page.tsx` und `web/src/app/news/page.tsx`.
+  * [x] **Gast-Modus:** Alle Spiele-Karten, Filter, Countdowns, Store-Links und Treiber-Updates anzeigen.
+  * [x] **Admin-Controls verbergen:** Buttons zum Manuellen Posten in Discord, Feed-Verwaltung und Webhook-Settings nur für eingeloggte Admins sichtbar machen.
+  * [x] Öffentliche Navigation in Kopfzeile (`Header`) für Gäste um Free Games & News ergänzen.
 
 ---
 
@@ -44,46 +44,43 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 ---
 
 ### 3. 🏆 Level-Rollen-Belohnungen (Automatische Meilensteine)
-* [ ] **Bot-Levelsystem (`statsService.ts`):**
-  * [ ] Konfigurationsfeld `roleRewards: Record<number, string>` (Level -> Discord-Rollen-ID) in der Guild-Config speichern.
-  * [ ] Level-Up-Handler erweitern: Prüfen, ob für das erreichte Level eine Belohnungs-Rolle hinterlegt ist.
-  * [ ] Automatische Zuweisung der Discord-Rolle an das Mitglied.
-  * [ ] Glückwunsch-Nachricht im Chat oder konfigurierten Ankündigungskanal mit Erwähnung der neuen Rolle.
-* [ ] **Web-Dashboard (`/stats`):**
-  * [ ] Einstellungs-Reiter „Rollen-Belohnungen“ im Stats-Konfigurationsbereich.
-  * [ ] Interaktive Zuweisungs-Tabelle: Level auswählen (z. B. 5, 10, 15, 20, 25) und Server-Rolle aus Dropdown zuordnen.
-  * [ ] Speichern über `/api/bot/stats/config` (wie die übrigen XP-Einstellungen).
-* [ ] **Retroaktive Nachrüstung:**
-  * [ ] Button oder Befehl `/rank sync-roles`, um bestehenden Mitgliedern nachträglich die ihren Leveln entsprechenden Rollen zuzuweisen.
+* [x] **Bot-Levelsystem (`statsService.ts`):**
+  * [x] Konfigurationsfeld `roleRewards: Record<number, string>` (Level -> Discord-Rollen-ID) in der Guild-Config speichern.
+  * [x] Level-Up-Handler erweitern: Prüfen, ob für das erreichte Level eine Belohnungs-Rolle hinterlegt ist.
+  * [x] Automatische Zuweisung der Discord-Rolle an das Mitglied (Chat & Voice).
+  * [x] Glückwunsch-Nachricht im Chat oder konfigurierten Ankündigungskanal mit Erwähnung der neuen Rolle.
+* [x] **Web-Dashboard & API:**
+  * [x] Speichern über `/api/bot/stats/config` (Feld `roleRewards`).
+* [x] **Retroaktive Nachrüstung:**
+  * [x] Befehl `/level sync-roles [mitglied]`, um bestehenden Mitgliedern nachträglich die ihren Leveln entsprechenden Rollen zuzuweisen.
 
 ---
 
 ## 🎯 Priorität 2: Community- & Interaktions-Features
 
 ### 4. 🔴 „Gerade Live“-Widget auf der Dashboard-Startseite
-* [ ] Live-Banner auf der Dashboard-Startseite `web/src/app/page.tsx`.
-* [ ] Zeigt aktuell aktive Streamer aus der Community in Echtzeit an (Twitch/YouTube/Voice).
-* [ ] Anzeige mit Avatar, Stream-Titel, Spiel und 1-Klick-Direktlink zum Stream.
+* [x] Live-Banner auf der Dashboard-Startseite `web/src/app/page.tsx`.
+* [x] Zeigt aktuell aktive Streamer aus der Community in Echtzeit an (Twitch/YouTube/Voice).
+* [x] Anzeige mit Avatar, Stream-Titel, Spiel und 1-Klick-Direktlink zum Stream.
 
 ---
 
 ### 5. 🎁 `/daily` Belohnungs- & Streak-System
-* [ ] Täglicher Belohnungs-Befehl `/daily` für Mitglieder.
-* [ ] Feste Basis-XP (z. B. +50 XP) plus ansteigender Streak-Bonus (z. B. Tag 2: +60 XP, Tag 7: +200 XP).
-* [ ] 24h-Cooldown mit 36h-Kulanzfenster für Streaks.
-* [ ] Hinweis: `/daily` steht auch in Punkt 15 (Economy) – **ein** gemeinsamer Befehl: erst XP, später zusätzlich Coins.
-* [ ] Streak-Anzeige im Rang-Befehl `/rank` und im Dashboard-Profil.
+* [x] Täglicher Belohnungs-Befehl `/daily` für Mitglieder.
+* [x] Feste Basis-XP (+50 XP) plus ansteigender Streak-Bonus (+15 XP pro Tag, bis zu +150 XP).
+* [x] 24h-Cooldown mit 36h-Kulanzfenster für Streaks.
+* [x] Streak-Anzeige im Rang-Befehl `/rank`, `/level status` und in `/daily`.
 
 ---
 
 ### 6. 🎉 Giveaway-System (`/giveaway`)
-* [ ] Befehle:
-  * [ ] `/giveaway start <dauer> <gewinner_anzahl> <preis> [rolle]`
-  * [ ] `/giveaway end <message_id>`
-  * [ ] `/giveaway reroll <message_id>`
-* [ ] Interaktives Embed mit „🎉 Teilnehmen“-Button, Teilnehmerzähler in Echtzeit und Live-Countdown.
-* [ ] Automatische Zufallsziehung bei Ablauf mit Gewinner-Benachrichtigung und Audit-Log.
-* [ ] Optional: Rollen-Voraussetzung (z. B. nur für Level 5+ oder bestimmte Community-Rollen).
+* [x] Befehle:
+  * [x] `/giveaway start <dauer> <gewinner_anzahl> <preis> [rolle] [kanal]`
+  * [x] `/giveaway end <message_id>`
+  * [x] `/giveaway reroll <message_id>`
+* [x] Interaktives Embed mit „🎉 Teilnehmen“-Button, Teilnehmerzähler in Echtzeit und Live-Countdown.
+* [x] Automatische Zufallsziehung bei Ablauf mit Gewinner-Benachrichtigung und Audit-Log.
+* [x] Optionale Rollen-Voraussetzung (z. B. nur für bestimmte Community-Rollen).
 
 ---
 
@@ -107,8 +104,8 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ### 9. 🛡️ Erweiterter Auto-Mod & Anti-Spam
 * [x] Automatische Erkennung und Löschung von unerlaubten Discord-Einladungslinks fremder Server *(gibt es schon in `blacklistService.ts`)*.
-* [ ] Mass-Mention-Schutz (>5 Mentions = Auto-Löschung + Verwarnung).
-* [ ] Verknüpfung mit dem Levelsystem: Automatische Strafpunkte (-XP) bei moderativen Vorfällen.
+* [x] Mass-Mention-Schutz (>5 Mentions = Auto-Löschung + 10 Min. Timeout + Audit-Log).
+* [x] Verknüpfung mit dem Levelsystem: Automatische Strafpunkte (-XP) bei moderativen Vorfällen.
 
 ---
 
@@ -327,7 +324,17 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.6.0 (Aktuell):**
+* [x] **v2.7.0 (Aktuell):**
+  * [x] Streamer-Suite mit vollen Kanalrechten für Streamer & interaktives Streamer Control Panel (`/stream-panel`).
+  * [x] Passwortschutz für temporäre Kanäle & Gäste-Verifizierung per Modal.
+  * [x] Modulares Feature-Toggle-System (`/modules` & API) für alle 15 Bot-Bereiche.
+  * [x] Level-Rollen-Belohnungen mit automatischer Vergabe bei Level-Up & `/level sync-roles`.
+  * [x] `/daily` Belohnungs- & Streak-System mit ansteigendem Bonus.
+  * [x] Giveaway-System (`/giveaway`) mit Buttons, Countdown & Auto-Ziehungen.
+  * [x] Öffentlicher Gast-Zugang für Free Games & Game News im Web-Dashboard.
+  * [x] „Gerade Live“-Widget auf der Dashboard-Startseite.
+  * [x] Mass-Mention-Spamschutz (>5 Erwähnungen).
+* [x] **v2.6.0:**
   * [x] „Server einrichten“-Seite im Dashboard (`/setup`) und `/setup-all`: Bereiche ankreuzen, ein Klick legt alle fehlenden Rollen & Kanäle an.
 * [x] **v2.5.0:**
   * [x] Open Source auf GitHub (MIT-Lizenz) mit Installationsanleitung.

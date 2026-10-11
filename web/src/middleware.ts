@@ -29,11 +29,19 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/changelog/") ||
     pathname === "/stats" ||
     pathname.startsWith("/stats/") ||
+    pathname === "/free-games" ||
+    pathname.startsWith("/free-games/") ||
+    pathname === "/news" ||
+    pathname.startsWith("/news/") ||
     pathname.startsWith("/go/");
 
   const isPublicApi =
     pathname.startsWith("/api/auth/") ||
-    (pathname.startsWith("/api/bot/stats") && (req.method === "GET" || req.method === "HEAD"));
+    ((pathname.startsWith("/api/bot/stats") ||
+      pathname.startsWith("/api/bot/free-games") ||
+      pathname.startsWith("/api/bot/news") ||
+      pathname.startsWith("/api/bot/live/active")) &&
+      (req.method === "GET" || req.method === "HEAD"));
 
   if (isPublicPage || isPublicApi) {
     return NextResponse.next();

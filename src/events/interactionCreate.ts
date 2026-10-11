@@ -5,10 +5,17 @@ import {
   handleVoiceModalSubmit, 
   handleVoiceButton 
 } from "../handlers/voicePanelHandler";
+import {
+  handleStreamerSelectMenu,
+  handleStreamerButton,
+  handleStreamerModalSubmit,
+} from "../handlers/streamerPanelHandler";
 import { rolePanelService } from "../services/rolePanelService";
 import { ticketService } from "../services/ticketService";
 import { transcriptService } from "../services/transcriptService";
 import { suggestionService } from "../services/suggestionService";
+import { moduleService } from "../services/moduleService";
+import { giveawayService } from "../services/giveawayService";
 
 const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
   name: Events.InteractionCreate,
@@ -20,6 +27,18 @@ const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
       if (!command) {
         console.warn(`[Command] Unbekannter Befehl aufgerufen: ${interaction.commandName}`);
         return;
+      }
+
+      // Modul-Prüfung: Ist das Modul für diesen Befehl aktiv?
+      if (interaction.guildId) {
+        const modCheck = moduleService.isCommandEnabled(interaction.guildId, interaction.commandName);
+        if (!modCheck.enabled) {
+          await interaction.reply({
+            content: `⚠️ Das Modul **${modCheck.moduleName}** ist auf diesem Server aktuell deaktiviert.\nEin Administrator kann es mit \`/modules enable\` oder im Web-Dashboard wieder aktivieren.`,
+            ephemeral: true,
+          });
+          return;
+        }
       }
 
       try {
@@ -41,32 +60,42 @@ const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
       return;
     }
 
-    // 2. Dropdown Menüs (Voice Panel)
+    // 2. Dropdown Menüs (Voice & Streamer Panel)
     if (interaction.isStringSelectMenu()) {
       if (
         interaction.customId === "voice_settings_menu" ||
         interaction.customId === "voice_permissions_menu"
       ) {
         await handleVoiceSelectMenu(interaction);
+      } else if (interaction.customId === "stream_panel_menu") {
+        await handleStreamerSelectMenu(interaction);
       }
       return;
     }
 
-    // 3. Modals (Texteingaben für Name & Limit)
+    // 3. Modals (Texteingaben für Name, Limit, PW)
     if (interaction.isModalSubmit()) {
       if (
         interaction.customId === "modal_voice_name" ||
-        interaction.customId === "modal_voice_limit"
+        interaction.customId === "modal_voice_limit" ||
+        interaction.customId.startsWith("modal_voice_pw_")
       ) {
         await handleVoiceModalSubmit(interaction);
+      } else if (interaction.customId.startsWith("modal_stream_")) {
+        await handleStreamerModalSubmit(interaction);
       }
       return;
     }
 
-    // 4. Buttons (Voice & Rollen-Panel)
+    // 4. Buttons (Voice, Streamer & Rollen-Panel)
     if (interaction.isButton()) {
-      if (interaction.customId === "voice_btn_refresh") {
+      if (interaction.customId.startsWith("voice_btn_")) {
         await handleVoiceButton(interaction);
+        return;
+      }
+
+      if (interaction.customId.startsWith("stream_btn_")) {
+        await handleStreamerButton(interaction);
         return;
       }
 
@@ -144,6 +173,26 @@ const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
       if (interaction.customId.startsWith("btn_sugg_down_")) {
         const id = parseInt(interaction.customId.replace("btn_sugg_down_", ""), 10);
         await suggestionService.handleVote(interaction, id, "DOWN");
+        return;
+      }
+
+      // Giveaway Buttons
+      if (interaction.customId.startsWith("giveaway_enter_")) {
+        if (!interaction.guild) return;
+        const giveawayId = interaction.customId.replace("giveaway_enter_", "");
+        const res = await giveawayService.toggleEntry(interaction.guild, giveawayId, interaction.user.id);
+
+        const data = giveawayService.getGiveaway(giveawayId);
+        if (data && interaction.message) {
+          const embed = giveawayService.buildGiveawayEmbed(data);
+          const row = giveawayService.buildGiveawayButton(data);
+          await interaction.message.edit({ embeds: [embed], components: [row] }).catch(() => null);
+        }
+
+        await interaction.reply({
+          content: res.message,
+          ephemeral: true,
+        });
         return;
       }
     }

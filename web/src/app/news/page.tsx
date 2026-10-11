@@ -98,10 +98,20 @@ export default function NewsPage() {
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [optPatchnotes, setOptPatchnotes] = useState(false);
   const [optSnapshots, setOptSnapshots] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((u) => {
+        if (u && !u.error && u.id) setIsAdmin(true);
+      })
+      .catch(() => {});
+  }, []);
 
   async function load() {
     try {
-      const [nRes, gRes] = await Promise.all([fetch("/api/bot/news"), fetch("/api/discord/guild")]);
+      const nRes = await fetch("/api/bot/news");
       const n = await nRes.json();
       if (!nRes.ok) throw new Error(n.error);
       setFeeds(n.feeds || []);
@@ -113,7 +123,12 @@ export default function NewsPage() {
         if (n.setup.channelId) setAddChannel((c) => c || n.setup.channelId);
         if (n.setup.roleId) setAddRole((r) => r || n.setup.roleId);
       }
-      setGuild(await gRes.json());
+      try {
+        const gRes = await fetch("/api/discord/guild");
+        if (gRes.ok) {
+          setGuild(await gRes.json());
+        }
+      } catch {}
     } catch (e: any) {
       setMessage({ text: `❌ ${e.message || "Konnte Game-News nicht laden."}`, type: "error" });
     } finally {
@@ -298,18 +313,20 @@ export default function NewsPage() {
               </p>
             </div>
           </div>
-          <button
-            onClick={setupNews}
-            disabled={busy !== null}
-            className={`px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 shrink-0 disabled:opacity-50 ${
-              setup.roleId && setup.channelId && setup.driverRoleId && setup.driverChannelId
-                ? "bg-discord-dark border border-discord-border text-gray-300 hover:border-discord-blurple"
-                : "bg-amber-500 hover:bg-amber-400 text-black"
-            }`}
-          >
-            {busy === "setup" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {setup.roleId && setup.channelId && setup.driverRoleId && setup.driverChannelId ? "Erneut prüfen" : "Rollen & Kanäle anlegen"}
-          </button>
+          {isAdmin && (
+            <button
+              onClick={setupNews}
+              disabled={busy !== null}
+              className={`px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 shrink-0 disabled:opacity-50 ${
+                setup.roleId && setup.channelId && setup.driverRoleId && setup.driverChannelId
+                  ? "bg-discord-dark border border-discord-border text-gray-300 hover:border-discord-blurple"
+                  : "bg-amber-500 hover:bg-amber-400 text-black"
+              }`}
+            >
+              {busy === "setup" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {setup.roleId && setup.channelId && setup.driverRoleId && setup.driverChannelId ? "Erneut prüfen" : "Rollen & Kanäle anlegen"}
+            </button>
+          )}
         </div>
         <div className="grid sm:grid-cols-2 gap-3">
           {[
@@ -363,43 +380,56 @@ export default function NewsPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 flex-1">
-                  <select className={select} value={f.channelId} onChange={(e) => update(f, { channelId: e.target.value })} title="Kanal">
-                    {!channelName(f.channelId) && <option value={f.channelId}># gelöschter Kanal</option>}
-                    {textChannels.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        # {c.name}
-                      </option>
-                    ))}
-                  </select>
-                  <select className={select} value={f.roleId || ""} onChange={(e) => update(f, { roleId: e.target.value })} title="Ping-Rolle">
-                    <option value="">Kein Ping</option>
-                    {roles.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        @{r.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {isAdmin ? (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2 flex-1">
+                      <select className={select} value={f.channelId} onChange={(e) => update(f, { channelId: e.target.value })} title="Kanal">
+                        {!channelName(f.channelId) && <option value={f.channelId}># gelöschter Kanal</option>}
+                        {textChannels.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            # {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      <select className={select} value={f.roleId || ""} onChange={(e) => update(f, { roleId: e.target.value })} title="Ping-Rolle">
+                        <option value="">Kein Ping</option>
+                        {roles.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            @{r.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div className="flex flex-wrap items-center gap-4">
-                  {f.type === "steam" && (
-                    <Toggle on={Boolean(f.onlyPatchnotes)} onClick={() => update(f, { onlyPatchnotes: !f.onlyPatchnotes })} label="Nur Patchnotes" />
-                  )}
-                  {f.type === "minecraft" && <Toggle on={Boolean(f.snapshots)} onClick={() => update(f, { snapshots: !f.snapshots })} label="Snapshots" />}
-                  <Toggle on={f.enabled} onClick={() => update(f, { enabled: !f.enabled })} label="Aktiv" />
-                  <button
-                    onClick={() => test(f)}
-                    disabled={busy !== null}
-                    title="Neuesten Beitrag jetzt posten (ohne Ping)"
-                    className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-discord-card disabled:opacity-40"
-                  >
-                    {busy === `test:${f.id}` ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  </button>
-                  <button onClick={() => remove(f)} disabled={busy !== null} title="Entfernen" className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-discord-card disabled:opacity-40">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                    <div className="flex flex-wrap items-center gap-4">
+                      {f.type === "steam" && (
+                        <Toggle on={Boolean(f.onlyPatchnotes)} onClick={() => update(f, { onlyPatchnotes: !f.onlyPatchnotes })} label="Nur Patchnotes" />
+                      )}
+                      {f.type === "minecraft" && <Toggle on={Boolean(f.snapshots)} onClick={() => update(f, { snapshots: !f.snapshots })} label="Snapshots" />}
+                      <Toggle on={f.enabled} onClick={() => update(f, { enabled: !f.enabled })} label="Aktiv" />
+                      <button
+                        onClick={() => test(f)}
+                        disabled={busy !== null}
+                        title="Neuesten Beitrag jetzt posten (ohne Ping)"
+                        className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-discord-card disabled:opacity-40"
+                      >
+                        {busy === `test:${f.id}` ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      </button>
+                      <button onClick={() => remove(f)} disabled={busy !== null} title="Entfernen" className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-discord-card disabled:opacity-40">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-3 text-xs text-gray-400 ml-auto">
+                    <span className="px-2.5 py-1 rounded-lg bg-discord-dark border border-discord-border">
+                      #{channelName(f.channelId) || "game-news"}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full ${f.enabled ? "bg-discord-green/10 text-discord-green" : "bg-gray-600/20 text-gray-400"}`}>
+                      {f.enabled ? "Aktiv" : "Pausiert"}
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -447,171 +477,173 @@ export default function NewsPage() {
         )}
       </div>
 
-      {/* Hinzufügen */}
-      <div className="bg-discord-card border border-discord-border rounded-2xl shadow-xl">
-        <div className="p-6 border-b border-discord-border space-y-4">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Plus className="w-5 h-5 text-discord-green" />
-            News hinzufügen
-          </h2>
-          <div className="flex flex-wrap gap-3 items-center">
-            <label className="text-sm text-gray-300">In Kanal</label>
-            <select className={select} value={addChannel} onChange={(e) => setAddChannel(e.target.value)}>
-              <option value="">— Kanal wählen —</option>
-              {textChannels.map((c) => (
-                <option key={c.id} value={c.id}>
-                  # {c.name}
-                </option>
-              ))}
-            </select>
-            <label className="text-sm text-gray-300 ml-2">Ping</label>
-            <select className={select} value={addRole} onChange={(e) => setAddRole(e.target.value)}>
-              <option value="">Kein Ping</option>
-              {roles.map((r) => (
-                <option key={r.id} value={r.id}>
-                  @{r.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="flex border-b border-discord-border px-4 overflow-x-auto">
-          {(
-            [
-              ["game", "Spiele", Gamepad2],
-              ["gpu", "Grafikkarten-Treiber", MonitorSmartphone],
-              ["cpu", "CPU / Chipsatz", Cpu],
-              ["custom", "Eigenes Steam-Spiel", Link2],
-            ] as const
-          ).map(([key, label, Icon]) => (
-            <button
-              key={key}
-              onClick={() => switchTab(key)}
-              className={`px-4 py-3.5 text-sm font-semibold flex items-center gap-2 border-b-2 -mb-px whitespace-nowrap ${
-                tab === key ? "border-discord-blurple text-white" : "border-transparent text-gray-400 hover:text-gray-200"
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <div className="p-6">
-          {tab === "custom" ? (
-            <div className="space-y-4 max-w-2xl">
-              <p className="text-sm text-gray-400">
-                Füge jedes Steam-Spiel hinzu: Steam-Store-Link einfügen (z. B. <code className="text-gray-300">store.steampowered.com/app/892970/Valheim</code>) oder
-                nur die App-ID (<code className="text-gray-300">892970</code>).
-              </p>
-              <div className="flex gap-2">
-                <input
-                  className={`${select} flex-1`}
-                  placeholder="Steam-Link oder App-ID"
-                  value={steamInput}
-                  onChange={(e) => setSteamInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && steamInput.trim() && lookup()}
-                />
-                <button
-                  onClick={lookup}
-                  disabled={busy !== null || !steamInput.trim()}
-                  className="px-4 rounded-lg bg-discord-blurple hover:bg-discord-blurple/90 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-40"
-                >
-                  {busy === "lookup" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                  Suchen
-                </button>
-              </div>
-              {steamResult && (
-                <div className="flex items-center gap-4 p-3 rounded-xl bg-discord-dark border border-discord-border">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={steamResult.image} alt="" className="w-32 rounded" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-semibold truncate">{steamResult.name}</p>
-                    <p className="text-xs text-gray-500">App-ID {steamResult.appId}</p>
-                    <button
-                      onClick={() => openDetail({ type: "steam", appId: steamResult.appId, name: steamResult.name, image: steamResult.image })}
-                      className="text-xs text-discord-blurple hover:underline mt-1"
-                    >
-                      Details & letzte Beiträge ansehen
-                    </button>
-                  </div>
-                  {activeKeys.has(`steam:${steamResult.appId}`) ? (
-                    <span className="text-xs text-discord-green flex items-center gap-1">
-                      <CheckCircle2 className="w-4 h-4" /> Aktiv
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => add({ type: "steam", appId: steamResult.appId, name: steamResult.name })}
-                      disabled={busy !== null || !addChannel}
-                      title={!addChannel ? "Oben zuerst einen Kanal wählen" : ""}
-                      className="px-3 py-2 rounded-lg bg-discord-green hover:bg-discord-green/90 text-black text-sm font-semibold flex items-center gap-1.5 disabled:opacity-40"
-                    >
-                      <Plus className="w-4 h-4" /> Hinzufügen
-                    </button>
-                  )}
-                </div>
-              )}
+      {/* Hinzufügen (Nur Admins) */}
+      {isAdmin && (
+        <div className="bg-discord-card border border-discord-border rounded-2xl shadow-xl">
+          <div className="p-6 border-b border-discord-border space-y-4">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Plus className="w-5 h-5 text-discord-green" />
+              News hinzufügen
+            </h2>
+            <div className="flex flex-wrap gap-3 items-center">
+              <label className="text-sm text-gray-300">In Kanal</label>
+              <select className={select} value={addChannel} onChange={(e) => setAddChannel(e.target.value)}>
+                <option value="">— Kanal wählen —</option>
+                {textChannels.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    # {c.name}
+                  </option>
+                ))}
+              </select>
+              <label className="text-sm text-gray-300 ml-2">Ping</label>
+              <select className={select} value={addRole} onChange={(e) => setAddRole(e.target.value)}>
+                <option value="">Kein Ping</option>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    @{r.name}
+                  </option>
+                ))}
+              </select>
             </div>
-          ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {shown.map((c) => {
-                const active = activeKeys.has(c.type === "steam" ? `steam:${c.appId}` : c.type);
-                return (
-                  <div
-                    key={c.key}
-                    onClick={() => openDetail(c)}
-                    className="bg-discord-dark border border-discord-border rounded-xl overflow-hidden flex flex-col cursor-pointer hover:border-discord-blurple transition-all"
-                    title="Klicken für Details"
+          </div>
+
+          <div className="flex border-b border-discord-border px-4 overflow-x-auto">
+            {(
+              [
+                ["game", "Spiele", Gamepad2],
+                ["gpu", "Grafikkarten-Treiber", MonitorSmartphone],
+                ["cpu", "CPU / Chipsatz", Cpu],
+                ["custom", "Eigenes Steam-Spiel", Link2],
+              ] as const
+            ).map(([key, label, Icon]) => (
+              <button
+                key={key}
+                onClick={() => switchTab(key)}
+                className={`px-4 py-3.5 text-sm font-semibold flex items-center gap-2 border-b-2 -mb-px whitespace-nowrap ${
+                  tab === key ? "border-discord-blurple text-white" : "border-transparent text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="p-6">
+            {tab === "custom" ? (
+              <div className="space-y-4 max-w-2xl">
+                <p className="text-sm text-gray-400">
+                  Füge jedes Steam-Spiel hinzu: Steam-Store-Link einfügen (z. B. <code className="text-gray-300">store.steampowered.com/app/892970/Valheim</code>) oder
+                  nur die App-ID (<code className="text-gray-300">892970</code>).
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    className={`${select} flex-1`}
+                    placeholder="Steam-Link oder App-ID"
+                    value={steamInput}
+                    onChange={(e) => setSteamInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && steamInput.trim() && lookup()}
+                  />
+                  <button
+                    onClick={lookup}
+                    disabled={busy !== null || !steamInput.trim()}
+                    className="px-4 rounded-lg bg-discord-blurple hover:bg-discord-blurple/90 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-40"
                   >
-                    {c.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={c.image} alt="" className="w-full aspect-[460/215] object-cover" />
+                    {busy === "lookup" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                    Suchen
+                  </button>
+                </div>
+                {steamResult && (
+                  <div className="flex items-center gap-4 p-3 rounded-xl bg-discord-dark border border-discord-border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={steamResult.image} alt="" className="w-32 rounded" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-semibold truncate">{steamResult.name}</p>
+                      <p className="text-xs text-gray-500">App-ID {steamResult.appId}</p>
+                      <button
+                        onClick={() => openDetail({ type: "steam", appId: steamResult.appId, name: steamResult.name, image: steamResult.image })}
+                        className="text-xs text-discord-blurple hover:underline mt-1"
+                      >
+                        Details & letzte Beiträge ansehen
+                      </button>
+                    </div>
+                    {activeKeys.has(`steam:${steamResult.appId}`) ? (
+                      <span className="text-xs text-discord-green flex items-center gap-1">
+                        <CheckCircle2 className="w-4 h-4" /> Aktiv
+                      </span>
                     ) : (
-                      <div className="w-full aspect-[460/215] flex items-center justify-center bg-discord-card">
-                        <SourceIcon type={c.type} className="w-10 h-10" />
-                      </div>
+                      <button
+                        onClick={() => add({ type: "steam", appId: steamResult.appId, name: steamResult.name })}
+                        disabled={busy !== null || !addChannel}
+                        title={!addChannel ? "Oben zuerst einen Kanal wählen" : ""}
+                        className="px-3 py-2 rounded-lg bg-discord-green hover:bg-discord-green/90 text-black text-sm font-semibold flex items-center gap-1.5 disabled:opacity-40"
+                      >
+                        <Plus className="w-4 h-4" /> Hinzufügen
+                      </button>
                     )}
-                    <div className="p-3 flex flex-col gap-2 flex-1">
-                      <div>
-                        <p className="text-white text-sm font-semibold leading-snug">{c.name}</p>
-                        {c.description && <p className="text-xs text-gray-500 mt-0.5">{c.description}</p>}
-                      </div>
-                      <div className="mt-auto flex items-center justify-between gap-2">
-                        {c.beta ? (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-yellow-400/30 bg-yellow-400/10 text-yellow-300 flex items-center gap-1" title="Wird von der Hersteller-Webseite gelesen und kann bei Änderungen ausfallen">
-                            <FlaskConical className="w-3 h-3" /> Beta
-                          </span>
-                        ) : (
-                          <span />
-                        )}
-                        {active ? (
-                          <span className="text-xs text-discord-green flex items-center gap-1">
-                            <CheckCircle2 className="w-4 h-4" /> Aktiv
-                          </span>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              add({ type: c.type, appId: c.appId, name: c.name });
-                            }}
-                            disabled={busy !== null || !addChannel}
-                            title={!addChannel ? "Oben zuerst einen Kanal wählen" : ""}
-                            className="px-3 py-1.5 rounded-lg bg-discord-green hover:bg-discord-green/90 text-black text-xs font-semibold flex items-center gap-1 disabled:opacity-40"
-                          >
-                            <Plus className="w-3.5 h-3.5" /> Hinzufügen
-                          </button>
-                        )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {shown.map((c) => {
+                  const active = activeKeys.has(c.type === "steam" ? `steam:${c.appId}` : c.type);
+                  return (
+                    <div
+                      key={c.key}
+                      onClick={() => openDetail(c)}
+                      className="bg-discord-dark border border-discord-border rounded-xl overflow-hidden flex flex-col cursor-pointer hover:border-discord-blurple transition-all"
+                      title="Klicken für Details"
+                    >
+                      {c.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={c.image} alt="" className="w-full aspect-[460/215] object-cover" />
+                      ) : (
+                        <div className="w-full aspect-[460/215] flex items-center justify-center bg-discord-card">
+                          <SourceIcon type={c.type} className="w-10 h-10" />
+                        </div>
+                      )}
+                      <div className="p-3 flex flex-col gap-2 flex-1">
+                        <div>
+                          <p className="text-white text-sm font-semibold leading-snug">{c.name}</p>
+                          {c.description && <p className="text-xs text-gray-500 mt-0.5">{c.description}</p>}
+                        </div>
+                        <div className="mt-auto flex items-center justify-between gap-2">
+                          {c.beta ? (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-yellow-400/30 bg-yellow-400/10 text-yellow-300 flex items-center gap-1" title="Wird von der Hersteller-Webseite gelesen und kann bei Änderungen ausfallen">
+                              <FlaskConical className="w-3 h-3" /> Beta
+                            </span>
+                          ) : (
+                            <span />
+                          )}
+                          {active ? (
+                            <span className="text-xs text-discord-green flex items-center gap-1">
+                              <CheckCircle2 className="w-4 h-4" /> Aktiv
+                            </span>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                add({ type: c.type, appId: c.appId, name: c.name });
+                              }}
+                              disabled={busy !== null || !addChannel}
+                              title={!addChannel ? "Oben zuerst einen Kanal wählen" : ""}
+                              className="px-3 py-1.5 rounded-lg bg-discord-green hover:bg-discord-green/90 text-black text-xs font-semibold flex items-center gap-1 disabled:opacity-40"
+                            >
+                              <Plus className="w-3.5 h-3.5" /> Hinzufügen
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {!addChannel && tab !== "custom" && <p className="text-xs text-gray-500 mt-4">Wähle oben einen Kanal, um Quellen hinzuzufügen.</p>}
+                  );
+                })}
+              </div>
+            )}
+            {!addChannel && tab !== "custom" && <p className="text-xs text-gray-500 mt-4">Wähle oben einen Kanal, um Quellen hinzuzufügen.</p>}
+          </div>
         </div>
-      </div>
+      )}
           {/* Detailansicht */}
       {detail && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setDetail(null)}>

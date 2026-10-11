@@ -34,7 +34,21 @@ export default async function RootLayout({
               </div>
             </Link>
 
-            <nav className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+            <nav className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+              <Link
+                href="/free-games"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-discord-card transition-all"
+              >
+                <Gift className="w-4 h-4 text-discord-green" />
+                <span>Gratis-Spiele</span>
+              </Link>
+              <Link
+                href="/news"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-discord-card transition-all"
+              >
+                <Newspaper className="w-4 h-4 text-emerald-400" />
+                <span>Game-News</span>
+              </Link>
               <Link
                 href="/hilfe"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-discord-card transition-all"

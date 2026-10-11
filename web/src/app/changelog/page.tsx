@@ -42,10 +42,45 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.6.0",
+    version: "v2.7.0",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Streamer Control Panel, Passwortschutz & Modulares System",
+    description:
+      "Umfassendes Creator-Update: Volle Kanalrechte für Streamer, interaktives Streamer-Panel mit Passwortschutz & Gästeverifizierung, sowie modulare Feature-Schalter für alle Bot-Funktionen.",
+    highlights: [
+      {
+        icon: Radio,
+        title: "Streamer-Panel mit vollen Rechten",
+        description:
+          "Streamer erhalten automatisch volle Kanalrechte für ihren Live-Kanal und steuern alles direkt im Chat über /stream-panel (Benutzerlimit, Umbenennen mit Rate-Limit-Schutz, Sperren, Bitrate).",
+      },
+      {
+        icon: Lock,
+        title: "Passwortschutz für Kanäle & Gäste-Modal",
+        description:
+          "Kanäle können mit einem Passwort gesperrt werden. Gäste können über einen Klick-Button das Passwort per Modal eingeben und werden bei Erfolg sofort in den Kanal verschoben.",
+      },
+      {
+        icon: Shield,
+        title: "Modulares Feature-Toggle-System (/modules)",
+        description:
+          "Alle 15 Bot-Bereiche lassen sich einzeln über /modules oder das Dashboard aktivieren bzw. deaktivieren – dynamische Event-Gates schalten ungenutzte Funktionen sofort stumm.",
+      },
+      {
+        icon: Gift,
+        title: "Öffentliche Free Games & Game News",
+        description:
+          "Gratis-Spiele und Gaming-Nachrichten im Web-Dashboard sind jetzt ohne Login für die gesamte Community als Gast frei einsehbar.",
+      },
+    ],
+  },
+  {
+    version: "v2.6.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Server einrichten per Knopfdruck",
     description:
       "Neue Dashboard-Seite „Server einrichten“ und der Befehl /setup-all: Bereiche ankreuzen, ein Klick legt alle fehlenden Rollen und Kanäle an.",

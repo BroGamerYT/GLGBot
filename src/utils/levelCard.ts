@@ -1,5 +1,6 @@
 import { EmbedBuilder, Guild, User } from "discord.js";
 import { statsService } from "../services/statsService";
+import { dailyService } from "../services/dailyService";
 import { BRANDING } from "../config/branding";
 
 /**
@@ -17,6 +18,7 @@ export function buildLevelCard(guild: Guild, user: User, opts: { title?: string;
   const voiceXp = cfg.voiceXpPerMinute ?? 5;
   const cooldown = cfg.messageCooldownSeconds ?? 60;
   const maxLevel = cfg.maxLevel ?? 25;
+  const streak = dailyService.getStreak(guild.id, user.id);
 
   const totalBars = 12;
   const filled = Math.round((progress.progressPercent / 100) * totalBars);
@@ -38,7 +40,8 @@ export function buildLevelCard(guild: Guild, user: User, opts: { title?: string;
         inline: false,
       },
       { name: "💬 Chat-Nachrichten", value: stats.messagesCount.toLocaleString("de-DE"), inline: true },
-      { name: "🎙️ Voice-Zeit", value: statsService.formatMinutes(stats.voiceMinutes), inline: true }
+      { name: "🎙️ Voice-Zeit", value: statsService.formatMinutes(stats.voiceMinutes), inline: true },
+      { name: "🔥 Daily-Serie", value: streak > 0 ? `${streak} Tag(e)` : "0 Tage", inline: true }
     )
     .setFooter({ text: `${BRANDING.community} Level-System` })
     .setTimestamp();

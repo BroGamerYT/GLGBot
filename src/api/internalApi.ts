@@ -15,6 +15,8 @@ import { moderationService } from "../services/moderationService";
 import { prisonService } from "../services/prisonService";
 import { blacklistService } from "../services/blacklistService";
 import { setupService, SETUP_MODULES, MODULE_INFO } from "../services/setupService";
+import { moduleService } from "../services/moduleService";
+import { liveStreamService } from "../services/liveStreamService";
 
 /**
  * Interne Schnittstelle für das Web-Dashboard.
@@ -140,6 +142,29 @@ export function startInternalApi(client: Client) {
           }
         }
 
+        // ---------------- Modul-Verwaltung ----------------
+        case "GET /modules": {
+          const list = moduleService.getModules(guild.id);
+          return send(res, 200, { modules: list });
+        }
+        case "POST /modules/toggle": {
+          const actor = await getActor();
+          if (!actor || (actor.id !== guild.ownerId && !actor.permissions.has(PermissionFlagsBits.Administrator))) {
+            return send(res, 403, { error: "Module dürfen nur von Administratoren umgeschaltet werden." });
+          }
+          const body = await readBody(req);
+          const moduleId = String(body?.moduleId || "");
+          const mod = moduleService.getModuleById(moduleId);
+          if (!mod) return send(res, 400, { error: "Unbekanntes Modul." });
+
+          const newState = typeof body?.enabled === "boolean"
+            ? (body.enabled ? moduleService.enableModule(guild.id, mod.id) : moduleService.disableModule(guild.id, mod.id))
+            : moduleService.toggleModule(guild.id, mod.id);
+
+          console.log(`[Modules] ${by || actor.user.tag} hat Modul '${mod.name}' ${newState ? "aktiviert" : "deaktiviert"}.`);
+          return send(res, 200, { ok: true, moduleId: mod.id, enabled: newState, modules: moduleService.getModules(guild.id) });
+        }
+
         case "GET /free-games": {
           const games = await freeGamesService.fetchAll();
           return send(res, 200, { games, settings: freeGamesService.getSettings(guild.id) });
@@ -219,6 +244,40 @@ export function startInternalApi(client: Client) {
           const body = await readBody(req);
           const result = await gameNewsService.lookupSteam(String(body.input || ""));
           return typeof result === "string" ? send(res, 400, { error: result }) : send(res, 200, result);
+        }
+
+        // ---------------- Live-Streamer Suite ----------------
+        case "GET /live/active": {
+          const entries = liveStreamService.getActiveEntries(guild.id);
+          const streamers = [];
+
+          for (const entry of entries) {
+            const member = guild.members.cache.get(entry.userId) || (await guild.members.fetch(entry.userId).catch(() => null));
+            if (!member) continue;
+
+            const streamingActivity = member.presence?.activities.find((a) => a.type === 1);
+            const pendingData = liveStreamService.getPendingData(guild.id, member.id);
+
+            const streamTitle = streamingActivity?.details || pendingData?.title || "Community Stream";
+            const game = streamingActivity?.state || pendingData?.game || "Gaming";
+            const url = streamingActivity?.url || pendingData?.url || undefined;
+            const channel = entry.channelId ? guild.channels.cache.get(entry.channelId) : null;
+
+            streamers.push({
+              userId: member.id,
+              username: member.user.username,
+              displayName: member.displayName,
+              avatar: member.user.displayAvatarURL(),
+              title: streamTitle,
+              game,
+              url,
+              channelId: entry.channelId,
+              channelName: channel ? channel.name : undefined,
+              channelType: entry.channelType || "voice",
+            });
+          }
+
+          return send(res, 200, { ok: true, streamers });
         }
 
         // ---------------- Regeln ----------------
@@ -588,8 +647,30 @@ export function startInternalApi(client: Client) {
           if (typeof body.kickPenaltyXp === "number") patch.kickPenaltyXp = Math.max(0, Math.floor(body.kickPenaltyXp));
           if (typeof body.banPenaltyXp === "number") patch.banPenaltyXp = Math.max(0, Math.floor(body.banPenaltyXp));
 
+          if (body.roleRewards && typeof body.roleRewards === "object") {
+            patch.roleRewards = body.roleRewards;
+          }
+
           const updated = statsService.setConfig(guild.id, patch);
           return send(res, 200, { ok: true, config: updated });
+        }
+        case "POST /stats/sync-roles": {
+          const body = await readBody(req);
+          const userId = body.userId;
+          if (userId) {
+            const member = await guild.members.fetch(userId).catch(() => null);
+            if (!member) return send(res, 404, { error: "Mitglied nicht gefunden." });
+            const result = await statsService.syncUserRoleRewards(guild, member);
+            return send(res, 200, { ok: true, added: result.added, roles: result.roles });
+          } else {
+            let totalAdded = 0;
+            for (const member of guild.members.cache.values()) {
+              if (member.user.bot) continue;
+              const r = await statsService.syncUserRoleRewards(guild, member);
+              totalAdded += r.added.length;
+            }
+            return send(res, 200, { ok: true, totalAdded });
+          }
         }
 
         // ---------------- Moderation & Admin-Panel ----------------

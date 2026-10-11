@@ -10,21 +10,24 @@ export default function DashboardOverviewPage() {
   const [voiceConfig, setVoiceConfig] = useState<any>(null);
   const [liveConfig, setLiveConfig] = useState<any>(null);
   const [rolesConfig, setRolesConfig] = useState<any>(null);
+  const [activeStreamers, setActiveStreamers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const [guildRes, voiceRes, liveRes, rolesRes] = await Promise.all([
+        const [guildRes, voiceRes, liveRes, rolesRes, liveActiveRes] = await Promise.all([
           fetch("/api/discord/guild").then((r) => r.json()),
           fetch("/api/config/voice").then((r) => r.json()),
           fetch("/api/config/live").then((r) => r.json()),
           fetch("/api/config/roles").then((r) => r.json()),
+          fetch("/api/bot/live/active").then((r) => r.json()).catch(() => ({ streamers: [] })),
         ]);
         setData(guildRes);
         setVoiceConfig(voiceRes);
         setLiveConfig(liveRes);
         setRolesConfig(rolesRes);
+        setActiveStreamers(liveActiveRes?.streamers || []);
       } catch (e) {
         console.error(e);
       } finally {
@@ -86,6 +89,77 @@ export default function DashboardOverviewPage() {
           </Link>
         </div>
       </div>
+
+      {/* Gerade Live Widget */}
+      {activeStreamers.length > 0 && (
+        <div className="bg-gradient-to-r from-red-950/40 via-discord-card to-discord-dark border border-red-500/30 p-6 rounded-2xl shadow-xl space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                🔴 Gerade Live aus der Community
+                <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                  {activeStreamers.length} {activeStreamers.length === 1 ? "Streamer" : "Streamer"}
+                </span>
+              </h2>
+            </div>
+            <Link
+              href="/streamers"
+              className="text-xs text-gray-400 hover:text-white flex items-center gap-1 transition-colors"
+            >
+              Alle Streamer <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {activeStreamers.map((s) => (
+              <div
+                key={s.userId}
+                className="bg-discord-dark/80 border border-discord-border hover:border-red-500/50 p-4 rounded-xl flex items-center justify-between gap-4 transition-all"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="relative shrink-0">
+                    <img
+                      src={s.avatar || "https://cdn.discordapp.com/embed/avatars/0.png"}
+                      alt={s.displayName || s.username}
+                      className="w-12 h-12 rounded-xl object-cover border border-red-500/40"
+                    />
+                    <span className="absolute -bottom-1 -right-1 px-1 rounded bg-red-600 text-[10px] font-extrabold text-white leading-tight">
+                      LIVE
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-white truncate">{s.displayName || s.username}</p>
+                    <p className="text-xs text-red-300 font-medium truncate">{s.game || "Gaming"}</p>
+                    <p className="text-[11px] text-gray-400 truncate max-w-[200px]" title={s.title}>
+                      {s.title || "Community Stream"}
+                    </p>
+                  </div>
+                </div>
+
+                {s.url ? (
+                  <a
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-md shadow-red-600/30"
+                  >
+                    Zuschauen
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </a>
+                ) : s.channelName ? (
+                  <span className="shrink-0 text-xs text-gray-400 bg-discord-card border border-discord-border px-2.5 py-1.5 rounded-lg">
+                    #{s.channelName}
+                  </span>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Server Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

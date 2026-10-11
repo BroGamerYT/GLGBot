@@ -8,6 +8,8 @@ import {
 import { Command } from "../../types";
 import { renameSafely, RENAME_LIMIT_HINT } from "../../utils/rename";
 import { tempVoiceService } from "../../services/tempVoiceService";
+import { liveStreamService } from "../../services/liveStreamService";
+import { channelPasswordService } from "../../services/channelPasswordService";
 
 const voiceCommand: Command = {
   data: new SlashCommandBuilder()
@@ -108,6 +110,28 @@ const voiceCommand: Command = {
             .setMinValue(8)
             .setMaxValue(384)
         )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("password")
+        .setDescription("Verwalte das Passwort für deine Sprach-Lobby.")
+        .addStringOption((opt) =>
+          opt
+            .setName("aktion")
+            .setDescription("Aktion auswählen")
+            .setRequired(true)
+            .addChoices(
+              { name: "Passwort setzen / ändern", value: "set" },
+              { name: "Passwort entfernen", value: "remove" },
+              { name: "Passwort eingeben (Beitreten)", value: "enter" }
+            )
+        )
+        .addStringOption((opt) =>
+          opt
+            .setName("passwort")
+            .setDescription("Das Passwort (bei 'setzen' oder 'eingeben')")
+            .setRequired(false)
+        )
     ),
 
   execute: async (interaction) => {
@@ -122,16 +146,19 @@ const voiceCommand: Command = {
       return;
     }
 
-    // Prüfe ob der Kanal ein temporärer Kanal ist
-    if (!tempVoiceService.isTempChannel(voiceChannel.id)) {
+    // Prüfe ob der Kanal ein temporärer oder Streamer-Kanal ist
+    const isTemp = tempVoiceService.isTempChannel(voiceChannel.id);
+    const liveEntry = liveStreamService.getLiveEntryByChannel(voiceChannel.id);
+
+    if (!isTemp && !liveEntry) {
       await interaction.reply({
-        content: "❌ Dieser Kanal ist kein temporärer 'Join to Create'-Kanal.",
+        content: "❌ Dieser Kanal ist kein temporärer 'Join to Create'- oder aktiver Streamer-Kanal.",
         ephemeral: true,
       });
       return;
     }
 
-    const ownerId = tempVoiceService.getChannelOwner(voiceChannel.id);
+    const ownerId = liveEntry ? liveEntry.userId : tempVoiceService.getChannelOwner(voiceChannel.id);
     const isOwner = ownerId === interaction.user.id;
     const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
     const subcommand = interaction.options.getSubcommand();
@@ -322,6 +349,103 @@ const voiceCommand: Command = {
         ephemeral: true,
       });
       return;
+    }
+
+    // --- PASSWORD ---
+    if (subcommand === "password") {
+      const action = interaction.options.getString("aktion", true);
+      const inputPw = interaction.options.getString("passwort", false)?.trim();
+
+      if (action === "enter") {
+        if (!channelPasswordService.hasPassword(voiceChannel.id)) {
+          await interaction.reply({
+            content: "ℹ️ Für diesen Sprachkanal ist aktuell kein Passwort eingerichtet.",
+            ephemeral: true,
+          });
+          return;
+        }
+
+        if (!inputPw) {
+          await interaction.reply({
+            content: "❌ Bitte gib das Passwort an: `/voice password aktion:Passwort eingeben passwort:DEIN_PASSWORT`",
+            ephemeral: true,
+          });
+          return;
+        }
+
+        const isCorrect = channelPasswordService.verifyPassword(voiceChannel.id, inputPw);
+        if (!isCorrect) {
+          await interaction.reply({
+            content: "❌ **Falsches Passwort!** Bitte überprüfe die Eingabe.",
+            ephemeral: true,
+          });
+          return;
+        }
+
+        await voiceChannel.permissionOverwrites.edit(interaction.user.id, {
+          Connect: true,
+          ViewChannel: true,
+          Speak: true,
+        });
+
+        await interaction.reply({
+          content: `✅ **Passwort korrekt!** Du hast jetzt Zutritt zu **${voiceChannel.name}**.`,
+          ephemeral: true,
+        });
+        return;
+      }
+
+      // Für 'set' und 'remove' muss der Nutzer Owner oder Admin sein
+      if (!isOwner && !isAdmin) {
+        await interaction.reply({
+          content: "❌ Nur der Besitzer dieser Lobby oder Administratoren können das Passwort verwalten.",
+          ephemeral: true,
+        });
+        return;
+      }
+
+      if (action === "remove") {
+        channelPasswordService.removePassword(voiceChannel.id);
+        const everyoneRole = interaction.guild?.roles.everyone;
+        if (everyoneRole) {
+          await voiceChannel.permissionOverwrites.edit(everyoneRole, { Connect: null }).catch(() => null);
+        }
+        await interaction.reply({
+          content: "🔓 **Passwort entfernt!** Die Lobby ist wieder für alle geöffnet.",
+          ephemeral: true,
+        });
+        return;
+      }
+
+      if (action === "set") {
+        if (!inputPw) {
+          await interaction.reply({
+            content: "❌ Bitte gib das gewünschte Passwort an: `/voice password aktion:Passwort setzen / ändern passwort:DEIN_PASSWORT`",
+            ephemeral: true,
+          });
+          return;
+        }
+
+        channelPasswordService.setPassword(voiceChannel.id, inputPw);
+        const everyoneRole = interaction.guild?.roles.everyone;
+        if (everyoneRole) {
+          await voiceChannel.permissionOverwrites.edit(everyoneRole, { Connect: false }).catch(() => null);
+        }
+        await voiceChannel.permissionOverwrites.edit(interaction.user.id, {
+          Connect: true,
+          ViewChannel: true,
+        }).catch(() => null);
+
+        for (const [memberId] of voiceChannel.members) {
+          await voiceChannel.permissionOverwrites.edit(memberId, { Connect: true }).catch(() => null);
+        }
+
+        await interaction.reply({
+          content: `🔐 **Passwort erfolgreich festgelegt:** \`${inputPw}\`\nDer Raum wurde für @everyone gesperrt. Andere Mitglieder können beitreten, indem sie das Passwort eingeben oder den Button nutzen!`,
+          ephemeral: true,
+        });
+        return;
+      }
     }
   },
 };

@@ -6,6 +6,23 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.7.0] - 2026-10-11
+
+### Hinzugefügt
+* **Streamer-Suite mit vollen Kanalrechten & Streamer Control Panel:**
+  * Streamer erhalten beim Start ihres Live-Streams volle Verwaltungsrechte über ihren temporären Kanal (Manage Channels, Move Members, Mute, Deafen, Stream, etc.).
+  * Neues interaktives **Streamer Control Panel** direkt im Kanal-Chat (`/stream-panel`) mit Dropdown und Schnell-Buttons.
+  * **Passwortschutz für Kanäle:** Streamer & Voice-Besitzer können ein Passwort festlegen. Gäste können das Passwort per Modal eingeben und werden bei korrekter Eingabe automatisch freigeschaltet und in den Sprachkanal verschoben.
+  * **Benutzerlimit & Kanal-Umbenennung:** Benutzerlimit flexibel einstellbar; Umbenennung mit automatischem Schutz gegen das Discord 2×/10-Minuten Rate-Limit.
+  * Schnell-Aktionen für Sperren/Entsperren, Verstecken/Sichtbar und Bitrate-Einstellung.
+* **Modulares Feature-Toggle-System (`/modules`):**
+  * Alle Bot-Funktionen sind jetzt in 15 eigenständige Module unterteilt (`voice`, `live`, `levels`, `tickets`, `moderation`, `prison`, `freeGames`, `gameNews`, `auditLogs`, `rules`, `roles`, `sticky`, `suggestions`, `giveaways`, `daily`).
+  * Jederzeit per Discord-Befehl `/modules status`, `/modules enable`, `/modules disable` und `/modules toggle` oder per interner API umschaltbar.
+  * Dynamische Event-Gates für Befehle, Nachrichten, Voice-Events und Streamer-Status.
+* **Öffentlicher Gast-Zugang für Free Games & Game News:**
+  * Kostenlose Spiele (`/free-games`) und Game-News (`/news`) sind jetzt im Web-Dashboard für alle Gäste ohne Discord-Login lesbar.
+  * Admin-Steuerelemente (Discord-Repost, Feed-Konfiguration, Hinzufügen-Formulare) bleiben geschützt und werden nur eingeloggten Administratoren angezeigt.
+
 ## [2.6.0] - 2026-10-11
 
 ### Hinzugefügt

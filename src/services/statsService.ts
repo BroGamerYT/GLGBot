@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { Guild, User, Client, ChannelType } from "discord.js";
+import { Guild, User, Client, ChannelType, GuildMember } from "discord.js";
 import { readJsonFile, writeJsonAtomic } from "../utils/jsonFile";
 
 export interface TalkPartnerEntry {
@@ -49,6 +49,9 @@ export interface GuildStatsConfig {
   levelUpChannelId?: string; // leer = im aktuellen Kanal oder stumm
   levelUpNotifications: boolean;
   levelUpMessage?: string;
+
+  // Level-Rollen-Belohnungen (Automatische Meilensteine: Level -> Rollen-ID)
+  roleRewards?: Record<number, string>;
 }
 
 export const DEFAULT_STATS_CONFIG: GuildStatsConfig = {
@@ -71,6 +74,7 @@ export const DEFAULT_STATS_CONFIG: GuildStatsConfig = {
   banPenaltyXp: 5000,
 
   levelUpNotifications: true,
+  roleRewards: {},
 };
 
 export interface LevelProgress {
@@ -248,6 +252,94 @@ class StatsService {
     };
   }
 
+  // Belohnungs-XP hinzufügen (z. B. durch /daily, Events oder Quests)
+  public async addCustomXp(
+    guild: Guild,
+    user: User,
+    amount: number,
+    reason?: string
+  ): Promise<{ leveledUp: boolean; oldLevel: number; newLevel: number; totalXp: number; addedRoles: string[] } | null> {
+    if (user.bot || amount <= 0) return null;
+
+    const cfg = this.getConfig(guild.id);
+    const stats = this.getOrCreateUser(guild, user);
+    const oldLevel = stats.level;
+    stats.xp += amount;
+
+    const progress = this.calculateLevelProgress(stats.xp, cfg);
+    let leveledUp = false;
+    let addedRoles: string[] = [];
+
+    if (progress.level > oldLevel) {
+      leveledUp = true;
+      stats.level = progress.level;
+      const syncRes = await this.syncUserRoleRewards(guild, user.id, progress.level);
+      addedRoles = syncRes.added;
+    }
+
+    this.scheduleSave();
+    return {
+      leveledUp,
+      oldLevel,
+      newLevel: stats.level,
+      totalXp: stats.xp,
+      addedRoles,
+    };
+  }
+
+  // Synchronisiert die Level-Rollen-Belohnungen eines Mitglieds
+  public async syncUserRoleRewards(
+    guild: Guild,
+    memberOrUserId: GuildMember | string,
+    currentLevel?: number
+  ): Promise<{ added: string[]; roles: string[] }> {
+    const cfg = this.getConfig(guild.id);
+    const rewards = cfg.roleRewards || {};
+    const rewardLevels = Object.keys(rewards)
+      .map(Number)
+      .filter((l) => !isNaN(l) && l > 0)
+      .sort((a, b) => a - b);
+    if (rewardLevels.length === 0) return { added: [], roles: [] };
+
+    let member: GuildMember | null = null;
+    if (typeof memberOrUserId === "string") {
+      member = guild.members.cache.get(memberOrUserId) || (await guild.members.fetch(memberOrUserId).catch(() => null));
+    } else {
+      member = memberOrUserId;
+    }
+    if (!member) return { added: [], roles: [] };
+
+    let lvl = currentLevel;
+    if (lvl === undefined) {
+      const profile = this.getUserProfile(guild.id, member.id);
+      lvl = profile?.progress.level ?? 1;
+    }
+
+    const eligibleRoles = new Set<string>();
+    for (const l of rewardLevels) {
+      if (l <= lvl) {
+        const roleId = rewards[l];
+        if (roleId && guild.roles.cache.has(roleId)) {
+          eligibleRoles.add(roleId);
+        }
+      }
+    }
+
+    const added: string[] = [];
+    for (const roleId of eligibleRoles) {
+      if (!member.roles.cache.has(roleId)) {
+        try {
+          await member.roles.add(roleId, `Level-Rollen-Belohnung (Level ${lvl})`);
+          added.push(roleId);
+        } catch (e) {
+          console.error(`[StatsService] Konnte Belohnungs-Rolle ${roleId} an ${member.user.tag} nicht vergeben:`, e);
+        }
+      }
+    }
+
+    return { added, roles: Array.from(eligibleRoles) };
+  }
+
   // Zieht XP ab (bei Verwarnung, Timeout, Gefängnis, Blacklist, schlechtem Namen)
   // Berechnet automatisch das neue Level (Minus-Level möglich!)
   public deductXp(
@@ -313,6 +405,7 @@ class StatsService {
             const progress = this.calculateLevelProgress(stats.xp, cfg);
             if (progress.level > stats.level) {
               stats.level = progress.level;
+              this.syncUserRoleRewards(guild, member, progress.level).catch(() => null);
             }
           }
 
