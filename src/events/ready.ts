@@ -11,6 +11,9 @@ import { statsService } from "../services/statsService";
 import { giveawayService } from "../services/giveawayService";
 import { guildAccessService } from "../services/guildAccessService";
 import { dataSnapshotService } from "../services/dataSnapshotService";
+import { statsChannelsService } from "../services/statsChannelsService";
+import { birthdayService } from "../services/birthdayService";
+import { announcementService } from "../services/announcementService";
 
 const readyEvent: BotEvent<Events.ClientReady> = {
   name: Events.ClientReady,
@@ -64,6 +67,11 @@ const readyEvent: BotEvent<Events.ClientReady> = {
 
     // Voice- & Talk-Partner Tracker starten
     statsService.startVoiceTracker(client);
+
+    // Statistik-Kanäle, Geburtstage & geplante Ankündigungen
+    statsChannelsService.start(client);
+    birthdayService.start(client);
+    announcementService.start(client);
 
     // Giveaway Scheduler starten
     giveawayService.startScheduler(client);

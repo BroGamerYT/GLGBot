@@ -46,10 +46,39 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.9.0",
+    version: "v2.10.0",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Geburtstage, geplante Ankündigungen & Statistik-Kanäle",
+    description:
+      "Drei neue Module: Der Bot gratuliert zum Geburtstag, sendet Ankündigungen pünktlich zum geplanten Zeitpunkt und zeigt Live-Zähler ganz oben in der Kanalliste.",
+    highlights: [
+      {
+        icon: Sparkles,
+        title: "🎂 Geburtstage",
+        description:
+          "/birthday set trägt Tag & Monat ein. Am Geburtstag gratuliert der Bot und vergibt für 24 Stunden die Geburtstags-Rolle.",
+      },
+      {
+        icon: Clock,
+        title: "⏰ Geplante Ankündigungen",
+        description:
+          "Text oder Embed vorschreiben, Zeitpunkt wählen - einmalig, täglich oder wöchentlich. Mit Rollen-Ping und lautlos-Option.",
+      },
+      {
+        icon: Tag,
+        title: "📊 Statistik-Kanäle",
+        description:
+          "Live-Zähler ganz oben: Mitglieder, Online, Im Voice, Gerade live und Boosts - Text frei wählbar, Aktualisierung alle 10 Minuten.",
+      },
+    ],
+  },
+  {
+    version: "v2.9.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Level-Belohnungen, Daten-Sicherung & Fehlerbehebungen",
     description:
       "Rollen-Belohnungen lassen sich jetzt im Dashboard einstellen, alle Bot-Daten werden täglich gesichert und mehrere bekannte Probleme sind behoben.",

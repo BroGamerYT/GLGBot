@@ -16,7 +16,10 @@ export type BotModuleId =
   | "sticky"
   | "suggestions"
   | "giveaways"
-  | "daily";
+  | "daily"
+  | "statsChannels"
+  | "birthdays"
+  | "announcements";
 
 export interface BotModuleInfo {
   id: BotModuleId;
@@ -147,6 +150,30 @@ export const BOT_MODULES: BotModuleInfo[] = [
     emoji: "📅",
     category: "community",
     commands: ["daily"],
+  },
+  {
+    id: "birthdays",
+    name: "Geburtstage",
+    description: "Mitglieder tragen ihren Geburtstag ein - der Bot gratuliert und vergibt für 24 Std. eine Geburtstags-Rolle",
+    emoji: "🎂",
+    category: "community",
+    commands: ["birthday"],
+  },
+  {
+    id: "statsChannels",
+    name: "Statistik-Kanäle",
+    description: "Gesperrte Kanäle ganz oben mit Live-Zählern (Mitglieder, Online, Im Voice, Gerade live, Boosts)",
+    emoji: "📊",
+    category: "management",
+    commands: ["server-stats"],
+  },
+  {
+    id: "announcements",
+    name: "Geplante Ankündigungen",
+    description: "Nachrichten und Embeds zu einem festen Zeitpunkt senden - einmalig, täglich oder wöchentlich",
+    emoji: "⏰",
+    category: "management",
+    commands: [],
   },
 ];
 

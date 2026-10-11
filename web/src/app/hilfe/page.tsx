@@ -97,6 +97,7 @@ const COMMANDS: { group: string; items: [string, string, string][] }[] = [
       ["/rank [mitglied]", "Zeigt dein Level, aktuelle XP, Server-Rang und Fortschrittsbalken an.", "Alle"],
       ["/level status", "Dein Level-Status: Fortschritt und wie viele Nachrichten / Voice-Minuten bis zum nächsten Level fehlen (nur für dich sichtbar).", "Alle"],
       ["/level sync-roles [mitglied]", "Vergibt nachträglich alle verdienten Level-Belohnungsrollen.", "Alle"],
+      ["/birthday set | remove | list", "Geburtstag eintragen (nur Tag & Monat), entfernen oder die nächsten Geburtstage anzeigen. Der Bot gratuliert am Tag selbst.", "Alle"],
       ["/daily", "Tägliche XP-Belohnung: 50 XP + 15 XP pro Streak-Tag (max. +150). Streak hält bis 36 Std. nach dem letzten Abholen.", "Alle"],
       ["/leaderboard [kategorie]", "Zeigt die Top 10 Rangliste (Gesamt-XP, Voice-Minuten, Chat-Nachrichten).", "Alle"],
       ["/voice-stats [mitglied]", "Zeigt deine Voice-Aktivität, Online-Dauer und Top Talk-Partner.", "Alle"],
@@ -142,6 +143,8 @@ const COMMANDS: { group: string; items: [string, string, string][] }[] = [
     group: "Administration & Server-Setup",
     items: [
       ["/setup-all [bereich] [regel_sperre]", "Richtet alle fehlenden Rollen & Kanäle auf einmal ein (wie die Dashboard-Seite „Server einrichten“).", "Administrator"],
+      ["/birthday setup [kanal] [rolle]", "Legt den Kanal für Glückwünsche fest und erstellt die Geburtstags-Rolle (24 Std.).", "Server verwalten"],
+      ["/server-stats einrichten | entfernen | status", "Statistik-Kanäle ganz oben (Mitglieder, Online, Im Voice, Gerade live, Boosts), Aktualisierung alle 10 Min.", "Kanäle verwalten"],
       ["/modules status | enable | disable | toggle", "Schaltet einzelne Funktionen (Module) an oder aus – wie die Dashboard-Seite „Module“. Daten bleiben erhalten.", "Administrator"],
       ["/setup-tickets panel", "Postet das interaktive Support-Ticket-Panel in den aktuellen Kanal.", "Kanäle verwalten"],
       ["/setup-logs set [channel]", "Richtet den Silent-Audit-Log Kanal ein (stille Benachrichtigungen).", "Server verwalten"],

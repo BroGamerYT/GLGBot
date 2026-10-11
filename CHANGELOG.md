@@ -6,6 +6,14 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.10.0] - 2026-10-11
+
+### Hinzugefügt
+* **Geburtstage (`/birthday`, Dashboard „Geburtstage“):** Mitglieder tragen Tag & Monat ein (kein Jahr). Am Geburtstag gratuliert der Bot ab 00:01 Uhr (Zeitzone `BOT_TIMEZONE`, Standard Europe/Berlin) im eingestellten Kanal und vergibt optional für 24 Stunden die Rolle „🎉 Geburtstagskind“. 29. Februar wird in Nicht-Schaltjahren am 28. gefeiert.
+* **Geplante Ankündigungen (Dashboard „Ankündigungen“):** Text und/oder Embed (Titel, Farbe, Bild) zu einem festen Zeitpunkt senden - einmalig, täglich oder wöchentlich. Mit Erwähnung (@everyone/@here nur mit Berechtigung, oder eine Rolle), lautlos-Option, „Jetzt senden“ und Fehleranzeige.
+* **Statistik-Kanäle (`/server-stats`, Dashboard „Statistik-Kanäle“):** Gesperrte Kanäle ganz oben mit Live-Zählern - Mitglieder, Menschen (ohne Bots), Online, Im Voice, Gerade live, Boosts. Text frei wählbar mit `{count}`, Aktualisierung alle 10 Minuten und nur bei Änderung (Discord-Limit).
+* Alle drei sind eigene **Module** (auf neuen Servern zunächst aus) und laufen pro Server getrennt.
+
 ## [2.9.0] - 2026-10-11
 
 ### Hinzugefügt

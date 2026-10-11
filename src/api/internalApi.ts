@@ -17,6 +17,9 @@ import { blacklistService } from "../services/blacklistService";
 import { setupService, SETUP_MODULES, MODULE_INFO } from "../services/setupService";
 import { guildAccessService } from "../services/guildAccessService";
 import { dailyService } from "../services/dailyService";
+import { statsChannelsService, COUNTERS } from "../services/statsChannelsService";
+import { birthdayService, DEFAULT_BIRTHDAY_MESSAGE } from "../services/birthdayService";
+import { announcementService } from "../services/announcementService";
 import { moduleService } from "../services/moduleService";
 import { liveStreamService } from "../services/liveStreamService";
 
@@ -189,6 +192,145 @@ export function startInternalApi(client: Client) {
           if (target) await guildAccessService.rejectGuild(target, "not_allowed");
           console.log(`[GuildAccess] ${by || actorId} hat die Freigabe für ${target?.name || id} entfernt.`);
           return send(res, 200, { ok: true, left: !!target });
+        }
+
+        // ---------------- Statistik-Kanäle ----------------
+        case "GET /stats-channels": {
+          if (!isLoggedIn) return send(res, 401, { error: "Bitte einloggen." });
+          const cfg = statsChannelsService.getConfig(guild.id);
+          return send(res, 200, {
+            counters: (Object.keys(COUNTERS) as (keyof typeof COUNTERS)[]).map((id) => ({
+              id,
+              ...COUNTERS[id],
+              enabled: !!cfg.counters[id]?.enabled,
+              template: cfg.counters[id]?.template || COUNTERS[id].template,
+              channelId: cfg.counters[id]?.channelId || null,
+              value: statsChannelsService.count(guild, id),
+            })),
+          });
+        }
+        case "POST /stats-channels": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageChannels) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Kanäle verwalten“." });
+          }
+          const body = await readBody(req);
+          const wanted: Record<string, { enabled: boolean; template?: string }> = {};
+          for (const id of Object.keys(COUNTERS)) {
+            const c = body?.counters?.[id];
+            const template = typeof c?.template === "string" ? c.template.trim() : undefined;
+            if (template && !template.includes("{count}")) return send(res, 400, { error: `${COUNTERS[id as keyof typeof COUNTERS].label}: Der Text muss {count} enthalten.` });
+            wanted[id] = { enabled: !!c?.enabled, template };
+          }
+          const cfg = await statsChannelsService.apply(guild, wanted as any);
+          return send(res, 200, { ok: true, config: cfg });
+        }
+
+        // ---------------- Geburtstage ----------------
+        case "GET /birthdays": {
+          if (!isLoggedIn) return send(res, 401, { error: "Bitte einloggen." });
+          const data = birthdayService.getData(guild.id);
+          const upcoming = birthdayService.upcoming(guild.id, 25);
+          const members = await Promise.all(upcoming.map((u) => guild.members.fetch(u.userId).catch(() => null)));
+          return send(res, 200, {
+            config: { channelId: data.channelId || null, roleId: data.roleId || null, message: data.message, defaultMessage: DEFAULT_BIRTHDAY_MESSAGE },
+            total: Object.keys(data.users).length,
+            upcoming: upcoming.map((u, i) => ({
+              ...u,
+              date: birthdayService.formatDate(u.day, u.month),
+              name: members[i]?.displayName || "Unbekannt",
+              avatar: members[i]?.displayAvatarURL({ size: 64 }) || null,
+            })),
+            channels: guild.channels.cache.filter((c) => c.isTextBased() && !c.isThread() && !c.isVoiceBased()).map((c) => ({ id: c.id, name: c.name })),
+            roles: guild.roles.cache.filter((r) => r.id !== guild.id && !r.managed).sort((a, b) => b.position - a.position).map((r) => ({ id: r.id, name: r.name })),
+          });
+        }
+        case "POST /birthdays/config": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageGuild) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Server verwalten“." });
+          }
+          const body = await readBody(req);
+          if (body?.channelId && !guild.channels.cache.get(String(body.channelId))?.isTextBased()) return send(res, 400, { error: "Ungültiger Kanal." });
+          if (body?.createRole) {
+            try {
+              await birthdayService.ensureRole(guild);
+            } catch (e: any) {
+              return send(res, 400, { error: e?.message || "Rolle konnte nicht angelegt werden." });
+            }
+          } else if (body?.roleId !== undefined && body.roleId) {
+            const role = guild.roles.cache.get(String(body.roleId));
+            const botTop = guild.members.me?.roles.highest.position ?? 0;
+            if (!role || role.managed || role.position >= botTop) return send(res, 400, { error: "Diese Rolle kann der Bot nicht vergeben (muss unter der Bot-Rolle stehen)." });
+            if (role.permissions.has(PermissionFlagsBits.Administrator) || role.permissions.has(PermissionFlagsBits.ManageGuild)) {
+              return send(res, 400, { error: "Rollen mit Admin- oder Verwaltungsrechten sind als Geburtstags-Rolle nicht erlaubt." });
+            }
+          }
+          birthdayService.setConfig(guild.id, {
+            channelId: body?.channelId !== undefined ? String(body.channelId || "") : undefined,
+            roleId: body?.createRole ? undefined : body?.roleId !== undefined ? String(body.roleId || "") : undefined,
+            message: typeof body?.message === "string" ? body.message : undefined,
+          });
+          return send(res, 200, { ok: true });
+        }
+        case "POST /birthdays/test": {
+          if (!isLoggedIn) return send(res, 401, { error: "Bitte einloggen." });
+          const data = birthdayService.getData(guild.id);
+          const channel = data.channelId ? guild.channels.cache.get(data.channelId) : null;
+          if (!channel || !channel.isTextBased()) return send(res, 400, { error: "Bitte zuerst einen Kanal festlegen." });
+          await (channel as any).send({
+            embeds: [
+              new EmbedBuilder()
+                .setColor(0xeb459e)
+                .setTitle("🎂 Herzlichen Glückwunsch! (Test)")
+                .setDescription(data.message.replace(/{user}/g, "@Mitglied").replace(/{server}/g, guild.name).replace(/{name}/g, "Mitglied")),
+            ],
+          });
+          return send(res, 200, { ok: true });
+        }
+
+        // ---------------- Geplante Ankündigungen ----------------
+        case "GET /announcements": {
+          if (!isLoggedIn) return send(res, 401, { error: "Bitte einloggen." });
+          return send(res, 200, {
+            announcements: announcementService.list(guild.id),
+            channels: guild.channels.cache.filter((c) => c.isTextBased() && !c.isThread() && !c.isVoiceBased()).map((c) => ({ id: c.id, name: c.name })),
+            roles: guild.roles.cache.filter((r) => r.id !== guild.id && !r.managed).sort((a, b) => b.position - a.position).map((r) => ({ id: r.id, name: r.name })),
+          });
+        }
+        case "POST /announcements": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageMessages) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Nachrichten verwalten“." });
+          }
+          const body = await readBody(req);
+          // @everyone/@here nur mit der Berechtigung "Alle erwähnen"
+          if ((body?.ping === "everyone" || body?.ping === "here") && !actor.permissions.has(PermissionFlagsBits.MentionEveryone)) {
+            return send(res, 403, { error: "Für @everyone/@here brauchst du „@everyone erwähnen“." });
+          }
+          const result = announcementService.save(guild, body, by);
+          if ("error" in result) return send(res, 400, { error: result.error });
+          return send(res, 200, { ok: true, item: result.item });
+        }
+        case "POST /announcements/delete": {
+          if (!isLoggedIn) return send(res, 401, { error: "Bitte einloggen." });
+          const body = await readBody(req);
+          return send(res, 200, { ok: announcementService.remove(guild.id, String(body?.id || "")) });
+        }
+        case "POST /announcements/send-now": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageMessages) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Nachrichten verwalten“." });
+          }
+          const body = await readBody(req);
+          const item = announcementService.list(guild.id).find((a) => a.id === String(body?.id || ""));
+          if (!item) return send(res, 404, { error: "Ankündigung nicht gefunden." });
+          try {
+            await announcementService.send(guild, item);
+            return send(res, 200, { ok: true });
+          } catch (e: any) {
+            return send(res, 400, { error: e?.message || "Senden fehlgeschlagen." });
+          }
         }
 
         // ---------------- Komplett-Einrichtung ----------------

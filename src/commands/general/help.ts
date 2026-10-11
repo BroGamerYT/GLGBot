@@ -60,6 +60,7 @@ const helpCommand: Command = {
             "`/setup-tickets` • Postet das Ticket-Panel für private Support-Anfragen\n" +
             "`/suggest neu|status` • Reiche Vorschläge mit Upvote/Downvote-Buttons ein\n" +
             "`/giveaway start|end|reroll` • Verlosungen mit Teilnahme-Button\n" +
+            "`/birthday set|remove|list` • Geburtstag eintragen, der Bot gratuliert\n" +
             "`/sticky set|remove` • Fixiert wichtige Hinweise als letzte Nachricht im Kanal",
           inline: false,
         },
@@ -85,6 +86,7 @@ const helpCommand: Command = {
           value:
             "`/setup-all` • Richtet alle fehlenden Rollen & Kanäle auf einmal ein\n" +
             "`/modules status|enable|disable|toggle` • Funktionen an- oder ausschalten\n" +
+            "`/server-stats einrichten|entfernen` • Live-Zähler-Kanäle ganz oben\n" +
             "`/backup create|list|restore` • Vollständige Rollen- & Kanal-Snapshots\n" +
             "`/setup-rules post|lock|unlock` • Regeln posten & Server bis zur Bestätigung sperren\n" +
             "`/setup-roles` • Erstellt das Rollenauswahl-Panel im Chat\n" +

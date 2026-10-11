@@ -2,7 +2,7 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.9.0 (siehe History ganz unten)
+**Aktueller Stand:** v2.10.0 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
@@ -177,20 +177,20 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-### 13. 📊 Live Server-Statistik-Kanäle (Counter oben in der Serverliste)
-* [ ] Gesperrte Voice-Kanäle ganz oben auf dem Discord-Server, die sich alle 10 Minuten aktualisieren:
-  * [ ] `👥・Mitglieder: 1.250`
-  * [ ] `🔊・Im Voice: 24`
-  * [ ] `🔴・Gerade Live: 3`
-  * [ ] `🎮・Game Server: Online`
-* [ ] Vollständig konfigurierbar im Web-Dashboard (welche Counter aktiv sind, Emojis und Beschriftungen).
+### 13. 📊 Live Server-Statistik-Kanäle (Counter oben in der Serverliste) ✅ v2.10.0
+* [x] Gesperrte Voice-Kanäle ganz oben auf dem Discord-Server, die sich alle 10 Minuten aktualisieren:
+  * [x] `👥・Mitglieder: 1.250`
+  * [x] `🔊・Im Voice: 24`
+  * [x] `🔴・Gerade Live: 3`
+  * [ ] `🎮・Game Server: Online` *(kommt mit Punkt 8)*
+* [x] Vollständig konfigurierbar im Web-Dashboard (welche Counter aktiv sind, Emojis und Beschriftungen).
 
 ---
 
-### 14. 🎂 Geburtstags-System (`/birthday`)
-* [ ] Befehl `/birthday set <tag>.<monat>`.
-* [ ] Automatische Überprüfung um 00:01 Uhr jeden Tag.
-* [ ] Feierliches Glückwunsch-Embed im Ankündigungskanal und automatische Zuweisung einer temporären Rolle (`🎉 Geburtstagskind`) für 24 Stunden.
+### 14. 🎂 Geburtstags-System (`/birthday`) ✅ v2.10.0
+* [x] Befehl `/birthday set <tag>.<monat>`.
+* [x] Automatische Überprüfung um 00:01 Uhr jeden Tag.
+* [x] Feierliches Glückwunsch-Embed im Ankündigungskanal und automatische Zuweisung einer temporären Rolle (`🎉 Geburtstagskind`) für 24 Stunden.
 
 ---
 
@@ -249,11 +249,11 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-### 19. ⏰ Geplante Ankündigungen (Scheduled Messages)
-* [ ] Im Web-Dashboard unter `/announcements`:
-  * [ ] Nachricht oder Embed vorschreiben.
-  * [ ] Datum und Uhrzeit für die geplante Veröffentlichung wählen (z. B. LAN-Party Start, Event-Erinnerung).
-  * [ ] Automatische pünktliche Ausführung durch den Bot-Scheduler.
+### 19. ⏰ Geplante Ankündigungen (Scheduled Messages) ✅ v2.10.0
+* [x] Im Web-Dashboard unter `/announcements`:
+  * [x] Nachricht oder Embed vorschreiben.
+  * [x] Datum und Uhrzeit für die geplante Veröffentlichung wählen (z. B. LAN-Party Start, Event-Erinnerung).
+  * [x] Automatische pünktliche Ausführung durch den Bot-Scheduler.
 
 ---
 
@@ -323,7 +323,9 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.9.0 (Aktuell):**
+* [x] **v2.10.0 (Aktuell):**
+  * [x] Geburtstage, geplante Ankündigungen, Statistik-Kanäle (je als Modul, pro Server).
+* [x] **v2.9.0:**
   * [x] Level-Rollen-Belohnungen im Dashboard, Daily-Serie im Profil, tägliche Daten-Sicherung, Regel-Sperre nach Backup-Restore, `!ping` statt „ping“, Build-Check auf GitHub.
 * [x] **v2.8.0:**
   * [x] Mehrere Server (max. 5) mit Freigabe-Liste, Server-Wechsel im Dashboard, Daten pro Server getrennt.

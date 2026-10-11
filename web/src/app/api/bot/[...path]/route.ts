@@ -69,6 +69,15 @@ const ALLOWED = new Set([
   "GET guild-access",
   "POST guild-access/add",
   "POST guild-access/remove",
+  "GET stats-channels",
+  "POST stats-channels",
+  "GET birthdays",
+  "POST birthdays/config",
+  "POST birthdays/test",
+  "GET announcements",
+  "POST announcements",
+  "POST announcements/delete",
+  "POST announcements/send-now",
 ]);
 
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {

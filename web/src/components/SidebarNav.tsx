@@ -28,6 +28,9 @@ import {
   ShieldCheck,
   BookOpen,
   Server,
+  Cake,
+  BarChart3,
+  AlarmClock,
 } from "lucide-react";
 
 interface NavItem {
@@ -69,6 +72,7 @@ const GROUPS: NavGroup[] = [
       { href: "/stats", label: "Level & Rangliste", icon: Trophy, color: "text-amber-400" },
       { href: "/free-games", label: "Free-Games", icon: Gift, color: "text-discord-green" },
       { href: "/news", label: "Game-News", icon: Newspaper, color: "text-orange-400" },
+      { href: "/birthdays", label: "Geburtstage", icon: Cake, color: "text-pink-400" },
     ],
   },
   {
@@ -79,6 +83,8 @@ const GROUPS: NavGroup[] = [
       { href: "/roles", label: "Rollen & Rechte", icon: Shield, color: "text-discord-yellow" },
       { href: "/rules", label: "Regeln", icon: ScrollText, color: "text-amber-300" },
       { href: "/embeds", label: "Embed-Builder", icon: Palette, color: "text-fuchsia-400" },
+      { href: "/announcements", label: "Ankündigungen", icon: AlarmClock, color: "text-amber-400" },
+      { href: "/server-stats", label: "Statistik-Kanäle", icon: BarChart3, color: "text-cyan-400" },
       { href: "/backups", label: "Backups", icon: Archive, color: "text-emerald-400" },
     ],
   },
