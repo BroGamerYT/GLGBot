@@ -1143,6 +1143,24 @@ export function startInternalApi(client: Client) {
           const backups = backupService.listBackups(guild.id);
           return send(res, 200, { backups });
         }
+        case "GET /backups/download": {
+          const qs = (req.url || "").split("?")[1] || "";
+          const backupId = new URLSearchParams(qs).get("id") || "";
+          if (!backupId) return send(res, 400, { error: "Keine backupId angegeben." });
+          const backup = backupService.getBackup(backupId);
+          if (!backup) return send(res, 404, { error: "Backup nicht gefunden." });
+          return send(res, 200, { backup });
+        }
+        case "POST /backups/upload": {
+          const body = await readBody(req);
+          if (!body.backup) return send(res, 400, { error: "Keine Backup-Daten übergeben." });
+          try {
+            const imported = backupService.importBackup(guild.id, body.backup, by || "Web-Upload");
+            return send(res, 200, { ok: true, backup: imported });
+          } catch (e: any) {
+            return send(res, 400, { error: e.message || "Import fehlgeschlagen." });
+          }
+        }
         case "POST /backups/create": {
           const body = await readBody(req);
           const backup = await backupService.createBackup(guild, body.creator || "Web-Dashboard");
@@ -1151,8 +1169,12 @@ export function startInternalApi(client: Client) {
         case "POST /backups/restore": {
           const body = await readBody(req);
           if (!body.backupId) return send(res, 400, { error: "Keine backupId angegeben." });
-          const result = await backupService.restoreBackup(guild, body.backupId, body.options);
-          return send(res, 200, { ok: true, result });
+          try {
+            const result = await backupService.restoreBackup(guild, body.backupId, body.options);
+            return send(res, 200, { ok: true, result });
+          } catch (e: any) {
+            return send(res, 400, { error: e.message || "Wiederherstellung fehlgeschlagen." });
+          }
         }
         case "POST /backups/delete":
         case "DELETE /backups/delete": {

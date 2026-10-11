@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Archive,
   RefreshCw,
@@ -8,6 +8,7 @@ import {
   RotateCcw,
   Trash2,
   Download,
+  Upload,
   ShieldAlert,
   CheckCircle2,
   Clock,
@@ -16,6 +17,9 @@ import {
   Hash,
   Sparkles,
   AlertTriangle,
+  FileUp,
+  UserCheck,
+  ShieldCheck,
 } from "lucide-react";
 
 interface BackupMeta {
@@ -36,11 +40,21 @@ export default function BackupsPage() {
   const [backups, setBackups] = useState<BackupMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [selectedBackupForRestore, setSelectedBackupForRestore] = useState<BackupMeta | null>(null);
+
+  // Restore Options
   const [restoreOption, setRestoreOption] = useState<"all" | "roles" | "channels">("all");
+  const [allowCrossServer, setAllowCrossServer] = useState(true);
+  const [stripMemberOverwrites, setStripMemberOverwrites] = useState(true);
+  const [preserveOwnerRank, setPreserveOwnerRank] = useState(true);
+  const [wipeFirst, setWipeFirst] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchBackups = async () => {
     setLoading(true);
@@ -87,12 +101,75 @@ export default function BackupsPage() {
     }
   };
 
+  const handleDownloadBackup = async (backupId: string) => {
+    setDownloadingId(backupId);
+    try {
+      const res = await fetch(`/api/bot/backups/download?id=${encodeURIComponent(backupId)}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || "Fehler beim Herunterladen des Backups.");
+      }
+      const data = await res.json();
+      const jsonStr = JSON.stringify(data.backup, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${backupId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setStatusMessage({ type: "success", text: `📥 Snapshot "${backupId}.json" erfolgreich heruntergeladen.` });
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: `❌ Download fehlgeschlagen: ${err.message}` });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setStatusMessage(null);
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      if (!json || !Array.isArray(json.roles) || !Array.isArray(json.channels)) {
+        throw new Error("Ungültiges Backup-Format: In der JSON-Datei müssen 'roles' und 'channels' enthalten sein.");
+      }
+      const res = await fetch("/api/bot/backups/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ backup: json }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload fehlgeschlagen");
+      setStatusMessage({
+        type: "success",
+        text: `✅ Backup "${file.name}" erfolgreich importiert (${data.backup.id})!`,
+      });
+      fetchBackups();
+    } catch (err: any) {
+      setStatusMessage({ type: "error", text: `❌ Upload-Fehler: ${err.message}` });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const executeRestore = async () => {
     if (!selectedBackupForRestore) return;
     setRestoringId(selectedBackupForRestore.id);
     setStatusMessage(null);
 
-    const options: Record<string, boolean> = {};
+    const options: Record<string, boolean> = {
+      allowCrossServer,
+      stripMemberOverwrites,
+      preserveOwnerRank,
+      wipeFirst,
+    };
     if (restoreOption === "roles") options.rolesOnly = true;
     if (restoreOption === "channels") options.channelsOnly = true;
 
@@ -152,11 +229,29 @@ export default function BackupsPage() {
             Server-Backups & Wiederherstellung
           </h1>
           <p className="text-sm text-gray-400">
-            Vollständige JSON-Snapshots aller Rollen, Kanäle, Kategorien und Berechtigungen.
+            Vollständige JSON-Snapshots aller Rollen, Kanäle, Kategorien und Berechtigungen inklusive Download, Upload & Server-Transfer.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Upload Button */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".json,application/json"
+            onChange={handleUploadFile}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="flex items-center gap-2 px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            title="Backup-JSON von deinem PC hochladen"
+          >
+            {uploading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileUp className="w-4 h-4" />}
+            <span>{uploading ? "Lade hoch..." : "Backup hochladen (JSON)"}</span>
+          </button>
+
           <button
             onClick={fetchBackups}
             disabled={loading}
@@ -165,6 +260,7 @@ export default function BackupsPage() {
             <RefreshCw className={`w-4 h-4 text-gray-400 ${loading ? "animate-spin" : ""}`} />
             Aktualisieren
           </button>
+
           <button
             onClick={handleCreateBackup}
             disabled={creating}
@@ -198,11 +294,11 @@ export default function BackupsPage() {
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-white font-semibold text-sm">
             <Sparkles className="w-4 h-4 text-emerald-400" />
-            Automatischer 24/7 Snapshot-Schutz aktiv
+            Automatischer 24/7 Snapshot-Schutz & Server-Transfer
           </div>
           <p className="text-xs text-gray-400 max-w-2xl">
-            Der Bot führt jeden Tag automatisch einen Snapshot durch und archiviert bis zu 20 Stände rollierend.
-            Im Falle von fehlerhaften Berechtigungen oder versehentlichen Löschungen können alle Rollen und Kanäle mit 1 Klick wiederhergestellt werden.
+            Der Bot sichert täglich alle Strukturen rollierend (bis zu 20 Stände). Du kannst Backups als JSON herunterladen,
+            auf anderen Discord-Servern hochladen und mit automatischer Bereinigung fremder Mitglieder sowie Inhaber-Schutz wiederherstellen.
           </p>
         </div>
 
@@ -223,7 +319,7 @@ export default function BackupsPage() {
             <Archive className="w-12 h-12 mx-auto text-gray-600 mb-3" />
             <p className="text-base font-semibold text-gray-300">Noch keine Backups vorhanden</p>
             <p className="text-xs text-gray-500 mt-1">
-              Klicke oben auf „Neues Backup erstellen“, um deinen ersten Server-Snapshot anzulegen.
+              Klicke oben auf „Neues Backup erstellen“ oder „Backup hochladen (JSON)“, um einen Server-Snapshot anzulegen.
             </p>
           </div>
         ) : (
@@ -246,6 +342,11 @@ export default function BackupsPage() {
                         <Clock className="w-3.5 h-3.5 text-gray-500" />
                         {date.toLocaleDateString("de-DE")} um {date.toLocaleTimeString("de-DE")}
                       </span>
+                      {b.guildName && (
+                        <span className="text-[11px] text-gray-400 bg-discord-dark px-2 py-0.5 rounded border border-discord-border">
+                          {b.guildName}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3 text-xs text-gray-300">
@@ -272,12 +373,23 @@ export default function BackupsPage() {
 
                   <div className="flex items-center gap-2 self-end sm:self-center">
                     <button
+                      onClick={() => handleDownloadBackup(b.id)}
+                      disabled={downloadingId === b.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-discord-dark hover:bg-discord-blurple/20 text-gray-300 hover:text-indigo-300 border border-discord-border rounded-lg text-xs font-medium transition-colors"
+                      title="Snapshot als JSON auf den PC herunterladen"
+                    >
+                      <Download className={`w-3.5 h-3.5 ${downloadingId === b.id ? "animate-bounce" : ""}`} />
+                      <span>{downloadingId === b.id ? "Lädt..." : "Download"}</span>
+                    </button>
+
+                    <button
                       onClick={() => setSelectedBackupForRestore(b)}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-discord-blurple/15 hover:bg-discord-blurple/25 text-indigo-300 border border-discord-blurple/30 rounded-lg text-xs font-medium transition-colors"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                       Wiederherstellen
                     </button>
+
                     <button
                       onClick={() => handleDeleteBackup(b.id)}
                       disabled={deletingId === b.id}
@@ -297,22 +409,23 @@ export default function BackupsPage() {
       {/* Restore Modal */}
       {selectedBackupForRestore && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-discord-card border border-discord-border rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95">
+          <div className="bg-discord-card border border-discord-border rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center gap-3 text-white">
               <div className="p-2.5 bg-amber-500/15 border border-amber-500/30 rounded-xl text-amber-400">
                 <RotateCcw className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-lg font-bold">Server-Wiederherstellung bestätigen</h3>
+                <h3 className="text-lg font-bold">Server-Wiederherstellung konfigurieren</h3>
                 <p className="text-xs text-gray-400 font-mono">{selectedBackupForRestore.id}</p>
               </div>
             </div>
 
             <p className="text-xs text-gray-300 leading-relaxed">
-              Möchtest du die Konfiguration dieses Snapshots auf <strong>{selectedBackupForRestore.guildName}</strong> anwenden?
-              Vorhandene passende Rollen und Kanäle werden aktualisiert, fehlende Elemente werden mit ihren ursprünglichen Berechtigungen neu angelegt.
+              Möchtest du die Konfiguration dieses Snapshots anwenden?
+              Vorhandene Rollen und Kanäle werden aktualisiert, fehlende Elemente werden mit ihren Berechtigungen neu angelegt.
             </p>
 
+            {/* Umfang */}
             <div className="space-y-2">
               <label className="text-xs font-semibold text-gray-300">Wiederherstellungs-Umfang:</label>
               <div className="grid grid-cols-3 gap-2">
@@ -335,6 +448,80 @@ export default function BackupsPage() {
                     <div className="text-[10px] text-gray-500">{opt.hint}</div>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Spezielle Transfer- & Sicherheits-Einstellungen */}
+            <div className="space-y-3 pt-2 border-t border-discord-border">
+              <label className="text-xs font-semibold text-white flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                Einstellungen für Server-Übertragung & Sicherheit:
+              </label>
+
+              <div className="space-y-2.5 bg-discord-dark/60 p-3.5 rounded-xl border border-discord-border text-xs">
+                {/* 1. Owner oberste Rolle */}
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={preserveOwnerRank}
+                    onChange={(e) => setPreserveOwnerRank(e.target.checked)}
+                    className="mt-0.5 rounded bg-discord-dark border-discord-border text-discord-blurple focus:ring-discord-blurple"
+                  />
+                  <div>
+                    <span className="font-bold text-white block">Owner als oberste Rolle sichern</span>
+                    <span className="text-gray-400 text-[11px] leading-tight block">
+                      Weist dem Server-Inhaber automatisch die oberste Admin- oder Leitungs-Rolle zu, sodass der Owner garantiert auf dem höchsten Rang bleibt.
+                    </span>
+                  </div>
+                </label>
+
+                {/* 2. Mitglieder entfernen / bereinigen */}
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={stripMemberOverwrites}
+                    onChange={(e) => setStripMemberOverwrites(e.target.checked)}
+                    className="mt-0.5 rounded bg-discord-dark border-discord-border text-discord-blurple focus:ring-discord-blurple"
+                  />
+                  <div>
+                    <span className="font-bold text-white block">Mitglieder-Berechtigungen bereinigen</span>
+                    <span className="text-gray-400 text-[11px] leading-tight block">
+                      Entfernt spezifische Benutzerrechte des alten Servers aus Kanälen & Kategorien – nur saubere Rollen werden übernommen (empfohlen für andere Server).
+                    </span>
+                  </div>
+                </label>
+
+                {/* 3. Cross-Server Transfer erlauben */}
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={allowCrossServer}
+                    onChange={(e) => setAllowCrossServer(e.target.checked)}
+                    className="mt-0.5 rounded bg-discord-dark border-discord-border text-indigo-400 focus:ring-indigo-400"
+                  />
+                  <div>
+                    <span className="font-bold text-white block">Server-Übertragung erlauben (Cross-Server)</span>
+                    <span className="text-gray-400 text-[11px] leading-tight block">
+                      Ermöglicht das Einspielen dieses Backups auch auf einem anderen Discord-Server als dem ursprünglichen Ursprungsserver.
+                    </span>
+                  </div>
+                </label>
+
+                {/* 4. Wipe */}
+                <label className="flex items-start gap-2.5 cursor-pointer pt-1 border-t border-discord-border/50">
+                  <input
+                    type="checkbox"
+                    checked={wipeFirst}
+                    onChange={(e) => setWipeFirst(e.target.checked)}
+                    className="mt-0.5 rounded bg-discord-dark border-discord-border text-rose-500 focus:ring-rose-500"
+                  />
+                  <div>
+                    <span className="font-bold text-rose-300 block">Bestehende Kanäle vorher leeren (Wipe)</span>
+                    <span className="text-gray-400 text-[11px] leading-tight block">
+                      Löscht bestehende Kanäle vor dem Setup für einen komplett sauberen Neuanfang.
+                    </span>
+                  </div>
+                </label>
               </div>
             </div>
 

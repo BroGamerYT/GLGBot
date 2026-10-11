@@ -35,6 +35,18 @@ const backupCommand: Command = {
             .setDescription("Die ID des wiederherzustellenden Backups (siehe /backup list).")
             .setRequired(true)
         )
+        .addBooleanOption((opt) =>
+          opt
+            .setName("cross_server")
+            .setDescription("Erlaubt das Einspielen eines Backups von einem anderen Server (entfernt fremde Mitglieder).")
+            .setRequired(false)
+        )
+        .addBooleanOption((opt) =>
+          opt
+            .setName("wipe")
+            .setDescription("Vor dem Einspielen alle bestehenden Kanäle löschen (nur Server-Inhaber).")
+            .setRequired(false)
+        )
     )
     .addSubcommand((sub) =>
       sub
@@ -127,8 +139,18 @@ const backupCommand: Command = {
 
     if (sub === "restore") {
       const backupId = interaction.options.getString("backup_id", true);
-      const backup = backupService.getBackup(backupId);
+      const crossServer = interaction.options.getBoolean("cross_server") ?? false;
+      const wipe = interaction.options.getBoolean("wipe") ?? false;
 
+      if (wipe && interaction.user.id !== guild.ownerId) {
+        await interaction.reply({
+          content: "❌ Die Wipe-Option (Kanäle leeren) darf nur vom Server-Inhaber ausgeführt werden.",
+          ephemeral: true,
+        });
+        return;
+      }
+
+      const backup = backupService.getBackup(backupId);
       if (!backup) {
         await interaction.reply({
           content: `❌ Backup mit ID \`${backupId}\` wurde nicht gefunden.`,
@@ -140,7 +162,12 @@ const backupCommand: Command = {
       await interaction.deferReply({ ephemeral: true });
 
       try {
-        const res = await backupService.restoreBackup(guild, backupId);
+        const res = await backupService.restoreBackup(guild, backupId, {
+          allowCrossServer: crossServer,
+          wipeFirst: wipe,
+          stripMemberOverwrites: true,
+          preserveOwnerRank: true,
+        });
 
         const embed = new EmbedBuilder()
           .setColor(0x57f287)

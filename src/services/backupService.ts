@@ -283,6 +283,40 @@ class BackupService {
   }
 
   /**
+   * Importiert ein externes Backup (z. B. aus einer hochgeladenen JSON-Datei)
+   */
+  public importBackup(guildId: string, backupData: any, creatorTag?: string): GuildBackup {
+    this.ensureDir();
+    if (!backupData || !Array.isArray(backupData.roles) || !Array.isArray(backupData.channels)) {
+      throw new Error("Ungültiges Backup-Format: 'roles' oder 'channels' fehlen in der JSON-Datei.");
+    }
+
+    const backupId = `backup_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
+    const imported: GuildBackup = {
+      id: backupId,
+      guildId,
+      guildName: backupData.guildName ? `Import: ${backupData.guildName}` : "Importiertes Backup",
+      createdAt: new Date().toISOString(),
+      creatorTag: creatorTag || "JSON-Upload",
+      summary: {
+        roleCount: backupData.roles.length,
+        categoryCount: Array.isArray(backupData.categories) ? backupData.categories.length : 0,
+        channelCount: backupData.channels.length,
+      },
+      roles: backupData.roles,
+      categories: Array.isArray(backupData.categories) ? backupData.categories : [],
+      channels: backupData.channels,
+    };
+
+    const filePath = path.join(BACKUPS_DIR, `${backupId}.json`);
+    fs.writeFileSync(filePath, JSON.stringify(imported, null, 2), "utf-8");
+    console.log(`[BackupService] Backup ${backupId} erfolgreich importiert (${imported.summary.roleCount} Rollen, ${imported.summary.channelCount} Kanäle).`);
+
+    this.pruneOldBackups(guildId, 20);
+    return imported;
+  }
+
+  /**
    * Stellt Rollen, Kategorien und Kanäle aus einem Snapshot wieder her
    */
   public async restoreBackup(
@@ -291,6 +325,10 @@ class BackupService {
     options: {
       rolesOnly?: boolean;
       channelsOnly?: boolean;
+      allowCrossServer?: boolean;
+      stripMemberOverwrites?: boolean;
+      preserveOwnerRank?: boolean;
+      wipeFirst?: boolean;
     } = {}
   ): Promise<{
     rolesCreated: number;
@@ -301,7 +339,11 @@ class BackupService {
   }> {
     const backup = this.getBackup(backupId);
     if (!backup) throw new Error(`Backup "${backupId}" nicht gefunden.`);
-    if (backup.guildId !== guild.id) throw new Error("Dieses Backup gehört zu einem anderen Server.");
+    if (backup.guildId !== guild.id && !options.allowCrossServer) {
+      throw new Error(
+        `Dieses Backup stammt von einem anderen Server ("${backup.guildName}"). Aktiviere die Option 'Server-Übertragung (Cross-Server)', um es auf ${guild.name} zu übertragen.`
+      );
+    }
 
     const result = {
       rolesCreated: 0,
@@ -310,6 +352,22 @@ class BackupService {
       channelsCreated: 0,
       errors: [] as string[],
     };
+
+    // Wipe bestehende Kanäle falls gewünscht
+    if (options.wipeFirst && !options.rolesOnly) {
+      try {
+        await guild.channels.fetch();
+        for (const channel of guild.channels.cache.values()) {
+          try {
+            await channel.delete(`Backup-Wipe vor Wiederherstellung (${backup.id})`);
+          } catch (e: any) {
+            console.warn(`[BackupService] Konnte Kanal ${channel.name} nicht löschen:`, e.message);
+          }
+        }
+      } catch (e: any) {
+        result.errors.push(`Wipe-Vorgang fehlgeschlagen: ${e.message}`);
+      }
+    }
 
     const roleMap = new Map<string, Role>(); // Name -> Rolle
 
@@ -399,6 +457,10 @@ class BackupService {
 
         // Overwrites anwenden
         for (const ov of catData.overwrites) {
+          if (ov.targetType === "member" && options.stripMemberOverwrites !== false) {
+            // Mitglieder-Berechtigungen vom vorherigen Server überspringen
+            continue;
+          }
           if (ov.targetType === "role") {
             const targetRole = ov.targetName === "@everyone" 
               ? guild.roles.everyone 
@@ -452,6 +514,10 @@ class BackupService {
         // Overwrites anwenden
         if (ch && "permissionOverwrites" in ch) {
           for (const ov of chData.overwrites) {
+            if (ov.targetType === "member" && options.stripMemberOverwrites !== false) {
+              // Mitglieder-Berechtigungen vom vorherigen Server überspringen
+              continue;
+            }
             if (ov.targetType === "role") {
               const targetRole = ov.targetName === "@everyone" 
                 ? guild.roles.everyone 
@@ -471,6 +537,33 @@ class BackupService {
             }
           }
         }
+      }
+    }
+
+    // --- 4. OWNER-RANG SICHERN ("Owner bleibt höchster Rang") ---
+    if (options.preserveOwnerRank !== false) {
+      try {
+        const ownerMember = await guild.members.fetch(guild.ownerId).catch(() => null);
+        if (ownerMember) {
+          // Finde die oberste Admin- oder Leitungs-Rolle aus dem Backup
+          const topAdminRoleDef =
+            backup.roles.find(
+              (r) => !r.isEveryone && !r.managed && (BigInt(r.permissions) & PermissionFlagsBits.Administrator) !== BigInt(0)
+            ) || backup.roles.find((r) => !r.isEveryone && !r.managed);
+
+          if (topAdminRoleDef) {
+            const topRole = roleMap.get(topAdminRoleDef.name.toLowerCase());
+            if (topRole && !ownerMember.roles.cache.has(topRole.id)) {
+              const botTop = guild.members.me?.roles.highest.position ?? 0;
+              if (topRole.position < botTop) {
+                await ownerMember.roles.add(topRole, `Backup-Restore: Inhaber-Rang abgesichert (${backup.id})`);
+                console.log(`[BackupService] Oberste Rolle @${topRole.name} dem Server-Inhaber (${ownerMember.user.tag}) zugewiesen.`);
+              }
+            }
+          }
+        }
+      } catch (err: any) {
+        console.warn("[BackupService] Konnte Owner-Rang nicht absichern:", err?.message || err);
       }
     }
 

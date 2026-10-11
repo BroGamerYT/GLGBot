@@ -54,10 +54,50 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.19.0",
+    version: "v2.21.0",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Backup-Transfer, JSON Download/Upload & 1-Klick Templates",
+    description: "Vollständiger Im- und Export von Server-Backups als JSON mit Cross-Server Transfer, automatischer Bereinigung alter Mitglieder und Inhaber-Rangschutz. Plus UGREEN NAS, Hardware-News und Free-Games Einzel-Posts.",
+    highlights: [
+      {
+        icon: Archive,
+        title: "Backup JSON Download & Upload",
+        description: "Snapshots können per Klick als JSON-Datei heruntergeladen oder von externen Quellen hochgeladen und direkt im Dashboard wiederhergestellt werden.",
+      },
+      {
+        icon: UserCheck,
+        title: "Cross-Server Transfer mit Inhaber-Schutz",
+        description: "Spezielle Einstellungen beim Einspielen auf fremde Server: 'Owner als oberste Rolle sichern' garantiert den höchsten Rang, während 'Mitglieder-Rechte bereinigen' alte Nutzer-Overwrites entfernt.",
+      },
+      {
+        icon: LayoutTemplate,
+        title: "1-Klick Server-Templates & Auto-Setup",
+        description: "5 vorgefertigte Strukturen (Gaming Clan, Multi-Gaming, Dev/Tech, Anime Hangout, Creator) mit 4 Design-Stilen und automatischem Snapshot-Sicherheitsnetz.",
+      },
+      {
+        icon: Newspaper,
+        title: "UGREEN NAS, Hardware-News & Clean Steam",
+        description: "UGOS Pro & Docker-Updates für UGREEN NAS, Technik-News von Heise, Golem & Hardwareluxx sowie bereinigte Steam-Patchnotes ohne BBCode-Tags.",
+      },
+      {
+        icon: Gift,
+        title: "Free-Games Einzelposts mit Launcher-Buttons",
+        description: "Kostenlose Spiele werden in übersichtlichen separaten Nachrichten gepostet mit direkten 'In Steam/Epic öffnen'-Buttons darunter.",
+      },
+      {
+        icon: Coins,
+        title: "30-Minuten Code-Login & XP-Börse",
+        description: "Schnell-Login (/web-login) für den Shop ohne Discord-OAuth, dynamische Wechselkurse an der XP-Börse und leuchtende Discord-Namensfarben.",
+      },
+    ],
+  },
+  {
+    version: "v2.19.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Voice-Knast & Automatischer Haft-Timer",
     description: "Vollständiger Voice-Knast mit Sprachkanal 🔒・gefängnis-voice, automatischer Verschiebung, Voice-Enforcement und flexibler Haftdauer (z. B. 60 Min.) mit automatischem Release-Scheduler.",
     highlights: [

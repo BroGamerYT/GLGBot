@@ -21,6 +21,8 @@ import {
   ShieldAlert,
   Server,
   Coins,
+  LayoutTemplate,
+  Archive,
 } from "lucide-react";
 import DynamicRulesView from "@/components/DynamicRulesView";
 
@@ -31,6 +33,8 @@ const SECTIONS = [
   { id: "dashboard", title: "Dashboard & Login", icon: KeyRound },
   { id: "economy", title: "Wirtschaft & Shop", icon: Coins },
   { id: "server", title: "Mehrere Server", icon: Server },
+  { id: "templates", title: "1-Klick Templates", icon: LayoutTemplate },
+  { id: "backups", title: "Backups & Transfer", icon: Archive },
   { id: "level", title: "Level & Talk-Partner", icon: Trophy },
   { id: "tickets", title: "Support-Tickets", icon: Ticket },
   { id: "regeln", title: "Regeln & Freischaltung", icon: ScrollText },
@@ -39,7 +43,7 @@ const SECTIONS = [
   { id: "live", title: "Live-System", icon: Radio },
   { id: "alerts", title: "Stream-Alerts", icon: Bell },
   { id: "freegames", title: "Free-Games & Releases", icon: Gift },
-  { id: "news", title: "News & Treiber", icon: Newspaper },
+  { id: "news", title: "News & Hardware", icon: Newspaper },
   { id: "audit", title: "Silent Audit-Logs", icon: FileText },
   { id: "moderation", title: "Moderations-Suite", icon: ShieldAlert },
   { id: "befehle", title: "Alle Befehle", icon: Terminal },
@@ -385,6 +389,51 @@ export default function HelpPage() {
             </ul>
           </Section>
 
+          {/* 1-Klick Server-Templates */}
+          <Section id="templates" title="1-Klick Server-Templates & Auto-Setup" icon={LayoutTemplate}>
+            <p>
+              Unter <Link href="/templates" className="text-discord-blurple hover:underline">Server-Templates</Link> oder mit <Cmd>/server-setup</Cmd> richtet der Bot in unter 15 Sekunden eine komplette, professionelle Discord-Server-Struktur ein:
+            </p>
+            <ul className="list-disc list-inside space-y-1.5 pl-1">
+              <li>
+                <strong className="text-white">5 vorkonfigurierte Vorlagen:</strong> 🎮 Gaming Clan & E-Sport, 🌐 Multi-Gaming Community, 💻 Coding / Dev / Tech, 🌸 Anime & Hangout, 🔴 Content Creator & Streamer.
+              </li>
+              <li>
+                <strong className="text-white">4 Design- & Emoji-Stile:</strong> Modern mit Emojis (<Cmd>💬・hauptchat</Cmd>), Clean (<Cmd>hauptchat</Cmd>), Aesthetic (<Cmd>〢・hauptchat</Cmd>) oder Box/Bold (<Cmd>「💬」hauptchat</Cmd>).
+              </li>
+              <li>
+                <strong className="text-white">Automatischer Snapshot-Schutz:</strong> Vor jedem Ausrollen wird automatisch ein vollständiges Sicherheits-Backup angelegt.
+              </li>
+            </ul>
+          </Section>
+
+          {/* Server-Backups & Cross-Server Transfer */}
+          <Section id="backups" title="Server-Backups, Download & Server-Transfer" icon={Archive}>
+            <p>
+              Unter <Link href="/backups" className="text-discord-blurple hover:underline">Server-Backups</Link> oder mit <Cmd>/backup</Cmd> verwaltest du vollständige Snapshots aller Rollen, Kanäle und Berechtigungen:
+            </p>
+            <ul className="list-disc list-inside space-y-1.5 pl-1">
+              <li>
+                <strong className="text-white">💾 Tägliche automatische Sicherung:</strong> Der Bot archiviert jeden Tag automatisch bis zu 20 Stände rollierend.
+              </li>
+              <li>
+                <strong className="text-white">📥 Download als JSON:</strong> Jeder Snapshot kann mit einem Klick auf den PC heruntergeladen werden.
+              </li>
+              <li>
+                <strong className="text-white">📤 Backup hochladen (Upload):</strong> Externe Backups können direkt per Dateiauswahl importiert und auf dem Server wiederhergestellt werden.
+              </li>
+              <li>
+                <strong className="text-white">🌐 Server-Transfer auf andere Discord-Server:</strong>
+                <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-400">
+                  <li><strong className="text-gray-200">Owner als oberste Rolle sichern:</strong> Weist dem aktuellen Server-Inhaber automatisch die oberste Admin-Rolle zu, sodass der Inhaber garantiert auf dem höchsten Rang bleibt.</li>
+                  <li><strong className="text-gray-200">Mitglieder-Berechtigungen bereinigen:</strong> Entfernt nutzerspezifische Berechtigungen aus dem alten Server, sodass nur saubere Rollen und Kategorien übernommen werden.</li>
+                  <li><strong className="text-gray-200">Cross-Server Transfer:</strong> Erlaubt das Einspielen von Backups auf beliebigen anderen freigegebenen Servern.</li>
+                  <li><strong className="text-gray-200">Wipe-Option:</strong> Bereinigt auf Wunsch alte Kanäle vor dem Setup für einen sauberen Neuanfang.</li>
+                </ul>
+              </li>
+            </ul>
+          </Section>
+
           {/* Level & Talk-Partner */}
           <Section id="level" title="Level-System & Talk-Partner Tracking" icon={Trophy}>
             <p>
@@ -527,8 +576,10 @@ export default function HelpPage() {
             <ul className="list-disc list-inside space-y-1.5 pl-1">
               <li>
                 <strong className="text-white">Kostenlose Spiele:</strong> Der Bot prüft <strong className="text-white">alle 30 Minuten</strong>,
-                ob es Spiele komplett kostenlos gibt (Epic Games Store, Steam, GOG, Prime) und postet neue Schnäppchen in <Cmd>#free-games</Cmd>{" "}
-                mit Enddatum, Store-Links und Launcher-Buttons.
+                ob es Spiele komplett kostenlos gibt (Epic Games Store, Steam, GOG, Prime) und postet neue Schnäppchen in <Cmd>#free-games</Cmd>.
+              </li>
+              <li>
+                <strong className="text-white">1 Post pro Spiel mit Direkt-Buttons:</strong> Jedes Spiel erhält eine eigene Nachricht mit Enddatum, Beschreibung und Klick-Buttons direkt darunter: <strong className="text-indigo-300">„In Launcher öffnen“</strong> (startet direkt Steam/Epic), <strong className="text-indigo-300">„Im Browser öffnen“</strong> und Link zur Web-Übersicht.
               </li>
               <li>
                 <strong className="text-white">Game-Release-Kalender:</strong> Unter <Link href="/releases" className="text-discord-blurple hover:underline">/releases</Link>{" "}
@@ -540,27 +591,30 @@ export default function HelpPage() {
           </Section>
 
           {/* Game-, Software- & Treiber-News */}
-          <Section id="news" title="Game-, Software- & Treiber-News" icon={Newspaper}>
+          <Section id="news" title="Game-, Software-, Hardware- & Treiber-News" icon={Newspaper}>
             <p>
               Unter <Link href="/news" className="text-discord-blurple hover:underline">News-Magazin</Link> wählst du
-              Spiele, Software und Treiberquellen aus. Der Bot postet Neuigkeiten vollautomatisch in die passenden Kanäle:
+              Spiele, Software, NAS-Systeme und Treiberquellen aus. Der Bot postet Neuigkeiten vollautomatisch in die passenden Kanäle:
             </p>
             <ul className="list-disc list-inside space-y-1.5 pl-1">
               <li>
                 <strong className="text-white">🎮 Game-Updates & Patchnotes:</strong> Offizielle Patchnotes für beliebte Spiele
-                (z. B. Palworld, Enshrouded, Satisfactory, Minecraft, CS2, Fortnite, Rust, GTA) in <Cmd>#game-news</Cmd> mit Rolle <Cmd>@bn.gamenews</Cmd>.
+                (z. B. Palworld, Enshrouded, Satisfactory, Minecraft, CS2, Fortnite, Rust, GTA) in <Cmd>#game-news</Cmd> mit Rolle <Cmd>@bn.gamenews</Cmd>. Steam-Grafiken und BBCode werden automatisch bereinigt.
               </li>
               <li>
                 <strong className="text-white">🖥️ Grafikkarten-Treiber:</strong> NVIDIA GeForce Game Ready, AMD Radeon Adrenalin und
                 Intel Arc Grafiktreiber in <Cmd>#🖥️・treiber-software</Cmd> mit Rolle <Cmd>@bn.treiber</Cmd>.
               </li>
               <li>
-                <strong className="text-white">💾 NAS-Betriebssysteme:</strong> Wichtige Updates für Synology DSM, TrueNAS SCALE,
+                <strong className="text-white">💾 NAS-Betriebssysteme:</strong> Wichtige Updates für UGREEN NAS (Docker-Engine & UGOS Pro), Synology DSM, TrueNAS SCALE,
                 Unraid OS und QNAP QTS.
               </li>
               <li>
                 <strong className="text-white">⚙️ Tools, Codecs & Server-Software:</strong> CubeCoders AMP Game Server Manager,
                 K-Lite Codec Pack / LAV Filters, OBS Studio und HandBrake.
+              </li>
+              <li>
+                <strong className="text-white">📰 Technik- & Hardware-News:</strong> Im Web-Dashboard unter News gibt es einen eigenen Filter für Berichte von ComputerBase, Hardwareluxx, Heise Online, Golem.de und WinFuture.
               </li>
             </ul>
           </Section>

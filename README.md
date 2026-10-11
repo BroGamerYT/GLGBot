@@ -5,8 +5,8 @@ Ursprünglich für die Community *Germany LanGame* gebaut – jetzt für jeden S
 
 **Funktionen:** VoiceMaster (Join-to-Create), Live-Streamer-Rolle & Twitch-/YouTube-Alerts, Level-System mit Talk-Partner-Tracking,
 Moderation mit Gefängnis-System (`/knast`), Support-Tickets mit Transkripten, Regeln mit Freischaltung, Rollen-Panel,
-Gratis-Spiele (Epic, Steam, GOG), Game- & Treiber-News mit Kachel-Magazin, Release-Kalender, Community-Wirtschaft & Belohnungs-Shop,
-1-Klick Server-Templates mit Auto-Backup, Silent Audit-Logs und Server-Backups.
+Gratis-Spiele (Epic, Steam, GOG als Einzelposts), Game-, Hardware- & Treiber-News mit Kachel-Magazin, Release-Kalender, Community-Wirtschaft & Belohnungs-Shop,
+1-Klick Server-Templates mit Auto-Backup, Silent Audit-Logs sowie Server-Backups (Download, Upload & Cross-Server-Transfer).
 
 > Sprache von Bot und Dashboard: **Deutsch**. Ein Bot kann bis zu **5 Discord-Server** gleichzeitig betreuen (Haupt-Server via `GUILD_ID`, weitere über das Dashboard oder `ALLOWED_GUILD_IDS` freigebbar).
 
@@ -132,7 +132,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | **Community-Wirtschaft & Shop** | `/economy` | 🌍 Öffentlich | Shop für exklusive Rollen & Badges, Guthaben-Übersicht und Transaktionen; Admins können Kontostände verwalten. |
 | **Release-Kalender** | `/releases` | 🌍 Öffentlich | Interaktiver Kalender für kommende Gaming-Blockbuster mit Plattform- (PC, PS5, Xbox, Switch) und Zeitfiltern. |
 | **Gratis-Spiele** | `/free-games` | 🌍 Öffentlich | Magazin für 100% kostenlose Vollversionen (Epic Games, Steam, GOG) mit Deep-Links; Admins verwalten Scan-Stores. |
-| **Game-News & Treiber** | `/news` | 🌍 Öffentlich | Modernes Kachel-Magazin mit Volltext-Modal, Live-Suche & Treiber-Updates; Admins verwalten Quellen. |
+| **Game-News & Treiber** | `/news` | 🌍 Öffentlich | Modernes Kachel-Magazin mit Volltext-Modal, Live-Suche, Hardware-, NAS- (UGREEN, Synology …) & Treiber-Updates. |
 | **Level & Talk-Rangliste** | `/stats` | 🌍 Öffentlich | Top Levels (bis Stufe 25), Voice-Zeiten, Talk-Duos, XP-Regelwerk und Nutzer-Aufschlüsselung. |
 | **Geburtstage** | `/birthdays` | 🔒 Admin | Kanal, Geburtstags-Rolle und Glückwunsch-Text einstellen, nächste Geburtstage sehen. |
 | **Geplante Ankündigungen** | `/announcements` | 🔒 Admin | Nachrichten/Embeds zu einem Zeitpunkt senden - einmalig, täglich oder wöchentlich. |
@@ -150,10 +150,10 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | **Live-Streamer Manager** | `/live` | 🔒 Admin | Automatische Twitch-/YouTube-Erkennung, Stream-Alerts und temporäre Kanäle. |
 | **Rollen & Verifikation** | `/roles` | 🔒 Admin | Regel-Akzeptanz (`@Gast`) und Benachrichtigungs-Rollen `bn.live`, `bn.free`, `bn.gamenews`, `bn.treiber`. |
 | **Audit-Logs** | `/logs` | 🔒 Admin | Stille Protokollierung von Server-Aktionen (`SuppressNotifications`). |
-| **Server-Backups** | `/backups` | 🔒 Admin | 1-Klick JSON-Snapshots aller Rollen, Kanäle und Einstellungen mit Wiederherstellung. |
+| **Server-Backups** | `/backups` | 🔒 Admin | 1-Klick Snapshots aller Rollen & Kanäle, JSON Download & Upload, Cross-Server Transfer & Owner-Schutz. |
 | **Server-Regeln** | `/rules` | 🔒 Admin | Regel-Editor mit Vorschau, 1-Klick-Veröffentlichung und Regel-Sperre (Server erst nach Bestätigung sichtbar). |
 | **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 47 Slash-Befehle mit Beschreibungen. |
-| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.18.2. |
+| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.21.0. |
 
 ---
 
@@ -225,14 +225,21 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 
 ### 6. 🎮 Gratis-Spiele (Epic Games, Steam & GOG)
 * **Automatischer Background-Scheduler:** Prüft alle 30 Minuten nach neuen 100% kostenlosen Vollversionen.
-* Postet stylische Embeds mit Cover-Art, Store-Link und Ablaufdatum in den `#free-games` Kanal mit Rollen-Ping für `@bn.free`.
-* Buttons **„In Steam öffnen“ / „Im Epic Launcher öffnen“** starten direkt die App (über die Weiterleitung `/go/…` im Dashboard).
-* Mehrere Spiele kommen gesammelt in einer Nachricht - nur ein Ping, weitere Nachrichten lautlos.
+* **Stylische Einzel-Posts pro Spiel:** Jedes Spiel wird als eigene, detaillierte Nachricht mit Cover-Art, Preisersparnis, Store-Link und Ablaufdatum in `#free-games` gepostet.
+* **Direkt-Aktionen & Launcher:** Jeder Post enthält Buttons für **„Im Browser öffnen“**, **„Im Launcher öffnen“** (`steam://` bzw. Epic-DeepLink) sowie Link zur Server-Webseite.
+* **Spam-Schutz & Rollen-Ping:** Beim ersten Spiel einer Runde wird `@bn.free` gepingt, alle weiteren Spiele der gleichen Runde folgen lautlos ohne störende Mehrfach-Pings.
 * Key-Verlosungen auf Drittseiten (Alienware Arena, IndieGala …) sind standardmäßig ausgeblendet.
 
 ### 7. 🛡️ Silent Audit-Logs & Server-Backups
 * **Stille Benachrichtigungen:** Protokolliert Rollen-, Berechtigungs- und Kanaländerungen im Log-Kanal mit `SuppressNotifications` (keine störenden Audio-Pings).
-* **Server-Backups:** Sichert die gesamte Struktur (Kategorien, Kanäle, Rollen, Berechtigungen) als JSON-Snapshot mit 1-Klick-Wiederherstellung.
+* **Server-Backups & Cross-Server Migration:**
+  * **1-Klick JSON-Snapshots:** Sichert die gesamte Struktur (Kategorien, Kanäle, Rollen, Berechtigungen) als JSON-Datei.
+  * **Download & Upload:** Backups können als `.json`-Datei direkt auf den Rechner heruntergeladen oder per Klick importiert werden.
+  * **Sichere Wiederherstellung:**
+    * **👑 Inhaber-Schutz (`preserveOwnerRank`):** Weist dem Server-Owner (`guild.ownerId`) garantiert die oberste Admin-Rolle zu, damit der Inhaber niemals Rechte verliert.
+    * **🧹 Mitglieder-Berechtigungen bereinigen (`stripMemberOverwrites`):** Spezifische User-Berechtigungen des Quellservers werden bei Kanal-Overwrites entfernt, sodass nur saubere Rollen übernommen werden.
+    * **🌍 Cross-Server Transfer (`allowCrossServer`):** Erlaubt das Einspielen eines Backups auf einem komplett anderen Discord-Server.
+    * **⚡ Optionaler Wipe:** Löscht auf Wunsch vor der Wiederherstellung alle alten Kanäle.
 
 ### 8. 📜 Regeln & Freischaltung
 * `/setup-rules post` (oder Dashboard „Regeln“) legt `#📜・regeln` und `#🔔・berechtigungen` an und postet die Regeln mit animiertem Banner und Button **„Regeln akzeptieren“**.
@@ -240,14 +247,15 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 * Unterstützt das Discord-Regel-Screening: Wer das Regel-Pop-up beim Beitreten bestätigt, bekommt die Gast-Rolle automatisch.
 * Regeltexte im Dashboard bearbeitbar, Platzhalter `{server}`, `{@Name}`, `{permissions}`.
 
-### 9. 📰 Game-News & 🖥️ Treiber- & Software-News
+### 9. 📰 Game-News, 🖥️ Treiber- & Software-News & 🔧 Hardware-Feeds
 * **Getrennte Kanäle & Rollen:** `#📰・game-news` (Rolle `bn.gamenews`) für Spiel-Updates und `#🖥️・treiber-software` (Rolle `bn.treiber`) für Treiber & Software - jeder sieht nur, was er abonniert hat.
 * **Quellen:**
   * **Spiele:** Steam-Ankündigungen & Patchnotes jedes Steam-Spiels, Minecraft-Versionen & Snapshots.
   * **Treiber & Hardware:** NVIDIA GeForce (WHQL), AMD Radeon Adrenalin, AMD Ryzen Chipsatz (AM4/AM5), Intel Arc.
-  * **NAS-Systeme:** Synology DSM, TrueNAS SCALE/CORE, Unraid OS, QNAP QTS.
+  * **NAS-Systeme:** Synology DSM, TrueNAS SCALE/CORE, Unraid OS, QNAP QTS, UGREEN NAS OS (UGOS Pro).
   * **Software & Codecs:** CubeCoders AMP (Game Server Management), K-Lite Codec Pack / LAV Filters, OBS Studio, HandBrake.
-* **Interaktives Kachel-Magazin (`/news`):** Modernes visuelles Kachel-Magazin mit Titelbildern, Teaser-Texten, relativer Zeitanzeige, Live-Suche und Schnellfiltern (*Alle*, *Spiele*, *Patchnotes*, *Treiber & Software*, *NAS-Systeme*).
+  * **Hardware- & Tech-News:** PC Games Hardware (PCGH), ComputerBase, Heise / c't Hardware (standardmäßig auf Web-Magazin beschränkt, modular aktivierbar).
+* **Interaktives Kachel-Magazin (`/news`):** Modernes visuelles Kachel-Magazin mit Titelbildern, Teaser-Texten, relativer Zeitanzeige, Live-Suche und Schnellfiltern (*Alle*, *Spiele*, *Patchnotes*, *Treiber & Software*, *NAS-Systeme*, *Hardware & Tech*).
 * **Volltext-Modal:** Klick auf eine Kachel öffnet formatierte Patchnotes mit Bildern, Listen und Direkt-Aktionen (*Im Web öffnen*, *In Steam öffnen*, *Direkt-Download*).
 * Detailansicht im Dashboard mit „Was ist enthalten?“ und den letzten Beiträgen; Verlauf aller Änderungen; angepinnte Übersicht im Kanal.
 * Prüfung alle 15 Minuten, beim Hinzufügen wird nichts Altes gepostet.
@@ -354,7 +362,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | `/setup-tickets` | Ticket-Panel posten. | Administrator |
 | `/setup-logs auto \| set \| status \| toggle` | Audit-Log-Kanal einrichten, Status anzeigen und Kategorien an/aus. | Administrator |
 | `/logs list \| search` | Audit-Log durchsuchen. | Audit-Log anzeigen |
-| `/backup create \| list \| restore \| export \| delete` | Server-Backups verwalten. | Administrator |
+| `/backup create \| list \| restore \| export \| delete` | Server-Backups erstellen, als JSON exportieren/downloaden und wiederherstellen (inkl. Cross-Server & Owner-Schutz). | Administrator |
 
 ---
 

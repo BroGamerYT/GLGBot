@@ -81,10 +81,10 @@ const helpCommand: Command = {
         {
           name: "🎮 Gaming, Software & Benachrichtigungen",
           value:
-            "`/free-games list|post` • Kostenlose Spiele von Epic, Steam & GOG\n" +
+            "`/free-games list|post` • Kostenlose Spiele (Einzelposts mit direkten Launcher-Buttons)\n" +
             "`/releases uebersicht|post-woche` • Release-Kalender für Games, Triple-A Blockbuster & große Updates\n" +
             "`/serverstatus` • Live-Status unserer Game-Server\n" +
-            "🖥️ **Treiber & Software** • NVIDIA, AMD, Intel, NAS (Synology, TrueNAS, Unraid, QNAP) & Tools (AMP, OBS)\n" +
+            "🖥️ **Treiber & Software** • NVIDIA, AMD, Intel, NAS (UGREEN, Synology, TrueNAS, Unraid, QNAP) & Tools (AMP, OBS)\n" +
             "`/twitch-live start|stop` • Verwaltet persönliche Live-Stream Kanäle\n" +
             "`/setup-live` • Richtet Live-Rolle & Live-Kanäle ein\n" +
             "`/stream-panel` • Steuer-Panel für deinen Live-Kanal (Passwort, Limit, Name)\n" +
@@ -106,7 +106,7 @@ const helpCommand: Command = {
             "`/modules status|enable|disable|toggle` • Funktionen an- oder ausschalten\n" +
             "`/economy geben|abziehen|setzen|reset` • Nutzerguthaben als Admin verwalten\n" +
             "`/server-stats einrichten|entfernen` • Live-Zähler-Kanäle ganz oben\n" +
-            "`/backup create|list|restore` • Vollständige Rollen- & Kanal-Snapshots\n" +
+            "`/backup create|list|restore|export|delete` • Rollen- & Kanal-Snapshots, JSON-Download/Upload & Cross-Server Transfer\n" +
             "`/setup-rules post|lock|unlock` • Regeln posten & Server bis zur Bestätigung sperren\n" +
             "`/setup-roles` • Erstellt das Rollenauswahl-Panel im Chat\n" +
             "`/setup-logs` • Richtet den geschützten Audit-Log Kanal ein\n" +

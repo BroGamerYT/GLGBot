@@ -32,6 +32,8 @@ const ALLOWED = new Set([
   "POST logs/config",
   "POST logs/setup",
   "GET backups",
+  "GET backups/download",
+  "POST backups/upload",
   "POST backups/create",
   "POST backups/restore",
   "POST backups/delete",
