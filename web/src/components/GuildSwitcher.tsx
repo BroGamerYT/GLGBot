@@ -77,7 +77,7 @@ export default function GuildSwitcher({ fallbackName }: { fallbackName: string }
       {open && (
         <div className="absolute left-0 top-full mt-1.5 z-50 w-56 rounded-xl border border-discord-border bg-discord-dark shadow-2xl p-1.5">
           <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Server wechseln</p>
-          {guilds.map((g) => (
+          {guilds.map((g, idx) => (
             <button
               key={g.id}
               type="button"
@@ -94,6 +94,9 @@ export default function GuildSwitcher({ fallbackName }: { fallbackName: string }
                 </span>
               )}
               <span className="flex-1 truncate">{g.name}</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-discord-dark text-gray-400 border border-discord-border shrink-0">
+                /bot{idx + 1}
+              </span>
               {g.main && <span className="text-[9px] text-amber-400">Haupt</span>}
               {g.id === active && <Check className="w-3.5 h-3.5 text-discord-green shrink-0" />}
             </button>

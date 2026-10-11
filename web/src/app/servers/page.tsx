@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Server, RefreshCw, Plus, Trash2, ExternalLink, Crown, Lock, CheckCircle2, Clock } from "lucide-react";
+import { Server, RefreshCw, Plus, Trash2, ExternalLink, Crown, Lock, CheckCircle2, Clock, Copy, Check, Link as LinkIcon } from "lucide-react";
+import { slugify } from "@/lib/serverSlugs";
 
 interface Entry {
   id: string;
@@ -32,6 +33,20 @@ export default function ServersPage() {
   const [newId, setNewId] = useState("");
   const [newName, setNewName] = useState("");
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  function copyLink(num: number) {
+    if (typeof window === "undefined") return;
+    const origin = window.location.origin;
+    const url = `${origin}/bot${num}`;
+    navigator.clipboard
+      .writeText(url)
+      .then(() => {
+        setCopiedIndex(num);
+        setTimeout(() => setCopiedIndex(null), 2000);
+      })
+      .catch(() => null);
+  }
 
   async function load() {
     setLoading(true);
@@ -148,6 +163,19 @@ export default function ServersPage() {
 
       {data?.isOwner && (
         <>
+          {/* Info-Box zu automatischen Direkt-URLs */}
+          <div className="p-4 rounded-xl bg-gradient-to-r from-discord-blurple/10 via-discord-card to-discord-card border border-discord-blurple/20 text-xs flex items-start gap-3">
+            <LinkIcon className="w-5 h-5 text-discord-blurple shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-white">
+                🌐 Automatische Direkt-URLs für alle Server
+              </p>
+              <p className="text-gray-400 mt-0.5 leading-relaxed">
+                Jeder freigegebene Server hat automatisch eigene Kurz-URLs: z. B. <code className="text-indigo-300 font-mono">/bot1</code>, <code className="text-indigo-300 font-mono">/bot2</code> oder über den Servernamen wie <code className="text-emerald-300 font-mono">/s/germany-langame</code>. Wenn Nutzer oder Gäste diesen Link öffnen, wird der Server sofort ausgewählt und sie landen direkt auf der gewünschten Seite!
+              </p>
+            </div>
+          </div>
+
           <div className="bg-discord-card border border-discord-border rounded-2xl p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-white">Freigegebene Server</h2>
@@ -160,8 +188,8 @@ export default function ServersPage() {
               </span>
             </div>
             <div className="space-y-2">
-              {entries.map((e) => (
-                <div key={e.id} className="flex items-center gap-3 p-3 rounded-xl border border-discord-border bg-discord-dark/40">
+              {entries.map((e, index) => (
+                <div key={e.id} className="flex items-center gap-3 p-3.5 rounded-xl border border-discord-border bg-discord-dark/40">
                   {e.icon ? (
                     <img src={e.icon} alt="" className="w-10 h-10 rounded-xl shrink-0" />
                   ) : (
@@ -183,6 +211,36 @@ export default function ServersPage() {
                       {e.memberCount != null && <span className="font-sans"> · {e.memberCount} Mitglieder</span>}
                       {e.fromEnv && !e.main && <span className="font-sans"> · aus .env</span>}
                     </p>
+
+                    {/* Automatische Direkt-URLs */}
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-discord-blurple/20 text-indigo-300 border border-discord-blurple/30">
+                        /bot{index + 1}
+                      </span>
+                      {e.name && (
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 truncate max-w-[200px]">
+                          /s/{slugify(e.name)}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => copyLink(index + 1)}
+                        className="text-[11px] text-gray-400 hover:text-white flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-discord-card border border-transparent hover:border-discord-border transition-all"
+                        title="Direkt-URL /bot1 kopieren"
+                      >
+                        {copiedIndex === index + 1 ? (
+                          <>
+                            <Check className="w-3 h-3 text-discord-green" />
+                            <span className="text-discord-green text-[10px] font-semibold">Kopiert!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3" />
+                            <span className="text-[10px]">Link kopieren</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                   {e.joined ? (
                     <span className="text-xs text-discord-green flex items-center gap-1 shrink-0">

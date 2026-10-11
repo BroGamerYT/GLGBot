@@ -19,6 +19,21 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // Direkte Server-Kurz-URLs (z. B. /bot1, /bot2, /server1, /server2)
+  const botMatch = pathname.match(/^\/(bot|server)([1-5])(\/.*)?$/i);
+  if (botMatch) {
+    const num = botMatch[2];
+    const sub = botMatch[3] || "";
+    const base = process.env.DASHBOARD_URL?.replace(/\/+$/, "") || req.nextUrl.origin;
+    let targetUrl = `/s/bot${num}`;
+    if (sub && sub !== "/") {
+      targetUrl += `?to=${encodeURIComponent(sub)}`;
+    } else if (req.nextUrl.search) {
+      targetUrl += req.nextUrl.search;
+    }
+    return NextResponse.redirect(new URL(targetUrl, base));
+  }
+
   // Öffentliche Seiten & Read-Only APIs (ohne Discord-Login für Community-Mitglieder)
   const isPublicPage =
     pathname === "/login" ||
@@ -37,6 +52,8 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/releases/") ||
     pathname === "/economy" ||
     pathname.startsWith("/economy/") ||
+    pathname.startsWith("/s/") ||
+    pathname.startsWith("/server/") ||
     pathname.startsWith("/go/");
 
   const isPublicApi =
