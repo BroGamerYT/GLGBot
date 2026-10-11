@@ -149,6 +149,7 @@ const COMMANDS: { group: string; items: [string, string, string][] }[] = [
     group: "Administration & Server-Setup",
     items: [
       ["/setup-all [bereich] [regel_sperre]", "Richtet alle fehlenden Rollen & Kanäle auf einmal ein (wie die Dashboard-Seite „Server einrichten“).", "Administrator"],
+      ["/server-setup [template] [style] [wipe]", "1-Klick Server-Templates: Richtet eine komplette Server-Struktur (Gaming, Dev, Anime, Streamer) mit wählbarem Design-Stil und automatischem Sicherheits-Backup ein.", "Administrator"],
       ["/birthday setup [kanal] [rolle]", "Legt den Kanal für Glückwünsche fest und erstellt die Geburtstags-Rolle (24 Std.).", "Server verwalten"],
       ["/server-stats einrichten | entfernen | status", "Statistik-Kanäle ganz oben (Mitglieder, Online, Im Voice, Gerade live, Boosts), Aktualisierung alle 10 Min.", "Kanäle verwalten"],
       ["/modules status | enable | disable | toggle", "Schaltet einzelne Funktionen (Module) an oder aus – wie die Dashboard-Seite „Module“. Daten bleiben erhalten.", "Administrator"],

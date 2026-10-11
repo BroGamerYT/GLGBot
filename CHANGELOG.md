@@ -6,6 +6,26 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.18.0] - 2026-10-11
+
+### Hinzugefügt
+* **1-Klick Server-Templates & Auto-Setup Wizard (Dashboard „Server-Templates“, `/server-setup`):**
+  * **5 Vordefinierte Server-Typen:**
+    * 🎮 **Gaming Clan & E-Sport:** Infos, Community, Squad-Lobbys, Join-to-Create VoiceMaster und geschützter Team-Bereich.
+    * 🌐 **Multi-Gaming Community:** Spiele-Kategorien (CS2, Valorant, GTA, Minecraft) mit Auto-Rollen & Gaming-Lounge.
+    * 💻 **Coding / Dev / Tech:** Programmiersprachen-Kanäle (JS/TS, Python, Rust/C++, Web), Helpdesk und Code-Review.
+    * 🌸 **Anime, Manga & Hangout:** Lounge, Anime-Diskussion, Fan-Art und Watch-Party Voice.
+    * 🔴 **Content Creator & Streamer:** Stream-Alerts, YouTube-Uploads, Sub-Lounge, Fan-Chat und Giveaways.
+  * **4 Wählbare Emoji- & Design-Stile für Kanalnamen:**
+    * **Modern mit Emojis:** `💬・hauptchat`, `🔊・talk-1`
+    * **Clean & Minimalistisch:** `hauptchat`, `talk-1`
+    * **Aesthetic mit Trennzeichen:** `〢・hauptchat`, `〢・talk-1`
+    * **Box & Bold:** `「💬」hauptchat`, `「🔊」talk-1`
+  * **Automatisches Berechtigungs-Hardening & Rollen-Hierarchie:** Sichere Rechtevergabe für alle Rollen (`@Inhaber`, `@Admin`, `@Mod`, `@Member`, `@Gast`), schreibgeschützte Info-Kanäle und isolierte Team-Bereiche.
+  * **Vollständige Backup-Sicherheit:** Vor jedem Ausrollen wird automatisch ein Snapshot-Backup erstellt (jederzeit 1-Klick wiederherstellbar).
+  * **Optionaler Wipe-Modus:** Ermöglicht dem Server-Owner auf Wunsch ein vorheriges Bereinigen der Kanäle.
+  * **Neues Modul „Server-Templates & Auto-Setup“:** Modular aktivierbar/deaktivierbar im Dashboard und über `/modules`.
+
 ## [2.17.0] - 2026-10-11
 
 ### Hinzugefügt

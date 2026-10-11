@@ -38,6 +38,7 @@ import {
   MonitorPlay,
   Calendar,
   Coins,
+  LayoutTemplate,
 } from "lucide-react";
 
 interface NavItem {
@@ -65,6 +66,7 @@ const GROUPS: NavGroup[] = [
     items: [
       { href: "/", label: "Übersicht", icon: LayoutDashboard, color: "text-discord-blurple" },
       { href: "/setup", label: "Server einrichten", icon: Wand2, color: "text-indigo-300" },
+      { href: "/templates", label: "Server-Templates", icon: LayoutTemplate, color: "text-purple-300" },
       { href: "/modules", label: "Module", icon: Blocks, color: "text-indigo-300" },
       { href: "/servers", label: "Server-Freigabe", icon: Server, color: "text-amber-300", ownerOnly: true },
     ],

@@ -2,7 +2,7 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.17.0 (siehe History ganz unten)
+**Aktueller Stand:** v2.18.0 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
@@ -257,31 +257,31 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-### 20. 🏗️ 1-Klick Server-Templates & Auto-Setup Wizard
+### 20. 🏗️ 1-Klick Server-Templates & Auto-Setup Wizard ✅ v2.18.0
 
 > **Ziel:** Richtet auf neuen oder bestehenden Discord-Servern in 15 Sekunden eine komplette, professionelle und sichere Server-Struktur ein.
 >
 > **Baut auf v2.6.0 auf:** Die Seite „Server einrichten“ (`/setup`) und `/setup-all` mit `src/services/setupService.ts` legen die Bot-Bereiche schon an – Templates ergänzen das nur um die allgemeine Server-Struktur (Kategorien, Chats, Team-Rollen) und sollten denselben Service nutzen statt eines zweiten Systems.
 
-* [ ] **Vordefinierte Server-Typen (JSON-Templates in `src/templates/`):**
-  * [ ] 🎮 **Gaming Clan / E-Sport:** Infos (Regeln, News), Community (Chat, Clips, Memes), Talk (VoiceMaster, AFK), Spiele-Lobbys.
-  * [ ] 🌐 **Multi-Gaming Community:** Spiele-Kategorien getrennt nach Games (CS2, Valorant, LoL, GTA) mit Auto-Rollen / Reaction Roles.
-  * [ ] 💻 **Coding / Dev / Tech:** Projekte, Dev-Talk nach Sprachen (JS/TS, Python, C++, Rust), Bug-Reports, Helpdesk.
-  * [ ] 🌸 **Anime / Manga / Hangout:** Lobby, Anime-Talk, Fan-Art, Musik, Mini-Games.
-  * [ ] 🔴 **Content Creator / Streamer:** Live-Alerts, Sub-Lounge, Giveaways, Fan-Chat, Kooperationen.
-* [ ] **Wählbare Emoji- & Design-Stile:**
-  * [ ] **Modern mit Emojis:** `💬・hauptchat`, `📢・news`, `🔊・talk-1`
-  * [ ] **Clean / Minimalistisch:** `hauptchat`, `news`, `talk-1` (kleingeschrieben, ohne Emojis)
-  * [ ] **Aesthetic / Symbole:** `〢・chat`, `〢・news`, `〢・voice`
-  * [ ] **Box / Bold:** `「💬」chat`, `「📢」news`, `「🔊」voice`
-* [ ] **Automatisches Berechtigungs-Hardening (Wasserdichte Sicherheit):**
-  * [ ] Sichere Rollen-Hierarchie (`@Inhaber`, `@Admin`, `@Mod`, `@VIP`, `@Member`, `@Gast`).
-  * [ ] Vollständige Permission Overwrites (Ankündigungen nur lesbar für `@everyone`, geschützte Mod-Logs, sichere VoiceMaster-Berechtigungen).
-  * [ ] Nutzung der bestehenden Backup-Engine (`backupService.ts`) zum schnellen, fehlerfreien Ausrollen.
-* [ ] **Bedienung via Web & Discord:**
-  * [ ] **Web-Dashboard (`/templates`):** Interaktiver 3-Schritte-Assistent (Typ wählen -> Stil wählen -> Vorschau prüfen -> „Server einrichten“).
-  * [ ] **Discord Slash-Command:** `/server-setup template:<typ> style:<stil> [wipe:true|false]` mit Sicherheits-Bestätigungs-Button.
-  * [ ] ⚠️ `wipe` (Server vorher leeren) **nur mit automatischem Backup davor** – sonst löscht ein Fehlklick den kompletten Server. Am besten zusätzlich: nur der Server-Owner darf `wipe` nutzen.
+* [x] **Vordefinierte Server-Typen (JSON-Templates in `src/templates/`):**
+  * [x] 🎮 **Gaming Clan / E-Sport:** Infos (Regeln, News), Community (Chat, Clips, Memes), Talk (VoiceMaster, AFK), Spiele-Lobbys.
+  * [x] 🌐 **Multi-Gaming Community:** Spiele-Kategorien getrennt nach Games (CS2, Valorant, LoL, GTA) mit Auto-Rollen / Reaction Roles.
+  * [x] 💻 **Coding / Dev / Tech:** Projekte, Dev-Talk nach Sprachen (JS/TS, Python, C++, Rust), Bug-Reports, Helpdesk.
+  * [x] 🌸 **Anime / Manga / Hangout:** Lobby, Anime-Talk, Fan-Art, Musik, Mini-Games.
+  * [x] 🔴 **Content Creator / Streamer:** Live-Alerts, Sub-Lounge, Giveaways, Fan-Chat, Kooperationen.
+* [x] **Wählbare Emoji- & Design-Stile:**
+  * [x] **Modern mit Emojis:** `💬・hauptchat`, `📢・news`, `🔊・talk-1`
+  * [x] **Clean / Minimalistisch:** `hauptchat`, `news`, `talk-1` (kleingeschrieben, ohne Emojis)
+  * [x] **Aesthetic / Symbole:** `〢・chat`, `〢・news`, `〢・voice`
+  * [x] **Box / Bold:** `「💬」chat`, `「📢」news`, `「🔊」voice`
+* [x] **Automatisches Berechtigungs-Hardening (Wasserdichte Sicherheit):**
+  * [x] Sichere Rollen-Hierarchie (`@Inhaber`, `@Admin`, `@Mod`, `@VIP`, `@Member`, `@Gast`).
+  * [x] Vollständige Permission Overwrites (Ankündigungen nur lesbar für `@everyone`, geschützte Mod-Logs, sichere VoiceMaster-Berechtigungen).
+  * [x] Nutzung der bestehenden Backup-Engine (`backupService.ts`) zum schnellen, fehlerfreien Ausrollen.
+* [x] **Bedienung via Web & Discord:**
+  * [x] **Web-Dashboard (`/templates`):** Interaktiver 3-Schritte-Assistent (Typ wählen -> Stil wählen -> Vorschau prüfen -> „Server einrichten“).
+  * [x] **Discord Slash-Command:** `/server-setup template:<typ> style:<stil> [wipe:true|false]` mit Sicherheits-Bestätigungs-Button.
+  * [x] ⚠️ `wipe` (Server vorher leeren) **nur mit automatischem Backup davor** – sonst löscht ein Fehlklick den kompletten Server. Am besten zusätzlich: nur der Server-Owner darf `wipe` nutzen.
 
 ---
 
@@ -323,7 +323,9 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.17.0 (Aktuell):**
+* [x] **v2.18.0 (Aktuell):**
+  * [x] 1-Klick Server-Templates & Auto-Setup Wizard (Modul „Server-Templates“), 5 Template-Profile (Gaming, Multi-Gaming, Coding, Anime, Creator), 4 Design-Stile (Modern, Clean, Aesthetic, Box), Rollen- & Berechtigungs-Hardening, Auto-Snapshot vor Ausführung, Slash-Befehl `/server-setup` & Web-Dashboard `/templates`.
+* [x] **v2.17.0:**
   * [x] Community-Wirtschaft & Belohnungs-Shop (Modul „Wirtschaft & Belohnungs-Shop“), Server-Währung (Coins 🪙), `/balance`, `/pay`, `/shop`, `/economy`, Dashboard `/economy`, Coins in `/daily` & `/rank`.
 * [x] **v2.16.0:**
   * [x] Game-Release-Kalender (Modul „Game-Release-Kalender“), Timeline & Monatsfilter, Vorbestell-Links, `/releases`, Montags-Scheduler.

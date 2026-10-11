@@ -26,7 +26,8 @@ export type BotModuleId =
   | "gameServers"
   | "clips"
   | "releases"
-  | "economy";
+  | "economy"
+  | "templates";
 
 export interface BotModuleInfo {
   id: BotModuleId;
@@ -237,6 +238,14 @@ export const BOT_MODULES: BotModuleInfo[] = [
     emoji: "🪙",
     category: "community",
     commands: ["balance", "pay", "shop", "economy"],
+  },
+  {
+    id: "templates",
+    name: "Server-Templates & Auto-Setup",
+    description: "1-Klick Server-Vorlagen (Gaming Clan, Multi-Gaming, Dev, Anime, Creator) mit flexiblem Design-Stil und automatischem Sicherheits-Backup",
+    emoji: "🏗️",
+    category: "management",
+    commands: ["server-setup"],
   },
 ];
 

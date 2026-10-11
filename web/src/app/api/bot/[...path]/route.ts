@@ -109,6 +109,8 @@ const ALLOWED = new Set([
   "POST economy/shop/delete",
   "POST economy/shop/buy",
   "POST economy/admin/balance",
+  "GET templates",
+  "POST templates/apply",
 ]);
 
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {

@@ -28,6 +28,7 @@ import {
   Calendar,
   Coins,
   ShoppingBag,
+  LayoutTemplate,
 } from "lucide-react";
 
 export const metadata = {
@@ -51,10 +52,30 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.17.0",
+    version: "v2.18.0",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "1-Klick Server-Templates & Auto-Setup",
+    description: "Komplette Server-Strukturen (Gaming Clan, Multi-Gaming, Dev/Tech, Anime, Creator) mit flexiblen Design-Stilen, Berechtigungs-Hardening und automatischem Snapshot-Backup.",
+    highlights: [
+      {
+        icon: LayoutTemplate,
+        title: "5 Vordefinierte Server-Templates",
+        description: "Perfekt abgestimmte Kategorien, Kanäle, Berechtigungen und Rollen für Clans, Gaming-Communitys, Entwickler-Teams, Anime-Hangouts und Streamer.",
+      },
+      {
+        icon: Sparkles,
+        title: "Wählbare Emoji- & Design-Stile",
+        description: "4 anpassbare Stile für Kanalnamen (Modern mit Emojis, Clean, Aesthetic, Box/Bold), interaktiver 3-Schritte-Assistent im Dashboard und /server-setup.",
+      },
+    ],
+  },
+  {
+    version: "v2.17.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Community-Wirtschaft & Belohnungs-Shop",
     description: "Vollständiges Economy-System mit Server-Währung (Coins 🪙), Chat-/Voice-Belohnungen, Überweisungen (/pay), Kontostand (/balance) und Belohnungs-Shop (/shop) für Rollen und Badges.",
     highlights: [

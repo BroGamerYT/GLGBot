@@ -97,6 +97,7 @@ const helpCommand: Command = {
           name: "⚙️ Administration & Backups",
           value:
             "`/setup-all` • Richtet alle fehlenden Rollen & Kanäle auf einmal ein\n" +
+            "`/server-setup` • 1-Klick Server-Templates (Gaming, Dev, Anime, Streamer) einrichten\n" +
             "`/modules status|enable|disable|toggle` • Funktionen an- oder ausschalten\n" +
             "`/economy geben|abziehen|setzen|reset` • Nutzerguthaben als Admin verwalten\n" +
             "`/server-stats einrichten|entfernen` • Live-Zähler-Kanäle ganz oben\n" +

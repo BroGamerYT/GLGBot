@@ -28,6 +28,7 @@ import { clipService } from "../services/clipService";
 import { liveStreamService } from "../services/liveStreamService";
 import { releaseService } from "../services/releaseService";
 import { economyService } from "../services/economyService";
+import { templateService } from "../services/templateService";
 
 /**
  * Interne Schnittstelle für das Web-Dashboard.
@@ -498,6 +499,40 @@ export function startInternalApi(client: Client) {
             wallet = economyService.addCoins(guild.id, userId, amount, reason || "Admin-Gutschrift", "admin", actor.id, targetTag, actor.user.tag);
           }
           return send(res, 200, { ok: true, wallet });
+        }
+
+        // ---------------- Server-Templates & Setup Wizard ----------------
+        case "GET /templates": {
+          return send(res, 200, {
+            templates: templateService.getTemplates(),
+            styles: templateService.getStyles(),
+            isOwner: actorId === guild.ownerId,
+          });
+        }
+        case "POST /templates/apply": {
+          const actor = await getActor();
+          if (!actor || (!actor.permissions.has(PermissionFlagsBits.Administrator) && actor.id !== guild.ownerId)) {
+            return send(res, 403, { error: "Nur Administratoren dürfen Server-Templates anwenden." });
+          }
+          const body = await readBody(req);
+          const { templateId, styleId, wipe } = body;
+          if (!templateId || !styleId) {
+            return send(res, 400, { error: "templateId und styleId erforderlich." });
+          }
+          if (wipe && actor.id !== guild.ownerId) {
+            return send(res, 403, { error: "Die Wipe-Option darf nur vom Server-Owner ausgeführt werden." });
+          }
+
+          const result = await templateService.applyTemplate(guild, templateId, styleId, {
+            wipe: Boolean(wipe),
+            executorTag: actor.user.tag,
+          });
+
+          if (!result.ok) {
+            return send(res, 400, { error: result.error || "Fehler beim Anwenden des Templates." });
+          }
+
+          return send(res, 200, result);
         }
 
         // ---------------- Geplante Ankündigungen ----------------
