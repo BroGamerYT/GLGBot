@@ -4,7 +4,8 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 **Aktueller Stand:** v2.6.0 (siehe History ganz unten)
 
-> ⚠️ **Grundsatz-Entscheidung zuerst:** Bleibt es dabei, dass jeder den Bot selbst hostet (Open-Source-Modell, so wie jetzt auf GitHub) – oder soll *ein* Bot viele Server bedienen (Punkt 16)? Jedes neue Feature, das jetzt nur für einen Server gebaut wird, muss bei Multi-Guild später umgebaut werden. Diese Entscheidung sollte vor Priorität 2 fallen.
+> ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
+> 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
 
 ---
 
@@ -201,17 +202,25 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-## 🌐 Priorität 4: Public Release & 1-Bot-in-1-CT Multi-Guild Architektur
+## 🌐 Priorität 4: Public Release & Multi-Guild (max. 5 Server)
 
-> **Architektur-Konzept:** **Ein einziger Bot-Prozess** (z. B. in einem Proxmox-Container) bedient unbegrenzt viele Discord-Server gleichzeitig.
-> * **Ressourcen:** Minimaler RAM-Verbrauch (~200 MB) für beliebig viele Server.
+> **Architektur-Konzept:** **Ein einziger Bot-Prozess** (z. B. in einem Proxmox-Container) bedient **bis zu 5 freigegebene** Discord-Server gleichzeitig.
+> * **Ressourcen:** Minimaler RAM-Verbrauch (~200 MB) für alle Server zusammen.
 > * **Zentrale Wartung:** 1x `git pull` & `pm2 restart` aktualisiert alle Server simultan.
-> * **1-Klick-Onboarding:** Jeder Server-Besitzer kann den Bot per Invite-Link einladen, ohne eigene Server/Tokens zu benötigen.
+> * **Onboarding nur mit Freigabe:** Server-Besitzer können den Bot einladen, er bleibt aber nur auf Servern, die auf der Freigabe-Liste stehen.
 
-### 16. 🏛️ Multi-Guild Datenisolation & Globale Commands (1 Bot -> N Server)
+### 16. 🏛️ Multi-Guild (max. 5 Server, nur Freigabe-Liste)
+> ✅ **Entschieden:** maximal **5 Server**, nur Server auf der **Freigabe-Liste**.
 > ⚠️ **Größter Umbau im ganzen Plan.** Bot & Dashboard sind fest auf einen Server ausgelegt: `GUILD_ID` steckt in 17 Stellen in Bot und Dashboard, die interne Bot-API (`src/api/internalApi.ts`) kennt nur einen Server.
-> * **Ab 100 Servern** verlangt Discord eine **Bot-Verifizierung**; die drei Privileged Intents (Presence, Server Members, Message Content) müssen dann einzeln beantragt und begründet werden.
-> * Wer den Bot für fremde Server hostet, ist für deren Daten verantwortlich (**Datenschutz / DSGVO**, Datenschutzerklärung, Löschung auf Anfrage).
+> * Durch die Grenze von 5 Servern ist **keine Discord-Bot-Verifizierung** nötig (erst ab 100 Servern), die Privileged Intents bleiben ohne Antrag nutzbar.
+> * Wer den Bot für fremde Server hostet, ist für deren Daten verantwortlich (**Datenschutz / DSGVO**, Datenschutzerklärung, Löschung auf Anfrage) – bei max. 5 bekannten Servern überschaubar, sollte aber trotzdem kurz geregelt werden.
+
+* [ ] **🔒 Server-Freigabe & Begrenzung:**
+  * [ ] Neue `.env`-Werte: `ALLOWED_GUILD_IDS` (kommagetrennte Server-IDs) und `MAX_GUILDS=5`. `GUILD_ID` bleibt als **Haupt-Server** (dein eigener Server, immer erlaubt).
+  * [ ] Event `guildCreate`: Wird der Bot auf einen Server eingeladen, der **nicht auf der Freigabe-Liste** steht **oder** schon 5 Server belegt sind → **DM an den Server-Owner** mit kurzer Erklärung (z. B. „Dieser Bot ist privat und nur für freigegebene Server.“) und danach **Server sofort verlassen**.
+  * [ ] Beim Bot-Start alle Server prüfen: nicht freigegebene Server werden ebenfalls verlassen (falls der Bot eingeladen wurde, während er offline war).
+  * [ ] Server-Verwaltung im Dashboard (nur für dich als Bot-Besitzer, `BOT_OWNER_ID` in der `.env`): Freigabe-Liste ansehen, Server hinzufügen/entfernen, Belegung „3 / 5 Server“ anzeigen, Einladungs-Link für freigegebene Server erzeugen.
+  * [ ] Wird ein Server von der Liste entfernt: Bot verlässt ihn, Daten in `data/guilds/<guildId>/` werden nach 30 Tagen gelöscht (oder sofort auf Wunsch).
 
 * [ ] **Globale Discord Slash-Commands:**
   * [ ] Globale Registrierung `applicationCommands(clientId)` – `deploy-commands` kann das schon, wenn `GUILD_ID` leer ist.
@@ -224,7 +233,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
   * [ ] Dropdown-Menü in der oberen Dashboard-Navigationsleiste mit allen Servern des eingeloggten Discord-Admins (gefiltert nach `Administrator` / `Manage_Guild`).
   * [ ] Server-Kacheln auf einer Übersicht-Seite (`/dashboard/servers`):
     * [ ] Bereits aktivierte Server verwalten (Klick schaltet aktiven Kontext um).
-    * [ ] Nicht aktivierte Server mit einem 1-Klick-Link **„➕ Bot einladen“** (mit vorkonfigurierten OAuth2-Berechtigungen) hinzufügen.
+    * [ ] **„➕ Bot einladen“** nur für Server, die auf der Freigabe-Liste stehen (mit vorkonfigurierten OAuth2-Berechtigungen). Nicht freigegebene Server werden ausgegraut mit Hinweis „Nicht freigegeben“.
 * [ ] **API-Mandantenfähigkeit:**
   * [ ] Alle Web-API-Routen (`/api/discord/*`, `/api/config/*`, `/api/bot/*` inkl. der internen Bot-API) akzeptieren den Header bzw. Query-Parameter `?guildId=<id>`.
   * [ ] Serverseitige Autorisierungsprüfung: Darf der eingeloggte Discord-User diese spezifische `guildId` konfigurieren?
