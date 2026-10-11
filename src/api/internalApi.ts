@@ -2,7 +2,7 @@ import http from "http";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
-import { Client, PermissionFlagsBits, EmbedBuilder } from "discord.js";
+import { Client, PermissionFlagsBits, EmbedBuilder, ChannelType, TextChannel, NewsChannel } from "discord.js";
 import { freeGamesService } from "../services/freeGamesService";
 import { rulesService } from "../services/rulesService";
 import { rolePanelService } from "../services/rolePanelService";
@@ -24,6 +24,7 @@ import { customCommandService, MAX_CUSTOM_COMMANDS } from "../services/customCom
 import { welcomeService, WELCOME_DEFAULTS } from "../services/welcomeService";
 import { gameServerService, MAX_GAME_SERVERS, DEFAULT_PORTS } from "../services/gameServerService";
 import { moduleService } from "../services/moduleService";
+import { clipService } from "../services/clipService";
 import { liveStreamService } from "../services/liveStreamService";
 
 /**
@@ -467,6 +468,144 @@ export function startInternalApi(client: Client) {
           }
           const body = await readBody(req);
           return send(res, 200, { ok: gameServerService.remove(guild.id, String(body?.id || "")) });
+        }
+
+        // ---------------- Clip-Showcase ----------------
+        case "GET /clips": {
+          if (!isLoggedIn) return send(res, 401, { error: "Bitte einloggen." });
+          const data = clipService.getData(guild.id);
+          const ranking = await clipService.ranking(guild, 10).catch(() => []);
+          const ids = Array.from(new Set([...ranking.map((r) => r.clip.authorId), ...data.history.map((h) => h.authorId)]));
+          const members = await Promise.all(ids.map((id) => guild.members.fetch(id).catch(() => null)));
+          const names: Record<string, { name: string; avatar: string | null }> = {};
+          members.forEach((m, i) => (names[ids[i]] = { name: m?.displayName || "Unbekannt", avatar: m?.displayAvatarURL({ size: 64 }) || null }));
+          const channel = data.channelId ? guild.channels.cache.get(data.channelId) : null;
+          return send(res, 200, {
+            config: { channelId: data.channelId || null, weekday: data.weekday, hour: data.hour },
+            lastAward: data.lastAward || null,
+            ranking: ranking.map((r) => ({
+              ...r.clip,
+              votes: r.votes,
+              laughs: r.laughs,
+              author: names[r.clip.authorId],
+              jumpUrl: channel ? `https://discord.com/channels/${guild.id}/${channel.id}/${r.clip.messageId}` : null,
+            })),
+            history: [...data.history].reverse().map((h) => ({ ...h, author: names[h.authorId] })),
+            channels: guild.channels.cache
+              .filter((c) => c.type === ChannelType.GuildText || c.type === ChannelType.GuildAnnouncement)
+              .map((c) => ({ id: c.id, name: c.name })),
+          });
+        }
+        case "POST /clips/config": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageGuild) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Server verwalten“." });
+          }
+          const body = await readBody(req);
+          if (body?.channelId && !guild.channels.cache.has(String(body.channelId))) return send(res, 400, { error: "Kanal nicht gefunden." });
+          const d = clipService.setConfig(guild.id, {
+            channelId: body?.channelId === undefined ? undefined : body.channelId ? String(body.channelId) : null,
+            weekday: body?.weekday === undefined ? undefined : Number(body.weekday),
+            hour: body?.hour === undefined ? undefined : Number(body.hour),
+          });
+          return send(res, 200, { ok: true, config: { channelId: d.channelId || null, weekday: d.weekday, hour: d.hour } });
+        }
+        case "POST /clips/award": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageGuild) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Server verwalten“." });
+          }
+          try {
+            return send(res, 200, { ok: true, result: await clipService.award(guild, true) });
+          } catch (e: any) {
+            return send(res, 400, { error: e?.message || "Kür fehlgeschlagen." });
+          }
+        }
+
+        // ---------------- Web-Konsole ----------------
+        case "GET /console/channels":
+        case "GET /console/messages":
+        case "POST /console/send":
+        case "POST /console/delete": {
+          const actor = await getActor();
+          if (!actor) return send(res, 401, { error: "Bitte einloggen." });
+          const me = guild.members.me;
+          const visible = guild.channels.cache.filter(
+            (c): c is TextChannel | NewsChannel =>
+              (c.type === ChannelType.GuildText || c.type === ChannelType.GuildAnnouncement) &&
+              !!c.permissionsFor(actor)?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageMessages]) &&
+              !!me && !!c.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory])
+          );
+          if (route === "GET /console/channels") {
+            return send(res, 200, {
+              channels: visible
+                .sort((a, b) => (a.parent?.position ?? -1) - (b.parent?.position ?? -1) || a.position - b.position)
+                .map((c) => ({
+                  id: c.id,
+                  name: c.name,
+                  category: c.parent?.name || null,
+                  canSend: !!c.permissionsFor(actor)?.has(PermissionFlagsBits.SendMessages) && !!c.permissionsFor(me!)?.has(PermissionFlagsBits.SendMessages),
+                })),
+              canMentionEveryone: actor.permissions.has(PermissionFlagsBits.MentionEveryone),
+            });
+          }
+          const url = new URL(req.url || "/", "http://x");
+          const body = req.method === "POST" ? await readBody(req) : null;
+          const channelId = String(body?.channelId || url.searchParams.get("channelId") || "");
+          const channel = visible.get(channelId);
+          if (!channel) return send(res, 403, { error: "Für diesen Kanal fehlen dir (oder dem Bot) die Rechte - nötig ist „Nachrichten verwalten“." });
+
+          if (route === "GET /console/messages") {
+            const after = url.searchParams.get("after") || undefined;
+            const msgs = await channel.messages.fetch(after ? { after, limit: 50 } : { limit: 50 });
+            return send(res, 200, {
+              messages: [...msgs.values()]
+                .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
+                .map((m) => ({
+                  id: m.id,
+                  content: m.content,
+                  createdAt: m.createdTimestamp,
+                  editedAt: m.editedTimestamp,
+                  author: { id: m.author.id, name: m.member?.displayName || m.author.username, avatar: m.author.displayAvatarURL({ size: 64 }), bot: m.author.bot },
+                  isOwnBot: m.author.id === client.user?.id,
+                  replyTo: m.reference?.messageId || null,
+                  embeds: m.embeds.map((e) => ({ title: e.title, description: e.description?.slice(0, 500) || null, color: e.color })),
+                  attachments: [...m.attachments.values()].map((a) => ({ name: a.name, url: a.url, image: (a.contentType || "").startsWith("image/") })),
+                })),
+            });
+          }
+
+          if (route === "POST /console/delete") {
+            const msg = await channel.messages.fetch(String(body?.messageId || "")).catch(() => null);
+            if (!msg) return send(res, 404, { error: "Nachricht nicht gefunden." });
+            if (!channel.permissionsFor(me!)?.has(PermissionFlagsBits.ManageMessages) && msg.author.id !== client.user?.id) {
+              return send(res, 403, { error: "Dem Bot fehlt „Nachrichten verwalten“ in diesem Kanal." });
+            }
+            await msg.delete();
+            auditLogService
+              .log({ guildId: guild.id, category: "message", action: "Web-Konsole: Nachricht gelöscht", executor: { id: actor.id, tag: actor.user.tag }, target: { id: msg.author.id, tag: msg.author.tag }, details: { channelId: channel.id, content: msg.content.slice(0, 500) } }, client)
+              .catch(() => null);
+            return send(res, 200, { ok: true });
+          }
+
+          // POST /console/send
+          const content = String(body?.content || "").trim();
+          if (!content) return send(res, 400, { error: "Die Nachricht ist leer." });
+          if (content.length > 2000) return send(res, 400, { error: "Maximal 2000 Zeichen." });
+          if (!channel.permissionsFor(actor)?.has(PermissionFlagsBits.SendMessages)) return send(res, 403, { error: "Du darfst in diesem Kanal nicht schreiben." });
+          if (!channel.permissionsFor(me!)?.has(PermissionFlagsBits.SendMessages)) return send(res, 403, { error: "Der Bot darf in diesem Kanal nicht schreiben." });
+          const mayEveryone = channel.permissionsFor(actor)?.has(PermissionFlagsBits.MentionEveryone) ?? false;
+          const replyTo = body?.replyTo ? await channel.messages.fetch(String(body.replyTo)).catch(() => null) : null;
+          const sent = await channel.send({
+            content,
+            reply: replyTo ? { messageReference: replyTo.id, failIfNotExists: false } : undefined,
+            allowedMentions: mayEveryone ? { parse: ["users", "roles", "everyone"], repliedUser: true } : { parse: ["users"], repliedUser: true },
+          });
+          auditLogService
+            .log({ guildId: guild.id, category: "message", action: "Web-Konsole: Nachricht als Bot gesendet", executor: { id: actor.id, tag: actor.user.tag }, details: { channelId: channel.id, messageId: sent.id, content: content.slice(0, 500) } }, client)
+            .catch(() => null);
+          console.log(`[Konsole] ${actor.user.tag} → #${channel.name}: ${content.slice(0, 80)}`);
+          return send(res, 200, { ok: true, id: sent.id });
         }
 
         // ---------------- Komplett-Einrichtung ----------------

@@ -89,6 +89,13 @@ const ALLOWED = new Set([
   "GET game-servers",
   "POST game-servers",
   "POST game-servers/delete",
+  "GET clips",
+  "POST clips/config",
+  "POST clips/award",
+  "GET console/channels",
+  "GET console/messages",
+  "POST console/send",
+  "POST console/delete",
 ]);
 
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {

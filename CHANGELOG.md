@@ -6,6 +6,18 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.15.0] - 2026-10-11
+
+### Hinzugefügt
+* **Clip der Woche (Dashboard „Clip der Woche“):** Im eingestellten Clip-Kanal erkennt der Bot Clips (Twitch, YouTube, Medal, Streamable, Kick, Outplayed und Videodateien) und hängt 🔥 und 😂 an.
+  * Einmal pro Woche (Wochentag und Uhrzeit einstellbar, Standard Sonntag 20 Uhr) gewinnt der Clip mit den meisten 🔥. Er wird angepinnt (der alte Gewinner abgepinnt) und mit Platz 2 und 3 angekündigt.
+  * Live-Ranking der letzten 7 Tage, Gewinner-Historie und „Jetzt küren“ im Dashboard. Ein Clip kann nur einmal gewinnen.
+  * Neues Modul „Clip-Showcase“ (auf neuen Servern zunächst aus).
+* **Web-Konsole (Dashboard „Web-Konsole“):** Textkanäle live mitlesen (Aktualisierung alle 4 Sekunden) und als Bot schreiben, auf Nachrichten antworten oder Nachrichten löschen.
+  * Sichtbar sind nur Kanäle, in denen du „Nachrichten verwalten“ hast. Schreiben nur, wo du selbst schreiben darfst.
+  * `@everyone`/`@here` pingen nur, wenn du „Alle erwähnen“ hast. Rollen-Pings sind sonst blockiert.
+  * Jede gesendete oder gelöschte Nachricht wird mit deinem Namen im Audit-Log festgehalten.
+
 ## [2.14.0] - 2026-10-11
 
 ### Hinzugefügt

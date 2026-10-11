@@ -277,6 +277,17 @@ export default function HelpPage() {
                 Server-Backups, Logs und Bot-Konfiguration ist durch Discord-OAuth geschützt. Reinkommen der Server-Owner
                 sowie Mitglieder mit Administrator-Rechten oder in <Cmd>DASHBOARD_USER_IDS</Cmd>.
               </li>
+              <li>
+                <strong className="text-white">Web-Konsole:</strong> Unter{" "}
+                <Link href="/console" className="text-discord-blurple hover:underline">Web-Konsole</Link> liest du Kanäle live
+                mit und schreibst oder antwortest als Bot. Du siehst nur Kanäle, in denen du „Nachrichten verwalten“ hast;
+                jede Nachricht landet mit deinem Namen im Audit-Log.
+              </li>
+              <li>
+                <strong className="text-white">Clip der Woche:</strong> Clips im Clip-Kanal bekommen 🔥 und 😂. Einmal pro Woche
+                wird der Clip mit den meisten 🔥 angepinnt und angekündigt - einstellbar unter{" "}
+                <Link href="/clips" className="text-discord-blurple hover:underline">Clip der Woche</Link>.
+              </li>
             </ul>
           </Section>
 

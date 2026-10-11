@@ -2,7 +2,7 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.14.0 (siehe History ganz unten)
+**Aktueller Stand:** v2.15.0 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
@@ -161,10 +161,10 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-### 11. 🎬 Community-Clip-Showcase (`#clips`)
-* [ ] Automatischer Video- & Clip-Detektor (erkennt Twitch Clips, YouTube Shorts, Medal.tv und Discord-Videodateien).
-* [ ] Bot hängt automatisch Reaktions-Buttons an (`🔥 Upvote`, `😂 Lustig`).
-* [ ] Wöchentlicher automatischer Post jeden Sonntagabend: Der meiste Upvote-Clip wird als „🏆 Clip der Woche“ gekürt und gepinnt.
+### 11. 🎬 Community-Clip-Showcase (`#clips`) ✅ v2.15.0
+* [x] Automatischer Video- & Clip-Detektor (Twitch, YouTube, Medal, Streamable, Kick, Outplayed und Videodateien).
+* [x] Bot hängt automatisch Reaktionen an (🔥 Upvote, 😂 Lustig).
+* [x] Wöchentliche Kür (Wochentag/Uhrzeit einstellbar, Standard Sonntag 20 Uhr): „🏆 Clip der Woche“ wird gekürt und gepinnt, Dashboard-Seite `/clips`.
 
 ---
 
@@ -244,9 +244,9 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-### 18. 💬 Live Web-Konsole & Chat im Dashboard
-* [ ] Textkanal im Dashboard auswählen und Live-Nachrichten in Echtzeit mitlesen.
-* [ ] Nachrichten direkt als Bot in den Kanal senden oder auf Nachrichten antworten.
+### 18. 💬 Live Web-Konsole & Chat im Dashboard ✅ v2.15.0
+* [x] Textkanal im Dashboard auswählen und Live-Nachrichten mitlesen (alle 4 Sekunden).
+* [x] Nachrichten direkt als Bot in den Kanal senden, antworten oder löschen - nur mit „Nachrichten verwalten“, alles im Audit-Log.
 
 ---
 
@@ -324,7 +324,9 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.14.0 (Aktuell):**
+* [x] **v2.15.0 (Aktuell):**
+  * [x] Clip der Woche (Modul „Clip-Showcase“), Web-Konsole zum Mitlesen und Schreiben als Bot.
+* [x] **v2.14.0:**
   * [x] Docker, Installations-Skripte für Linux & Windows, PM2-Konfiguration, Daten entfernter Server löschen.
 * [x] **v2.13.0:**
   * [x] Game-Server-Status (Minecraft, Source/Steam, Port-Check), `/serverstatus`, Statistik-Kanal „Game-Server“.

@@ -62,7 +62,8 @@ const helpCommand: Command = {
             "`/giveaway start|end|reroll` • Verlosungen mit Teilnahme-Button\n" +
             "`/birthday set|remove|list` • Geburtstag eintragen, der Bot gratuliert\n" +
             "`/lfg` • Mitspieler suchen - volle Gruppe bekommt eine eigene Lobby\n" +
-            "`/sticky set|remove` • Fixiert wichtige Hinweise als letzte Nachricht im Kanal",
+            "`/sticky set|remove` • Fixiert wichtige Hinweise als letzte Nachricht im Kanal\n" +
+            "🎬 **Clip der Woche** • Clip im Clip-Kanal posten, mit 🔥 abstimmen",
           inline: false,
         },
         {

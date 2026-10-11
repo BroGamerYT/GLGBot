@@ -17,6 +17,7 @@ import { announcementService } from "../services/announcementService";
 import { customCommandService } from "../services/customCommandService";
 import { lfgService } from "../services/lfgService";
 import { gameServerService } from "../services/gameServerService";
+import { clipService } from "../services/clipService";
 
 const readyEvent: BotEvent<Events.ClientReady> = {
   name: Events.ClientReady,
@@ -85,6 +86,7 @@ const readyEvent: BotEvent<Events.ClientReady> = {
     announcementService.start(client);
     lfgService.start(client);
     gameServerService.start(client);
+    clipService.start(client);
 
     // Giveaway Scheduler starten
     giveawayService.startScheduler(client);

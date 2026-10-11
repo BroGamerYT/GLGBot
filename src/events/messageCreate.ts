@@ -6,6 +6,7 @@ import { statsService } from "../services/statsService";
 import { blacklistService } from "../services/blacklistService";
 import { moduleService } from "../services/moduleService";
 import { customCommandService } from "../services/customCommandService";
+import { clipService } from "../services/clipService";
 
 const messageCreateEvent: BotEvent<Events.MessageCreate> = {
   name: Events.MessageCreate,
@@ -39,6 +40,9 @@ const messageCreateEvent: BotEvent<Events.MessageCreate> = {
     if (content.startsWith("@silent")) {
       content = content.replace(/^@silent\s*/, "").trim();
     }
+
+    // Clip-Showcase (Clip-Kanal)
+    if (message.guild) await clipService.handleMessage(message).catch(() => false);
 
     // Eigene Text-Befehle (!name)
     if (content.startsWith("!") && content !== "!ping" && (await customCommandService.handleMessage(message).catch(() => false))) return;

@@ -23,7 +23,8 @@ export type BotModuleId =
   | "lfg"
   | "customCommands"
   | "welcome"
-  | "gameServers";
+  | "gameServers"
+  | "clips";
 
 export interface BotModuleInfo {
   id: BotModuleId;
@@ -202,6 +203,14 @@ export const BOT_MODULES: BotModuleInfo[] = [
     emoji: "🖥️",
     category: "gaming",
     commands: ["serverstatus"],
+  },
+  {
+    id: "clips",
+    name: "Clip-Showcase",
+    description: "Clips im Clip-Kanal bekommen 🔥/😂-Reaktionen, einmal pro Woche wird der „Clip der Woche“ gekürt und angepinnt",
+    emoji: "🎬",
+    category: "community",
+    commands: [],
   },
   {
     id: "customCommands",

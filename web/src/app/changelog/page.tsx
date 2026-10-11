@@ -23,6 +23,8 @@ import {
   PanelLeft,
   CalendarCheck,
   PartyPopper,
+  Clapperboard,
+  Terminal,
 } from "lucide-react";
 
 export const metadata = {
@@ -46,10 +48,30 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.14.0",
+    version: "v2.15.0",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Clip der Woche & Web-Konsole",
+    description: "Die Community stimmt mit 🔥 über den besten Clip der Woche ab, und Moderatoren können Kanäle im Dashboard mitlesen und als Bot schreiben.",
+    highlights: [
+      {
+        icon: Clapperboard,
+        title: "Clip der Woche",
+        description: "Clips im Clip-Kanal bekommen 🔥 und 😂. Einmal pro Woche wird der Gewinner angepinnt und mit Platz 2 und 3 angekündigt.",
+      },
+      {
+        icon: Terminal,
+        title: "Web-Konsole",
+        description: "Kanäle live mitlesen, als Bot schreiben, antworten oder löschen - nur mit „Nachrichten verwalten“, alles landet im Audit-Log.",
+      },
+    ],
+  },
+  {
+    version: "v2.14.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Einfache Installation: Docker & Skripte",
     description: "Den Bot gibt es jetzt als Docker-Container und mit Installations-Skripten für Linux und Windows. Dazu werden Daten entfernter Server automatisch aufgeräumt.",
     highlights: [

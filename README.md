@@ -132,6 +132,8 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | **Statistik-Kanäle** | `/server-stats` | 🔒 Admin | Live-Zähler ganz oben (Mitglieder, Online, Voice, Live, Boosts) mit eigenem Text. |
 | **Game-Server** | `/game-servers` | 🔒 Admin | Minecraft-, Source-(CS2, Rust, ARK …) und Port-Abfrage (z. B. TeamSpeak), Prüfung alle 2 Minuten. |
 | **Willkommens-Karte** | `/welcome` | 🔒 Admin | Grafische Karte für neue Mitglieder mit Vorschau & Test, optional automatische Rolle (nur ohne Regel-Sperre). |
+| **Clip der Woche** | `/clips` | 🔒 Admin | Clip-Kanal, Wochentag und Uhrzeit der Kür, Live-Ranking der letzten 7 Tage, Gewinner-Historie, „Jetzt küren“. |
+| **Web-Konsole** | `/console` | 🛡️ Nachrichten verwalten | Kanäle live mitlesen, als Bot schreiben, antworten oder löschen - alles im Audit-Log. |
 | **Eigene Befehle** | `/custom-commands` | 🔒 Admin | Eigene `/befehle` (z. B. `/ts`) mit Text- oder Embed-Antwort, optional auch als `!befehl`. |
 | **Module** | `/modules` | 🔒 Admin | Funktionen einzeln an- oder ausschalten – ausgeschaltete Module pausieren komplett, Daten bleiben erhalten. |
 | **Benutzerverwaltung** | `/users` | 🔒 Admin | Mitgliederliste mit Nickname-Änderung, Rollen-Zuweisung, XP-Korrektur und Admin-Notizen. |

@@ -28,6 +28,8 @@ import {
   ShieldCheck,
   BookOpen,
   Server,
+  Clapperboard,
+  Terminal,
   Cake,
   BarChart3,
   AlarmClock,
@@ -78,6 +80,7 @@ const GROUPS: NavGroup[] = [
       { href: "/game-servers", label: "Game-Server", icon: MonitorPlay, color: "text-emerald-400" },
       { href: "/birthdays", label: "Geburtstage", icon: Cake, color: "text-pink-400" },
       { href: "/welcome", label: "Willkommens-Karte", icon: HandHeart, color: "text-pink-300" },
+      { href: "/clips", label: "Clip der Woche", icon: Clapperboard, color: "text-orange-300" },
     ],
   },
   {
@@ -101,6 +104,7 @@ const GROUPS: NavGroup[] = [
     items: [
       { href: "/moderation", label: "Benutzerverwaltung", icon: Gavel, color: "text-rose-400" },
       { href: "/tickets", label: "Support-Tickets", icon: Ticket, color: "text-indigo-400" },
+      { href: "/console", label: "Web-Konsole", icon: Terminal, color: "text-lime-300" },
       { href: "/logs", label: "Audit-Logs", icon: FileText, color: "text-cyan-400" },
     ],
   },
