@@ -2,7 +2,7 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.11.0 (siehe History ganz unten)
+**Aktueller Stand:** v2.12.0 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
@@ -88,14 +88,14 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-### 7. 🖼️ Grafische Rangkarte (Canvas / SVG)
+### 7. 🖼️ Grafische Rangkarte (Canvas / SVG) ✅ v2.12.0
 > Zusammen mit Punkt 12 (Willkommens-Karten) bauen – beide brauchen dieselbe Bild-Bibliothek (z. B. `@napi-rs/canvas`).
 
-* [ ] Visuelle Rank-Card bei `/rank` statt reinem Text-Embed:
-  * [ ] Nutzer-Avatar mit Discord-Status.
-  * [ ] Aktuelles Level & Ranglistenplatz (#1, #2, ...).
-  * [ ] Visueller Fortschrittsbalken mit XP bis zum nächsten Level.
-  * [ ] Community-Badges / Meilensteine.
+* [x] Visuelle Rank-Card bei `/rank` statt reinem Text-Embed:
+  * [x] Nutzer-Avatar (Online-Status-Punkt weggelassen - Discord liefert ihn nicht zuverlässig).
+  * [x] Aktuelles Level & Ranglistenplatz (#1, #2, ...).
+  * [x] Visueller Fortschrittsbalken mit XP bis zum nächsten Level.
+  * [ ] Community-Badges / Meilensteine auf der Karte.
 
 ---
 
@@ -168,12 +168,13 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-### 12. 🖼️ Grafische Willkommens-Karten (Canvas / Dynamic Image)
-* [ ] Willkommens-Banner für neue Mitglieder:
-  * [ ] Nutzer-Avatar & Server-Icon gerendert.
-  * [ ] Benutzername, Tag und Server-Mitgliederzähler (`Du bist Mitglied #1.248!`).
-* [ ] Automatische Rollenvergabe (Autorole) bei Beitritt – **nur wenn die Regel-Sperre aus ist**. `@Gast` bekommt man bei uns erst mit „Regeln akzeptieren“; wer sie sofort bekommt, sieht den ganzen Server, ohne die Regeln zu lesen.
-* [ ] Im Web-Dashboard konfigurierbar: Willkommenskanal, Hintergrundbild, Farbverlauf und Text.
+### 12. 🖼️ Grafische Willkommens-Karten (Canvas / Dynamic Image) ✅ v2.12.0
+* [x] Willkommens-Banner für neue Mitglieder:
+  * [x] Nutzer-Avatar & Server-Icon gerendert.
+  * [x] Benutzername, Tag und Server-Mitgliederzähler (`Du bist Mitglied #1.248!`).
+* [x] Automatische Rollenvergabe (Autorole) bei Beitritt – **nur wenn die Regel-Sperre aus ist**. `@Gast` bekommt man bei uns erst mit „Regeln akzeptieren“; wer sie sofort bekommt, sieht den ganzen Server, ohne die Regeln zu lesen.
+* [x] Im Web-Dashboard konfigurierbar: Willkommenskanal, Farbe, Überschrift, Untertitel und Text (mit Vorschau).
+* [ ] Eigenes Hintergrundbild für die Willkommens-Karte.
 
 ---
 
@@ -323,7 +324,9 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.11.0 (Aktuell):**
+* [x] **v2.12.0 (Aktuell):**
+  * [x] Grafische Rangkarte bei `/rank`, Willkommens-Karte mit Dashboard-Seite, automatische Rolle (nur ohne Regel-Sperre).
+* [x] **v2.11.0:**
   * [x] `/lfg` Mitspieler-Suche mit eigener Lobby, eigene Befehle im Dashboard.
 * [x] **v2.10.0:**
   * [x] Geburtstage, geplante Ankündigungen, Statistik-Kanäle (je als Modul, pro Server).

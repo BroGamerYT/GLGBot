@@ -46,10 +46,31 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.11.0",
+    version: "v2.12.0",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Grafische Rang- & Willkommens-Karten",
+    description: "/rank zeigt jetzt eine echte Rangkarte als Bild, und neue Mitglieder werden mit einer eigenen Willkommens-Karte begrüßt.",
+    highlights: [
+      {
+        icon: Trophy,
+        title: "Rangkarte als Bild",
+        description: "Profilbild, Rang, Level, Fortschrittsbalken, Nachrichten, Voice-Zeit und Daily-Serie auf einen Blick.",
+      },
+      {
+        icon: UserCheck,
+        title: "Willkommens-Karte",
+        description:
+          "Grafische Begrüßung im Kanal deiner Wahl - Texte und Farbe frei wählbar, mit Vorschau. Optional automatische Rolle (nur ohne Regel-Sperre).",
+      },
+    ],
+  },
+  {
+    version: "v2.11.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Mitspieler-Suche & eigene Befehle",
     description: "Mit /lfg findet ihr Mitspieler samt eigener Lobby, und im Dashboard lassen sich eigene /befehle anlegen.",
     highlights: [

@@ -6,6 +6,17 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.12.0] - 2026-10-11
+
+### Hinzugefügt
+* **Grafische Rangkarte:** `/rank` zeigt jetzt ein Bild mit Profilbild, Rang, Level, Fortschrittsbalken, Gesamt-XP, Nachrichten, Voice-Zeit und Daily-Serie (die Details stehen weiterhin darunter). Klappt das Zeichnen nicht, kommt die bisherige Text-Karte.
+* **Willkommens-Karte (Dashboard „Willkommens-Karte“):** Neue Mitglieder werden im gewählten Kanal mit einer grafischen Karte begrüßt (Profilbild, Name, Mitgliedsnummer), Text, Überschrift, Untertitel und Farbe frei wählbar, mit Vorschau und Test-Knopf.
+* **Automatische Rolle beim Beitritt:** optional in den Willkommens-Einstellungen - wird nur vergeben, solange die Regel-Sperre aus ist; Rollen mit Admin-/Verwaltungsrechten sind nicht erlaubt.
+* Schriften (Inter, Orbitron, SIL Open Font License) liegen im Projekt - der Server braucht keine eigenen Schriftarten.
+
+### Technik
+* Neue Abhängigkeit `@napi-rs/canvas` (wird bei `npm install` automatisch passend für Windows/Linux geladen).
+
 ## [2.11.0] - 2026-10-11
 
 ### Hinzugefügt

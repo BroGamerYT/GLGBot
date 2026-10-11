@@ -118,6 +118,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | **Geburtstage** | `/birthdays` | 🔒 Admin | Kanal, Geburtstags-Rolle und Glückwunsch-Text einstellen, nächste Geburtstage sehen. |
 | **Geplante Ankündigungen** | `/announcements` | 🔒 Admin | Nachrichten/Embeds zu einem Zeitpunkt senden - einmalig, täglich oder wöchentlich. |
 | **Statistik-Kanäle** | `/server-stats` | 🔒 Admin | Live-Zähler ganz oben (Mitglieder, Online, Voice, Live, Boosts) mit eigenem Text. |
+| **Willkommens-Karte** | `/welcome` | 🔒 Admin | Grafische Karte für neue Mitglieder mit Vorschau & Test, optional automatische Rolle (nur ohne Regel-Sperre). |
 | **Eigene Befehle** | `/custom-commands` | 🔒 Admin | Eigene `/befehle` (z. B. `/ts`) mit Text- oder Embed-Antwort, optional auch als `!befehl`. |
 | **Module** | `/modules` | 🔒 Admin | Funktionen einzeln an- oder ausschalten – ausgeschaltete Module pausieren komplett, Daten bleiben erhalten. |
 | **Benutzerverwaltung** | `/users` | 🔒 Admin | Mitgliederliste mit Nickname-Änderung, Rollen-Zuweisung, XP-Korrektur und Admin-Notizen. |
@@ -133,7 +134,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | **Server-Backups** | `/backups` | 🔒 Admin | 1-Klick JSON-Snapshots aller Rollen, Kanäle und Einstellungen mit Wiederherstellung. |
 | **Server-Regeln** | `/rules` | 🔒 Admin | Regel-Editor mit Vorschau, 1-Klick-Veröffentlichung und Regel-Sperre (Server erst nach Bestätigung sichtbar). |
 | **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 40 Slash-Befehle mit Beschreibungen. |
-| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.11.0. |
+| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.12.0. |
 
 ---
 
@@ -232,7 +233,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 |---|---|---|
 | `/help` | Übersicht aller Befehle mit Link zum Dashboard. | Alle |
 | `/ping` | Zeigt die Latenz des Bots (im Chat auch `!ping`). | Alle |
-| `/rank [mitglied]` | Rangkarte mit Level, XP, Fortschritt und XP-Herkunft. | Alle |
+| `/rank [mitglied]` | Grafische Rangkarte (Bild) mit Level, Rang, Fortschritt, XP-Herkunft und Daily-Serie. | Alle |
 | `/level status [oeffentlich]` | Eigener Level-Status: wie viele XP / Nachrichten / Voice-Minuten bis zum nächsten Level fehlen (nur für dich sichtbar). | Alle |
 | `/level sync-roles [mitglied]` | Verdiente Level-Belohnungsrollen nachträglich vergeben. | Alle |
 | `/daily` | Tägliche XP-Belohnung mit Streak-Bonus. | Alle |
@@ -325,4 +326,4 @@ Ein Bot kann bis zu **5 Discord-Server** gleichzeitig betreuen - aber nur Server
 
 ## 📄 Lizenz
 
-[MIT](LICENSE) – frei nutzbar, veränderbar und weitergebbar. Über einen Stern ⭐ auf GitHub freue ich mich.
+[MIT](LICENSE) – frei nutzbar, veränderbar und weitergebbar. Die Schriften in `assets/fonts` (Inter, Orbitron) stehen unter der SIL Open Font License (siehe `assets/fonts/OFL-*.txt`). Über einen Stern ⭐ auf GitHub freue ich mich.

@@ -21,6 +21,7 @@ import { statsChannelsService, COUNTERS } from "../services/statsChannelsService
 import { birthdayService, DEFAULT_BIRTHDAY_MESSAGE } from "../services/birthdayService";
 import { announcementService } from "../services/announcementService";
 import { customCommandService, MAX_CUSTOM_COMMANDS } from "../services/customCommandService";
+import { welcomeService, WELCOME_DEFAULTS } from "../services/welcomeService";
 import { moduleService } from "../services/moduleService";
 import { liveStreamService } from "../services/liveStreamService";
 
@@ -362,6 +363,68 @@ export function startInternalApi(client: Client) {
           const ok = customCommandService.remove(guild.id, String(body?.id || ""));
           if (ok) await customCommandService.syncGuild(client, guild.id).catch(() => null);
           return send(res, 200, { ok });
+        }
+
+        // ---------------- Willkommens-Karte ----------------
+        case "GET /welcome": {
+          if (!isLoggedIn) return send(res, 401, { error: "Bitte einloggen." });
+          return send(res, 200, {
+            config: welcomeService.getConfig(guild.id),
+            defaults: WELCOME_DEFAULTS,
+            ruleLockActive: welcomeService.isRuleLockActive(guild.id),
+            channels: guild.channels.cache.filter((c) => c.isTextBased() && !c.isThread() && !c.isVoiceBased()).map((c) => ({ id: c.id, name: c.name })),
+            roles: guild.roles.cache.filter((r) => r.id !== guild.id && !r.managed).sort((a, b) => b.position - a.position).map((r) => ({ id: r.id, name: r.name })),
+          });
+        }
+        case "POST /welcome": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageGuild) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Server verwalten“." });
+          }
+          const body = await readBody(req);
+          if (body?.channelId && !guild.channels.cache.get(String(body.channelId))?.isTextBased()) return send(res, 400, { error: "Ungültiger Kanal." });
+          if (body?.autoRoleId) {
+            const role = guild.roles.cache.get(String(body.autoRoleId));
+            const botTop = guild.members.me?.roles.highest.position ?? 0;
+            if (!role || role.managed || role.position >= botTop) return send(res, 400, { error: "Diese Rolle kann der Bot nicht vergeben (muss unter der Bot-Rolle stehen)." });
+            const DANGEROUS = PermissionFlagsBits.Administrator | PermissionFlagsBits.ManageGuild | PermissionFlagsBits.ManageRoles | PermissionFlagsBits.ManageChannels | PermissionFlagsBits.BanMembers | PermissionFlagsBits.KickMembers;
+            if ((role.permissions.bitfield & DANGEROUS) !== BigInt(0)) return send(res, 400, { error: "Rollen mit Admin- oder Verwaltungsrechten sind als automatische Rolle nicht erlaubt." });
+          }
+          const cfg = welcomeService.setConfig(guild.id, {
+            channelId: body?.channelId !== undefined ? String(body.channelId || "") : undefined,
+            title: body?.title,
+            message: body?.message,
+            subtitle: body?.subtitle,
+            accent: body?.accent,
+            card: typeof body?.card === "boolean" ? body.card : undefined,
+            autoRoleId: body?.autoRoleId !== undefined ? String(body.autoRoleId || "") : undefined,
+          });
+          return send(res, 200, { ok: true, config: cfg });
+        }
+        case "POST /welcome/preview": {
+          if (!isLoggedIn || !actorId) return send(res, 401, { error: "Bitte einloggen." });
+          const body = await readBody(req);
+          try {
+            const png = await welcomeService.preview(guild, actorId, {
+              title: typeof body?.title === "string" ? body.title.slice(0, 40) : undefined,
+              subtitle: typeof body?.subtitle === "string" ? body.subtitle.slice(0, 120) : undefined,
+              accent: /^#[0-9a-f]{6}$/i.test(String(body?.accent || "")) ? body.accent : undefined,
+            } as any);
+            return send(res, 200, { image: `data:image/png;base64,${png.toString("base64")}` });
+          } catch (e: any) {
+            return send(res, 400, { error: e?.message || "Vorschau fehlgeschlagen." });
+          }
+        }
+        case "POST /welcome/test": {
+          if (!isLoggedIn || !actorId) return send(res, 401, { error: "Bitte einloggen." });
+          const member = await guild.members.fetch(actorId).catch(() => null);
+          if (!member) return send(res, 400, { error: "Mitglied nicht gefunden." });
+          try {
+            await welcomeService.sendWelcome(member, true);
+            return send(res, 200, { ok: true });
+          } catch (e: any) {
+            return send(res, 400, { error: e?.message || "Senden fehlgeschlagen." });
+          }
         }
 
         // ---------------- Komplett-Einrichtung ----------------

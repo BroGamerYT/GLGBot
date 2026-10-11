@@ -5,6 +5,7 @@ import { auditLogService } from "../services/auditLogService";
 import { securityService } from "../services/securityService";
 import { prisonService } from "../services/prisonService";
 import { blacklistService } from "../services/blacklistService";
+import { welcomeService } from "../services/welcomeService";
 
 const guildMemberAddEvent: BotEvent<Events.GuildMemberAdd> = {
   name: Events.GuildMemberAdd,
@@ -47,6 +48,9 @@ const guildMemberAddEvent: BotEvent<Events.GuildMemberAdd> = {
     }
 
     if (member.user.bot) return;
+
+    // Willkommens-Karte im Kanal & automatische Rolle (Modul "welcome")
+    await welcomeService.handleJoin(member).catch((e) => console.error("[GuildMemberAdd] Willkommen:", e));
 
     try {
       await rulesService.sendWelcomeDM(member);

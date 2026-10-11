@@ -81,6 +81,10 @@ const ALLOWED = new Set([
   "GET custom-commands",
   "POST custom-commands",
   "POST custom-commands/delete",
+  "GET welcome",
+  "POST welcome",
+  "POST welcome/preview",
+  "POST welcome/test",
 ]);
 
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {

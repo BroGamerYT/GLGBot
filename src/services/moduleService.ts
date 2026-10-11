@@ -21,7 +21,8 @@ export type BotModuleId =
   | "birthdays"
   | "announcements"
   | "lfg"
-  | "customCommands";
+  | "customCommands"
+  | "welcome";
 
 export interface BotModuleInfo {
   id: BotModuleId;
@@ -184,6 +185,14 @@ export const BOT_MODULES: BotModuleInfo[] = [
     emoji: "👥",
     category: "gaming",
     commands: ["lfg"],
+  },
+  {
+    id: "welcome",
+    name: "Willkommens-Karte",
+    description: "Grafische Willkommens-Karte für neue Mitglieder im eingestellten Kanal, optional automatische Rolle",
+    emoji: "👋",
+    category: "community",
+    commands: [],
   },
   {
     id: "customCommands",

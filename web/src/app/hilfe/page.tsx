@@ -94,7 +94,7 @@ const COMMANDS: { group: string; items: [string, string, string][] }[] = [
     group: "Community & Ranglisten (Für alle)",
     items: [
       ["/help", "Zeigt die strukturierte Hilfe-Übersicht und Links zum Webinterface & Support.", "Alle"],
-      ["/rank [mitglied]", "Zeigt dein Level, aktuelle XP, Server-Rang und Fortschrittsbalken an.", "Alle"],
+      ["/rank [mitglied]", "Grafische Rangkarte mit Level, Server-Rang, Fortschrittsbalken, Nachrichten, Voice-Zeit und Daily-Serie.", "Alle"],
       ["/level status", "Dein Level-Status: Fortschritt und wie viele Nachrichten / Voice-Minuten bis zum nächsten Level fehlen (nur für dich sichtbar).", "Alle"],
       ["/level sync-roles [mitglied]", "Vergibt nachträglich alle verdienten Level-Belohnungsrollen.", "Alle"],
       ["/lfg [spiel] [spieler] [rang] [beschreibung]", "Mitspieler suchen: Gruppe mit Beitreten-Button. Ist sie voll, pingt der Bot alle, erstellt eine eigene Lobby und verschiebt alle, die im Voice sind.", "Alle"],

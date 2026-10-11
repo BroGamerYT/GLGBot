@@ -1,4 +1,5 @@
-import { EmbedBuilder, Guild, User } from "discord.js";
+import { AttachmentBuilder, EmbedBuilder, Guild, User } from "discord.js";
+import { renderRankCard } from "./cards";
 import { statsService } from "../services/statsService";
 import { dailyService } from "../services/dailyService";
 import { BRANDING } from "../config/branding";
@@ -69,4 +70,34 @@ export function buildLevelCard(guild: Guild, user: User, opts: { title?: string;
     });
   }
   return embed;
+}
+
+/** Grafische Rangkarte als PNG-Anhang (null, falls das Zeichnen fehlschlägt). */
+export async function buildRankCardImage(guild: Guild, user: User): Promise<AttachmentBuilder | null> {
+  try {
+    if (!statsService.getUserProfile(guild.id, user.id)) statsService.getOrCreateUser(guild, user);
+    const { stats, rank, progress } = statsService.getUserProfile(guild.id, user.id)!;
+    const cfg = statsService.getConfig(guild.id);
+    const member = await guild.members.fetch(user.id).catch(() => null);
+    const png = await renderRankCard({
+      avatarUrl: (member || user).displayAvatarURL({ extension: "png", size: 256 }),
+      displayName: member?.displayName || user.globalName || user.username,
+      username: user.username,
+      level: progress.level,
+      maxLevel: cfg.maxLevel ?? 25,
+      isMaxLevel: progress.isMaxLevel,
+      rank,
+      totalXp: stats.xp,
+      currentXp: progress.currentXp,
+      requiredXp: progress.requiredXp,
+      percent: progress.progressPercent,
+      messages: stats.messagesCount,
+      voice: statsService.formatMinutes(stats.voiceMinutes),
+      streak: dailyService.getStreak(guild.id, user.id),
+    });
+    return new AttachmentBuilder(png, { name: "rangkarte.png" });
+  } catch (e) {
+    console.error("[Rangkarte] Bild konnte nicht erstellt werden:", e);
+    return null;
+  }
 }
