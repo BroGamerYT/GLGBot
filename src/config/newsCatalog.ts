@@ -14,17 +14,23 @@ export type NewsSourceType =
   | "nas-qnap"
   | "nas-truenas"
   | "nas-unraid"
+  | "nas-ugreen"
   | "software-amp"
   | "software-codecs"
   | "software-obs"
-  | "software-handbrake";
+  | "software-handbrake"
+  | "tech-computerbase"
+  | "tech-hardwareluxx"
+  | "tech-heise"
+  | "tech-golem"
+  | "tech-winfuture";
 
 export interface CatalogEntry {
   key: string; // eindeutiger Schlüssel, z. B. "steam:271590" oder "nvidia"
   type: NewsSourceType;
   appId?: string;
   name: string;
-  category: "game" | "gpu" | "cpu" | "nas" | "software";
+  category: "game" | "gpu" | "cpu" | "nas" | "software" | "tech";
   description?: string;
   beta?: boolean; // Quelle wird von der Hersteller-Webseite gelesen und kann sich ändern
   image?: string;
@@ -78,6 +84,12 @@ export const NEWS_INCLUDES: Record<NewsSourceType, string[]> = {
     "Neue Firmware-Updates für QNAP QTS & QuTS hero",
     "Sicherheitshinweise und offizielle Release Notes",
   ],
+  "nas-ugreen": [
+    "Neue System-Updates für UGREEN NAS (UGOS Pro & UGOS)",
+    "Changelogs zu Docker-Engine, Kernel, SMB und System-Fixes",
+    "Unterstützt die DXP-Serie (DXP2800, DXP4800, DXP6800, DXP8800) & iDX",
+    "Direktlinks zum UGREEN Download Center und detaillierten Release Notes",
+  ],
   "software-amp": [
     "CubeCoders AMP (Application Management Panel für Game Server)",
     "Neue Core-Releases, Modul-Updates und Feature-Changelogs",
@@ -95,6 +107,26 @@ export const NEWS_INCLUDES: Record<NewsSourceType, string[]> = {
   "software-handbrake": [
     "Neue Releases des Open-Source Video Transcoders HandBrake",
     "Changelog zu GPU-Encodern (NVENC, QSV, VCE) und Presets",
+  ],
+  "tech-computerbase": [
+    "Aktuelle Berichte zu neuen Prozessoren, Grafikkarten & Gaming-Hardware",
+    "Community-Artikel, Tests und Benchmarks von ComputerBase",
+  ],
+  "tech-hardwareluxx": [
+    "Hardwareluxx News, Komponenten-Reviews und Hardware-Neuheiten",
+    "Tests zu Kühlung, Gehäusen, Mainboards und Speicher",
+  ],
+  "tech-heise": [
+    "Top-Nachrichten von Heise Online & c't Magazin",
+    "IT-Sicherheit, neue Hardware-Entwicklungen und Technologietrends",
+  ],
+  "tech-golem": [
+    "IT-, Tech- und PC-Hardware-News von Golem.de",
+    "Berichte zu Komponenten, Gadgets und Gaming-Technologie",
+  ],
+  "tech-winfuture": [
+    "Aktuelle Technik-, Hardware- und Software-Nachrichten von WinFuture",
+    "Windows-Updates, PC-Trends und Hardware-Neuerscheinungen",
   ],
 };
 
@@ -136,12 +168,20 @@ export const NEWS_CATALOG: CatalogEntry[] = [
   { key: "nas-truenas", type: "nas-truenas", name: "TrueNAS SCALE & CORE", category: "nas", description: "System-Releases & Sicherheits-Updates" },
   { key: "nas-unraid", type: "nas-unraid", name: "Unraid OS", category: "nas", description: "Stable Releases & Changelogs" },
   { key: "nas-qnap", type: "nas-qnap", name: "QNAP QTS / QuTS", category: "nas", description: "Firmware-Updates & Security Notes", beta: true },
+  { key: "nas-ugreen", type: "nas-ugreen", name: "UGREEN NAS (UGOS Pro)", category: "nas", description: "Firmware-Updates & Docker-Engine Changelogs" },
 
   // ---------------- Software & Codecs ----------------
   { key: "software-amp", type: "software-amp", name: "CubeCoders AMP", category: "software", description: "Application Management Panel für Game Server" },
   { key: "software-codecs", type: "software-codecs", name: "K-Lite & LAV Codecs", category: "software", description: "Audio- & Video-Codec Packs für Windows" },
   { key: "software-obs", type: "software-obs", name: "OBS Studio", category: "software", description: "Streaming- & Recording-Software Updates" },
   { key: "software-handbrake", type: "software-handbrake", name: "HandBrake Video Transcoder", category: "software", description: "Open-Source Video Encoder Releases" },
+
+  // ---------------- Technik & Hardware News (Web & Feeds) ----------------
+  { key: "tech-computerbase", type: "tech-computerbase", name: "ComputerBase", category: "tech", description: "Hardware-News, Benchmarks & Technik-Tests" },
+  { key: "tech-hardwareluxx", type: "tech-hardwareluxx", name: "Hardwareluxx", category: "tech", description: "PC-Hardware, Grafikkarten, CPUs & Reviews" },
+  { key: "tech-heise", type: "tech-heise", name: "Heise Online", category: "tech", description: "IT-Nachrichten, c't Berichte & Tech-Trends" },
+  { key: "tech-golem", type: "tech-golem", name: "Golem.de", category: "tech", description: "Technik, Gaming-Hardware & IT-News" },
+  { key: "tech-winfuture", type: "tech-winfuture", name: "WinFuture", category: "tech", description: "Tech-News, Hardware & Software-Updates" },
 ];
 
 export function steamImage(appId: string) {

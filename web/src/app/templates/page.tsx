@@ -83,7 +83,10 @@ export default function TemplatesPage() {
     setError(null);
     try {
       const res = await fetch("/api/bot/templates");
-      if (!res.ok) throw new Error("Fehler beim Laden der Vorlagen");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.error || "Fehler beim Laden der Vorlagen");
+      }
       const data = await res.json();
       setTemplates(data.templates || []);
       setStyles(data.styles || []);

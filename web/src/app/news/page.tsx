@@ -22,10 +22,16 @@ type SourceType =
   | "nas-qnap"
   | "nas-truenas"
   | "nas-unraid"
+  | "nas-ugreen"
   | "software-amp"
   | "software-codecs"
   | "software-obs"
-  | "software-handbrake";
+  | "software-handbrake"
+  | "tech-computerbase"
+  | "tech-hardwareluxx"
+  | "tech-heise"
+  | "tech-golem"
+  | "tech-winfuture";
 
 export interface PublicNewsArticle {
   id: string;
@@ -79,10 +85,16 @@ const TYPE_BADGE: Record<SourceType, { label: string; className: string }> = {
   "nas-truenas": { label: "TrueNAS", className: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30" },
   "nas-unraid": { label: "Unraid OS", className: "bg-orange-500/15 text-orange-300 border-orange-500/30" },
   "nas-qnap": { label: "QNAP QTS", className: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" },
+  "nas-ugreen": { label: "UGREEN UGOS", className: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
   "software-amp": { label: "CubeCoders AMP", className: "bg-purple-500/15 text-purple-300 border-purple-500/30" },
   "software-codecs": { label: "K-Lite / LAV", className: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
   "software-obs": { label: "OBS Studio", className: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30" },
   "software-handbrake": { label: "HandBrake", className: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30" },
+  "tech-computerbase": { label: "ComputerBase", className: "bg-red-600/15 text-red-400 border-red-600/30" },
+  "tech-hardwareluxx": { label: "Hardwareluxx", className: "bg-blue-600/15 text-blue-400 border-blue-600/30" },
+  "tech-heise": { label: "Heise Online", className: "bg-rose-500/15 text-rose-300 border-rose-500/30" },
+  "tech-golem": { label: "Golem.de", className: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30" },
+  "tech-winfuture": { label: "WinFuture", className: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
 };
 
 const select =
@@ -94,7 +106,7 @@ function steamImg(appId?: string) {
 
 function SourceIcon({ type, className = "w-6 h-6" }: { type: SourceType; className?: string }) {
   if (type === "minecraft") return <Pickaxe className={`${className} text-green-400`} />;
-  if (type === "amd-chipset") return <Cpu className={`${className} text-red-400`} />;
+  if (type === "amd-chipset" || type.startsWith("tech-")) return <Cpu className={`${className} text-amber-400`} />;
   if (type === "steam") return <Gamepad2 className={`${className} text-slate-300`} />;
   if (type.startsWith("nas-")) return <Server className={`${className} text-cyan-400`} />;
   if (type.startsWith("software-")) return <Wrench className={`${className} text-purple-400`} />;
@@ -200,7 +212,7 @@ export default function NewsPage() {
 
   // Filter & Navigation
   const [selectedArticle, setSelectedArticle] = useState<PublicNewsArticle | null>(null);
-  const [activeFilter, setActiveFilter] = useState<"all" | "games" | "patchnotes" | "drivers" | "nas">("all");
+  const [activeFilter, setActiveFilter] = useState<"all" | "games" | "patchnotes" | "drivers" | "nas" | "tech">("all");
   const [selectedSource, setSelectedSource] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [adminTab, setAdminTab] = useState<"news" | "manage">("news");
@@ -411,18 +423,23 @@ export default function NewsPage() {
   const isDriverOrSoftware = (t: SourceType) =>
     ["nvidia", "amd-gpu", "amd-chipset", "intel-gpu", "software-amp", "software-codecs", "software-obs", "software-handbrake"].includes(t);
   const isNasSource = (t: SourceType) =>
-    ["nas-synology", "nas-truenas", "nas-unraid", "nas-qnap"].includes(t);
+    ["nas-synology", "nas-truenas", "nas-unraid", "nas-qnap", "nas-ugreen"].includes(t);
+  const isTechSource = (t: SourceType) =>
+    ["tech-computerbase", "tech-hardwareluxx", "tech-heise", "tech-golem", "tech-winfuture"].includes(t);
 
   // Filter-Logik
   const filteredArticles = useMemo(() => {
     return articles.filter((a) => {
-      if (activeFilter === "games" && (isDriverOrSoftware(a.sourceType) || isNasSource(a.sourceType))) {
+      if (activeFilter === "games" && (isDriverOrSoftware(a.sourceType) || isNasSource(a.sourceType) || isTechSource(a.sourceType))) {
         return false;
       }
       if (activeFilter === "drivers" && !isDriverOrSoftware(a.sourceType)) {
         return false;
       }
       if (activeFilter === "nas" && !isNasSource(a.sourceType)) {
+        return false;
+      }
+      if (activeFilter === "tech" && !isTechSource(a.sourceType)) {
         return false;
       }
       if (activeFilter === "patchnotes" && !a.isPatchnotes) {
@@ -451,7 +468,8 @@ export default function NewsPage() {
     const patchnotes = articles.filter((a) => a.isPatchnotes).length;
     const drivers = articles.filter((a) => isDriverOrSoftware(a.sourceType)).length;
     const nas = articles.filter((a) => isNasSource(a.sourceType)).length;
-    return { total, games, patchnotes, drivers, nas };
+    const tech = articles.filter((a) => isTechSource(a.sourceType)).length;
+    return { total, games, patchnotes, drivers, nas, tech };
   }, [articles]);
 
   const sourceOptions = useMemo(() => {
@@ -626,6 +644,15 @@ export default function NewsPage() {
               >
                 <Server className="w-3.5 h-3.5" />
                 NAS-Systeme ({counts.nas})
+              </button>
+              <button
+                onClick={() => setActiveFilter("tech")}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                  activeFilter === "tech" ? "bg-orange-500 text-black shadow-md shadow-orange-500/20" : "bg-discord-dark text-gray-400 hover:text-white border border-discord-border"
+                }`}
+              >
+                <Cpu className="w-3.5 h-3.5" />
+                Technik & Hardware ({counts.tech})
               </button>
 
               <button

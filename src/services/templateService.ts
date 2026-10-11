@@ -40,7 +40,7 @@ export interface TemplateRoleDef {
   name: string;
   color: number;
   hoist: boolean;
-  permissions: bigint;
+  permissions: bigint | string;
   isTeam?: boolean;
 }
 
@@ -383,7 +383,13 @@ export const TEMPLATES: ServerTemplate[] = [
 
 class TemplateService {
   public getTemplates(): ServerTemplate[] {
-    return TEMPLATES;
+    return TEMPLATES.map((t) => ({
+      ...t,
+      roles: t.roles.map((r) => ({
+        ...r,
+        permissions: r.permissions.toString(),
+      })),
+    }));
   }
 
   public getTemplate(id: string): ServerTemplate | null {
@@ -483,7 +489,7 @@ class TemplateService {
             name: rDef.name,
             color: rDef.color,
             hoist: rDef.hoist,
-            permissions: rDef.permissions,
+            permissions: BigInt(rDef.permissions),
             reason: `Server-Template: ${template.name}`,
           });
         } catch (e) {

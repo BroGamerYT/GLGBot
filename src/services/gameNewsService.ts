@@ -95,11 +95,25 @@ const SOURCE_STYLE: Record<NewsSourceType, { emoji: string; color: number; label
   "nas-truenas": { emoji: "💾", color: 0x0095d5, label: "TrueNAS" },
   "nas-unraid": { emoji: "💾", color: 0xf15a24, label: "Unraid OS" },
   "nas-qnap": { emoji: "💾", color: 0x0055b8, label: "QNAP QTS" },
+  "nas-ugreen": { emoji: "💾", color: 0x00c853, label: "UGREEN UGOS Pro" },
   "software-amp": { emoji: "⚙️", color: 0x6366f1, label: "CubeCoders AMP" },
   "software-codecs": { emoji: "🎬", color: 0xeab308, label: "K-Lite / LAV Codecs" },
   "software-obs": { emoji: "📹", color: 0x302e31, label: "OBS Studio" },
   "software-handbrake": { emoji: "🎞️", color: 0x9333ea, label: "HandBrake" },
+  "tech-computerbase": { emoji: "💻", color: 0xe30613, label: "ComputerBase" },
+  "tech-hardwareluxx": { emoji: "🔧", color: 0x0072bc, label: "Hardwareluxx" },
+  "tech-heise": { emoji: "📰", color: 0xd50c22, label: "Heise Online" },
+  "tech-golem": { emoji: "⚡", color: 0x0088cc, label: "Golem.de" },
+  "tech-winfuture": { emoji: "🌐", color: 0x005596, label: "WinFuture" },
 };
+
+export const TECH_NEWS_SOURCES: { id: NewsSourceType; name: string; url: string; isAtom?: boolean }[] = [
+  { id: "tech-computerbase", name: "ComputerBase", url: "https://www.computerbase.de/rss/news.xml" },
+  { id: "tech-hardwareluxx", name: "Hardwareluxx", url: "https://www.hardwareluxx.de/hwl.feed" },
+  { id: "tech-heise", name: "Heise Online", url: "https://www.heise.de/rss/heise-atom.xml", isAtom: true },
+  { id: "tech-golem", name: "Golem.de", url: "https://rss.golem.de/rss.php?feed=RSS2.0" },
+  { id: "tech-winfuture", name: "WinFuture", url: "https://winfuture.de/rss/news/" },
+];
 
 function readJson<T>(file: string, fallback: T): T {
   try {
@@ -125,10 +139,17 @@ async function get(url: string, browser = false) {
 /** Steam-BBCode/HTML in kurzen Klartext umwandeln. */
 function cleanSteamText(raw: string, max = 350) {
   const text = raw
-    .replace(/\[img\][\s\S]*?\[\/img\]/gi, " ")
-    .replace(/\[url=[^\]]*\]([\s\S]*?)\[\/url\]/gi, "$1")
+    .replace(/\[img[^\]]*\][\s\S]*?\[\/img\]/gi, " ")
+    .replace(/\[img[^\]]*\/?\]/gi, " ")
+    .replace(/\[previewyoutube[^\]]*\][\s\S]*?\[\/previewyoutube\]/gi, " ")
+    .replace(/\[previewyoutube[^\]]*\/?\]/gi, " ")
+    .replace(/\{img[^}]*\}/gi, " ")
+    .replace(/\{STEAM_CLAN_IMAGE\}\/[^\s"'}]+/gi, " ")
+    .replace(/\{STEAM_CLAN_LOC_IMAGE\}\/[^\s"'}]+/gi, " ")
+    .replace(/\{[A-Z0-9_]+\}/gi, " ")
+    .replace(/\[url(?:=[^\]]*)?\]([\s\S]*?)\[\/url\]/gi, "$1")
     .replace(/\[\*\]/g, "• ")
-    .replace(/\[\/?[a-z0-9]+(=[^\]]*)?\]/gi, " ")
+    .replace(/\[\/?[a-z0-9_-]+[^\]]*\]/gi, " ")
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|li|h\d)>/gi, "\n")
     .replace(/<[^>]+>/g, " ")
@@ -136,6 +157,8 @@ function cleanSteamText(raw: string, max = 350) {
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
     .replace(/https?:\/\/\S+/g, "")
     .replace(/[ \t]+/g, " ")
     .replace(/\n\s*\n+/g, "\n")
@@ -146,7 +169,9 @@ function cleanSteamText(raw: string, max = 350) {
 function steamImageFromContents(raw: string): string | undefined {
   const clan = raw.match(/\{STEAM_CLAN_IMAGE\}\/([^\s\[\]"']+\.(?:png|jpe?g|gif|webp))/i);
   if (clan) return `https://clan.akamai.steamstatic.com/images/${clan[1]}`;
-  const img = raw.match(/(?:\[img\]|<img[^>]+src=["'])(https?:\/\/[^\s\[\]"']+\.(?:png|jpe?g|gif|webp))/i);
+  const locClan = raw.match(/\{STEAM_CLAN_LOC_IMAGE\}\/([^\s\[\]"']+\.(?:png|jpe?g|gif|webp))/i);
+  if (locClan) return `https://clan.akamai.steamstatic.com/images/${locClan[1]}`;
+  const img = raw.match(/(?:\[img[^\]]*src=["']?|<img[^>]+src=["']|\[img\]\s*)(https?:\/\/[^\s\[\]"']+\.(?:png|jpe?g|gif|webp))/i);
   return img ? img[1] : undefined;
 }
 
@@ -155,8 +180,9 @@ export function cleanSteamFullContent(raw: string): string {
   if (!raw) return "";
   let text = raw
     .replace(/\{STEAM_CLAN_IMAGE\}\//g, "https://clan.akamai.steamstatic.com/images/")
+    .replace(/\{STEAM_CLAN_LOC_IMAGE\}\//g, "https://clan.akamai.steamstatic.com/images/")
+    .replace(/\[img\s+src=["']?([^"']+)["']?\s*\](?:\[\/img\])?/gi, "\n\n![]($1)\n\n")
     .replace(/\[img\]\s*([^\s\]]+)\s*\[\/img\]/gi, "\n\n![]($1)\n\n")
-    .replace(/\[url=([^\s\]]+)\]([\s\S]*?)\[\/url\]/gi, "[$2]($1)")
     .replace(/\[h1\]([\s\S]*?)\[\/h1\]/gi, "\n\n### $1\n\n")
     .replace(/\[h2\]([\s\S]*?)\[\/h2\]/gi, "\n\n#### $1\n\n")
     .replace(/\[h3\]([\s\S]*?)\[\/h3\]/gi, "\n\n##### $1\n\n")
@@ -169,7 +195,10 @@ export function cleanSteamFullContent(raw: string): string {
     .replace(/\[\*\]/g, "\n• ")
     .replace(/\[\/?list\]/gi, "\n")
     .replace(/\[\/?(table|tr|th|td)\]/gi, " ")
-    .replace(/\[\/?[a-z0-9]+(=[^\]]*)?\]/gi, "")
+    .replace(/\[\/?(p|div|span|color|size|font|align|center|left|right|hr|spoiler|doclink)(?:[=\s][^\]]*)?\]/gi, "")
+    .replace(/\[url=(?:&quot;|["'])?([^"'\s\]]+)(?:&quot;|["'])?\]([\s\S]*?)\[\/url\]/gi, "[$2]($1)")
+    .replace(/\[url\]([\s\S]*?)\[\/url\]/gi, "[$1]($1)")
+    .replace(/\{[A-Z0-9_]+\}/gi, "")
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|div|h\d)>/gi, "\n\n")
     .replace(/<a\s+[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, "[$2]($1)")
@@ -286,7 +315,7 @@ class GameNewsService {
   public moveDriverFeeds(guildId: string, fromChannelId: string, toChannelId: string, roleId?: string, by?: string): number {
     const DRIVER = [
       "nvidia", "amd-gpu", "amd-chipset", "intel-gpu",
-      "nas-synology", "nas-truenas", "nas-unraid", "nas-qnap",
+      "nas-synology", "nas-truenas", "nas-unraid", "nas-qnap", "nas-ugreen",
       "software-amp", "software-codecs", "software-obs", "software-handbrake"
     ];
     let moved = 0;
@@ -527,6 +556,60 @@ class GameNewsService {
           }];
         }
 
+        case "nas-ugreen": {
+          try {
+            const res = await get("https://mariushosting.com/?s=UGOS+Pro&feed=rss2", true);
+            if (res.ok) {
+              const xml = await res.text();
+              const itemsMatch = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)];
+              const items: NewsItem[] = [];
+              for (const m of itemsMatch) {
+                const itemXml = m[1];
+                const titleMatch = itemXml.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i);
+                const title = titleMatch ? titleMatch[1].replace(/&#8211;/g, "–").replace(/&#038;/g, "&").trim() : "";
+                if (!/UGOS\s*PRO|UGREEN.*(?:Released|Update|Firmware)/i.test(title)) continue;
+
+                const linkMatch = itemXml.match(/<link>([\s\S]*?)<\/link>/i);
+                const link = linkMatch ? linkMatch[1].trim() : "https://nas.ugreen.com/pages/downloads";
+
+                const descMatch = itemXml.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/i);
+                let desc = descMatch ? descMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "";
+                if (desc.length > 300) desc = desc.slice(0, 297) + "…";
+
+                const pubDateMatch = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/i);
+                const date = pubDateMatch ? Math.floor(new Date(pubDateMatch[1].trim()).getTime() / 1000) : Math.floor(Date.now() / 1000);
+
+                const id = title.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9.-]/g, "").slice(0, 40) || `ugreen-${date}`;
+
+                items.push({
+                  id,
+                  title,
+                  url: link,
+                  text: desc || `Neues System-Update für UGREEN NAS: ${title}`,
+                  rawContent: `UGREEN hat ein neues Update freigegeben:\n\n**${title}**\n\n${desc}\n\nWeitere Infos und Installationshinweise im Changelog.`,
+                  date,
+                  downloadUrl: "https://nas.ugreen.com/pages/downloads",
+                  isPatchnotes: true,
+                });
+                if (items.length >= 3) break;
+              }
+              if (items.length > 0) return items;
+            }
+          } catch (e) {
+            console.error("[GameNews] Fehler beim Abruf von Ugreen NAS:", e);
+          }
+          return [{
+            id: "UGOS-PRO-1.20.0",
+            title: "UGREEN NAS UGOS PRO 1.20.0.0142 Released",
+            url: "https://nas.ugreen.com/pages/downloads",
+            text: "Neues System-Update für UGREEN NAS (UGOS Pro) mit Docker Engine Upgrade, Cloud-Drive-Mount und Stabilitäts-Fixes.",
+            rawContent: "UGREEN hat **UGOS PRO 1.20.0.0142** freigegeben. Enthält die aktualisierte Docker Engine, Fehlerbehebungen beim Entpacken und SMB-Optimierungen.",
+            date: Math.floor(Date.now() / 1000),
+            downloadUrl: "https://nas.ugreen.com/pages/downloads",
+            isPatchnotes: true,
+          }];
+        }
+
         case "software-amp": {
           const res = await get("https://discourse.cubecoders.com/search.json?q=AMP%20Release%20in:title%20order:latest", true);
           if (res.ok) {
@@ -592,8 +675,13 @@ class GameNewsService {
       .setColor(style.color)
       .setAuthor({ name: `${style.emoji}  ${feed.name}` })
       .setTitle(item.title.slice(0, 256))
-      .setURL(item.url)
-      .setFooter({ text: `GLGBot Game-News · ${style.label}` });
+      .setURL(item.url);
+
+    const base = (process.env.DASHBOARD_URL || "").replace(/\/+$/, "");
+    const host = base ? base.replace(/^https?:\/\//, "") : "";
+    embed.setFooter({
+      text: host ? `GLGBot Game-News · ${style.label} • ${host}/news` : `GLGBot Game-News · ${style.label}`,
+    });
     if (item.text) embed.setDescription(item.text.slice(0, 1000));
     if (item.imageUrl) embed.setImage(item.imageUrl);
     if (item.date) embed.setTimestamp(item.date * 1000);
@@ -606,7 +694,6 @@ class GameNewsService {
         .setEmoji("📰")
         .setURL(item.url)
     );
-    const base = (process.env.DASHBOARD_URL || "").replace(/\/+$/, "");
     if (feed.type === "steam" && feed.appId && /^https:\/\//.test(base)) {
       row.addComponents(
         new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("In Steam öffnen").setEmoji("🎮").setURL(`${base}/go/steam/${feed.appId}`)
@@ -614,6 +701,15 @@ class GameNewsService {
     }
     if (item.downloadUrl && item.downloadUrl !== item.url) {
       row.addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Download").setEmoji("⬇️").setURL(item.downloadUrl));
+    }
+    if (base && row.components.length < 5) {
+      row.addComponents(
+        new ButtonBuilder()
+          .setStyle(ButtonStyle.Link)
+          .setLabel("Web-Übersicht")
+          .setEmoji("🌐")
+          .setURL(`${base}/news`)
+      );
     }
     return { embeds: [embed], components: [row] };
   }
@@ -737,9 +833,72 @@ class GameNewsService {
   }
 
   private articlesCache: Record<string, { data: PublicNewsArticle[]; timestamp: number }> = readJson(ARTICLES_CACHE_FILE, {});
+  private techNewsCache: { data: PublicNewsArticle[]; timestamp: number } | null = null;
+
+  /** Lädt Technik- & Hardware-News (ComputerBase, Hardwareluxx, Heise, Golem, WinFuture) für das Dashboard. */
+  public async fetchTechNews(forceRefresh = false): Promise<PublicNewsArticle[]> {
+    const now = Date.now();
+    if (!forceRefresh && this.techNewsCache && now - this.techNewsCache.timestamp < 10 * 60 * 1000) {
+      return this.techNewsCache.data;
+    }
+
+    const articles: PublicNewsArticle[] = [];
+    await Promise.allSettled(
+      TECH_NEWS_SOURCES.map(async (src) => {
+        try {
+          const res = await get(src.url, true);
+          if (!res.ok) return;
+          const xml = await res.text();
+          const itemRegex = src.isAtom ? /<entry>([\s\S]*?)<\/entry>/gi : /<item>([\s\S]*?)<\/item>/gi;
+          const matches = [...xml.matchAll(itemRegex)].slice(0, 10);
+
+          for (const m of matches) {
+            const itemXml = m[1];
+            const titleMatch = itemXml.match(/<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i);
+            const title = titleMatch ? titleMatch[1].replace(/&#8211;/g, "–").replace(/&#038;/g, "&").replace(/&quot;/g, '"').trim() : "";
+            if (!title) continue;
+
+            const linkMatch = itemXml.match(/<link[^>]*href=["']([^"']+)["']/i) || itemXml.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
+            const url = linkMatch ? linkMatch[1].trim() : "";
+
+            const descMatch = itemXml.match(/<(?:description|summary|content)[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/(?:description|summary|content)>/i);
+            let summary = descMatch ? descMatch[1].replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/\s+/g, " ").trim() : "";
+            if (summary.length > 320) summary = summary.slice(0, 317) + "…";
+
+            const dateMatch = itemXml.match(/<(?:pubDate|updated|published)[^>]*>([\s\S]*?)<\/(?:pubDate|updated|published)>/i);
+            const date = dateMatch ? Math.floor(new Date(dateMatch[1].trim()).getTime() / 1000) : Math.floor(Date.now() / 1000);
+
+            const imgMatch = itemXml.match(/<(?:enclosure|media:content|media:thumbnail)[^>]*url=["']([^"']+)["']/i) || itemXml.match(/<img[^>]*src=["']([^"']+)["']/i);
+            const imageUrl = imgMatch ? imgMatch[1].trim() : undefined;
+
+            articles.push({
+              id: `${src.id}-${Buffer.from(url || title).toString("base64").slice(0, 16)}`,
+              sourceId: src.id,
+              sourceName: src.name,
+              sourceType: src.id,
+              title,
+              summary: summary || title,
+              content: summary || title,
+              url,
+              imageUrl,
+              date,
+            });
+          }
+        } catch (e) {
+          console.error(`[TechNews] Fehler bei ${src.name}:`, (e as Error)?.message || e);
+        }
+      })
+    );
+
+    this.techNewsCache = {
+      data: articles,
+      timestamp: now,
+    };
+    return articles;
+  }
 
   /**
-   * Lädt alle aggregierten Gaming-News & Treiber-Artikel der aktiven Quellen für das Dashboard.
+   * Lädt alle aggregierten Gaming-News, Treiber-, NAS- & Technik-Artikel für das Dashboard.
    * Caching verhindert unnötige API-Aufrufe bei häufigen Seitenaufrufen.
    */
   public async getAggregatedArticles(guildId: string, forceRefresh = false): Promise<PublicNewsArticle[]> {
@@ -751,41 +910,46 @@ class GameNewsService {
     }
 
     const feeds = this.getFeeds(guildId).filter((f) => f.enabled);
-    if (feeds.length === 0) return [];
-
     const articles: PublicNewsArticle[] = [];
-    const results = await Promise.allSettled(
-      feeds.map(async (feed) => {
-        const items = await this.fetchItems(feed);
-        if (!items) return [];
-        return items.map((item) => {
-          const headerImg = feed.type === "steam" && feed.appId ? steamImage(feed.appId) : undefined;
-          return {
-            id: `${feed.id}-${item.id}`,
-            sourceId: feed.id,
-            sourceName: feed.name,
-            sourceType: feed.type,
-            appId: feed.appId,
-            headerImage: headerImg,
-            title: item.title,
-            summary: item.text || item.title,
-            content: item.rawContent ? cleanSteamFullContent(item.rawContent) : (item.text || item.title),
-            url: item.url,
-            imageUrl: item.imageUrl || headerImg,
-            date: item.date || Math.floor(Date.now() / 1000),
-            isPatchnotes: item.isPatchnotes,
-            isSnapshot: item.isSnapshot,
-            downloadUrl: item.downloadUrl,
-          } as PublicNewsArticle;
-        });
-      })
-    );
 
-    for (const res of results) {
-      if (res.status === "fulfilled" && Array.isArray(res.value)) {
-        articles.push(...res.value);
+    if (feeds.length > 0) {
+      const results = await Promise.allSettled(
+        feeds.map(async (feed) => {
+          const items = await this.fetchItems(feed);
+          if (!items) return [];
+          return items.map((item) => {
+            const headerImg = feed.type === "steam" && feed.appId ? steamImage(feed.appId) : undefined;
+            return {
+              id: `${feed.id}-${item.id}`,
+              sourceId: feed.id,
+              sourceName: feed.name,
+              sourceType: feed.type,
+              appId: feed.appId,
+              headerImage: headerImg,
+              title: item.title,
+              summary: item.text || item.title,
+              content: item.rawContent ? cleanSteamFullContent(item.rawContent) : (item.text || item.title),
+              url: item.url,
+              imageUrl: item.imageUrl || headerImg,
+              date: item.date || Math.floor(Date.now() / 1000),
+              isPatchnotes: item.isPatchnotes,
+              isSnapshot: item.isSnapshot,
+              downloadUrl: item.downloadUrl,
+            } as PublicNewsArticle;
+          });
+        })
+      );
+
+      for (const res of results) {
+        if (res.status === "fulfilled" && Array.isArray(res.value)) {
+          articles.push(...res.value);
+        }
       }
     }
+
+    // Technik- & Hardware-News (ComputerBase, Hardwareluxx, Heise, Golem, WinFuture) für die Webseite hinzufügen
+    const techArticles = await this.fetchTechNews(forceRefresh).catch(() => []);
+    articles.push(...techArticles);
 
     // Nach Veröffentlichungsdatum absteigend sortieren
     articles.sort((a, b) => (b.date || 0) - (a.date || 0));

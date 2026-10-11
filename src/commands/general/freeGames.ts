@@ -48,7 +48,7 @@ const freeGamesCommand: Command = {
         return;
       }
       // Discord erlaubt max. 10 Embeds bzw. 5 Button-Reihen pro Nachricht
-      const shown = games.slice(0, 5).map((g) => freeGamesService.buildMessage(g));
+      const shown = games.slice(0, 5).map((g) => freeGamesService.buildMessage(g, games.length > 1));
       await interaction.editReply({
         content: `🎁 **${games.length} kostenlose Spiele gefunden**${games.length > 5 ? " (die 5 neuesten)" : ""}:`,
         embeds: shown.flatMap((m) => m.embeds),

@@ -53,8 +53,19 @@ function safeEqual(a: string, b: string) {
 }
 
 function send(res: http.ServerResponse, status: number, body: unknown) {
-  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
-  res.end(JSON.stringify(body));
+  try {
+    const json = JSON.stringify(body, (_key, value) =>
+      typeof value === "bigint" ? value.toString() : value
+    );
+    res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(json);
+  } catch (err: any) {
+    console.error("[BotAPI] Fehler beim Serialisieren der Antwort:", err);
+    if (!res.headersSent) {
+      res.writeHead(500, { "Content-Type": "application/json; charset=utf-8" });
+    }
+    res.end(JSON.stringify({ error: "Interner Serverfehler bei der API-Antwort." }));
+  }
 }
 
 async function readBody(req: http.IncomingMessage): Promise<any> {
@@ -536,15 +547,17 @@ export function startInternalApi(client: Client) {
 
         // ---------------- Server-Templates & Setup Wizard ----------------
         case "GET /templates": {
+          const isOwner = actorId === guild.ownerId || (!!actorId && guildAccessService.isBotOwner(actorId, client));
           return send(res, 200, {
             templates: templateService.getTemplates(),
             styles: templateService.getStyles(),
-            isOwner: actorId === guild.ownerId,
+            isOwner,
           });
         }
         case "POST /templates/apply": {
           const actor = await getActor();
-          if (!actor || (!actor.permissions.has(PermissionFlagsBits.Administrator) && actor.id !== guild.ownerId)) {
+          const isOwner = !!actor && (actor.id === guild.ownerId || guildAccessService.isBotOwner(actor.id, client));
+          if (!actor || (!actor.permissions.has(PermissionFlagsBits.Administrator) && !isOwner)) {
             return send(res, 403, { error: "Nur Administratoren dürfen Server-Templates anwenden." });
           }
           const body = await readBody(req);
@@ -552,8 +565,8 @@ export function startInternalApi(client: Client) {
           if (!templateId || !styleId) {
             return send(res, 400, { error: "templateId und styleId erforderlich." });
           }
-          if (wipe && actor.id !== guild.ownerId) {
-            return send(res, 403, { error: "Die Wipe-Option darf nur vom Server-Owner ausgeführt werden." });
+          if (wipe && !isOwner) {
+            return send(res, 403, { error: "Die Wipe-Option darf nur vom Server-Inhaber oder Bot-Besitzer ausgeführt werden." });
           }
 
           const result = await templateService.applyTemplate(guild, templateId, styleId, {
@@ -565,6 +578,7 @@ export function startInternalApi(client: Client) {
             return send(res, 400, { error: result.error || "Fehler beim Anwenden des Templates." });
           }
 
+          moduleService.enableModule(guild.id, "templates");
           return send(res, 200, result);
         }
 
