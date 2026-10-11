@@ -6,6 +6,18 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.16.0] - 2026-10-11
+
+### Hinzugefügt
+* **Game-Release-Kalender (Dashboard „Release-Kalender“, `/releases`):** Öffentliche Kalender-Übersicht für alle bevorstehenden Gaming-Blockbuster (GTA VI, Monster Hunter Wilds, Doom: The Dark Ages, Civilization VII, Fable u.v.m.) sowie eigene Server-Releases.
+  * **Dashboard-Ansicht:** Filter nach Zeiträumen (Woche, Dieser Monat, Nächster Monat, Später) und Plattformen (PC, PlayStation, Xbox, Switch, Game Pass Day One). Inklusive Cover, Live-Countdown, Genre und Vorbestell-/Store- & Trailer-Links.
+  * **Eigene Server-Releases & Admin-Verwaltung:** Admins können neue Gaming-Releases direkt im Dashboard anlegen, bearbeiten oder löschen.
+  * **Discord Slash-Command (`/releases`):**
+    * `/releases uebersicht [zeitraum] [plattform]`: Übersicht im Discord-Kanal mit interaktivem Web-Link-Button.
+    * `/releases post-woche`: Postet die Top-Highlights der aktuellen Woche in den konfigurierten Chat-Kanal.
+  * **Automatischer Wochen-Scheduler:** Jeden Montag um 10:00 Uhr postet der Bot automatisch die wichtigsten Releases der neuen Woche im News-Kanal.
+  * **Neues Modul „Game-Release-Kalender“:** Vollständig an- und abschaltbar pro Server über das Dashboard oder `/modules`.
+
 ## [2.15.0] - 2026-10-11
 
 ### Hinzugefügt

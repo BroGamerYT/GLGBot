@@ -96,6 +96,12 @@ const ALLOWED = new Set([
   "GET console/messages",
   "POST console/send",
   "POST console/delete",
+  "GET releases",
+  "POST releases/config",
+  "POST releases/add",
+  "POST releases/update",
+  "POST releases/delete",
+  "POST releases/post-week",
 ]);
 
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {

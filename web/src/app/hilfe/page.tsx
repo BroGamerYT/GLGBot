@@ -107,6 +107,7 @@ const COMMANDS: { group: string; items: [string, string, string][] }[] = [
       ["/suggest [vorschlag]", "Reicht einen Server-Vorschlag mit Abstimmungs-Buttons im Feedback-Kanal ein.", "Alle"],
       ["/giveaway start | end | reroll", "Verlosung mit Teilnahme-Button starten (Dauer, Gewinner, Preis, optional Rolle), vorzeitig beenden oder neu auslosen.", "Server verwalten"],
       ["/free-games list", "Zeigt alle aktuell kostenlosen Spiele (ephemeral, nur für dich sichtbar).", "Alle"],
+      ["/releases uebersicht | post-woche", "Game-Release-Kalender: Übersicht aller kommenden Blockbuster nach Zeitraum & Plattform filtern oder die Wochen-Releases im Kanal posten.", "Alle"],
       ["/ping", "Prüft die Latenz und Erreichbarkeit des Bots.", "Alle"],
       ["/twitch-live start | stop", "Sich selbst als live melden bzw. Live-Status vorzeitig beenden.", "Alle"],
     ],

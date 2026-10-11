@@ -26,6 +26,7 @@ import { gameServerService, MAX_GAME_SERVERS, DEFAULT_PORTS } from "../services/
 import { moduleService } from "../services/moduleService";
 import { clipService } from "../services/clipService";
 import { liveStreamService } from "../services/liveStreamService";
+import { releaseService } from "../services/releaseService";
 
 /**
  * Interne Schnittstelle für das Web-Dashboard.
@@ -301,6 +302,91 @@ export function startInternalApi(client: Client) {
                 .setDescription(data.message.replace(/{user}/g, "@Mitglied").replace(/{server}/g, guild.name).replace(/{name}/g, "Mitglied")),
             ],
           });
+          return send(res, 200, { ok: true });
+        }
+
+        // ---------------- Game-Release Kalender ----------------
+        case "GET /releases": {
+          const config = releaseService.getConfig(guild.id);
+          const releases = releaseService.getAllReleases(guild.id);
+          const channels = guild.channels.cache
+            .filter((c) => c.isTextBased() && !c.isThread() && !c.isVoiceBased())
+            .map((c) => ({ id: c.id, name: c.name }));
+          const roles = guild.roles.cache
+            .filter((r) => r.id !== guild.id && !r.managed)
+            .sort((a, b) => b.position - a.position)
+            .map((r) => ({ id: r.id, name: r.name }));
+
+          return send(res, 200, {
+            config,
+            releases,
+            channels,
+            roles,
+          });
+        }
+        case "POST /releases/config": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageGuild) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Server verwalten“." });
+          }
+          const body = await readBody(req);
+          const updated = releaseService.setConfig(guild.id, body);
+          return send(res, 200, { ok: true, config: updated });
+        }
+        case "POST /releases/add": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageGuild) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Server verwalten“." });
+          }
+          const body = await readBody(req);
+          if (!body.title || !body.releaseDate || !Array.isArray(body.platforms)) {
+            return send(res, 400, { error: "Titel, Release-Datum und mindestens eine Plattform erforderlich." });
+          }
+          const created = releaseService.addRelease(
+            guild.id,
+            {
+              title: String(body.title).trim(),
+              releaseDate: String(body.releaseDate).trim(),
+              platforms: body.platforms,
+              genre: String(body.genre || "Action").trim(),
+              description: body.description ? String(body.description).trim() : undefined,
+              coverUrl: body.coverUrl ? String(body.coverUrl).trim() : undefined,
+              storeUrl: body.storeUrl ? String(body.storeUrl).trim() : undefined,
+              trailerUrl: body.trailerUrl ? String(body.trailerUrl).trim() : undefined,
+            },
+            by
+          );
+          return send(res, 200, { ok: true, release: created });
+        }
+        case "POST /releases/update": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageGuild) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Server verwalten“." });
+          }
+          const body = await readBody(req);
+          if (!body.id) return send(res, 400, { error: "Keine Release-ID angegeben." });
+          const updated = releaseService.updateRelease(guild.id, String(body.id), body.patch || {});
+          if (!updated) return send(res, 404, { error: "Release nicht gefunden oder ist ein geschützter Standard-Titel." });
+          return send(res, 200, { ok: true, release: updated });
+        }
+        case "POST /releases/delete": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageGuild) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Server verwalten“." });
+          }
+          const body = await readBody(req);
+          if (!body.id) return send(res, 400, { error: "Keine Release-ID angegeben." });
+          const ok = releaseService.deleteRelease(guild.id, String(body.id));
+          if (!ok) return send(res, 404, { error: "Release konnte nicht gelöscht werden (nur eigene Releases können gelöscht werden)." });
+          return send(res, 200, { ok: true });
+        }
+        case "POST /releases/post-week": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageGuild) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Server verwalten“." });
+          }
+          const ok = await releaseService.postWeeklyReleases(client, guild.id);
+          if (!ok) return send(res, 400, { error: "Wochen-Post konnte nicht versendet werden. Prüfe den konfigurierten Kanal." });
           return send(res, 200, { ok: true });
         }
 

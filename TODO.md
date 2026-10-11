@@ -2,7 +2,7 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.15.0 (siehe History ganz unten)
+**Aktueller Stand:** v2.16.0 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
@@ -23,23 +23,21 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-### 2. 📅 Game Release Kalender (`/releases` & `/kalender`)
-> ⚠️ **Datenquelle vorher klären:** Es gibt keine gute kostenlose Release-API ohne Anmeldung. Optionen: **IGDB** (braucht Twitch-Developer Client-ID/Secret), **RAWG** (API-Key, Free-Tier), **Steam „Demnächst“** (nur PC) oder eine **kuratierte Liste** (muss jemand von Hand pflegen).
-
-* [ ] **Backend & Datenservice:**
-  * [ ] Neuer Service `src/services/releaseService.ts` mit kuratierter Release-Liste oder API-Anbindung.
-  * [ ] Speicherung von Titel, Release-Datum, Plattformen (PC, PS5, Xbox Series X/S, Switch, Game Pass), Genre, Store- und Trailer-Links.
-  * [ ] Interne Bot-API `GET /releases` und `POST /releases` (im Dashboard über `/api/bot/releases`, für manuelle Admin-Einträge).
-* [ ] **Web-Dashboard:**
-  * [ ] Neue öffentliche Seite `web/src/app/releases/page.tsx`.
-  * [ ] Timeline- und Monats-Ansicht (Kommende Wochen / Dieser Monat / Nächster Monat / Später).
-  * [ ] Filter nach Plattform (PC, PlayStation, Xbox, Nintendo, Game Pass Day One).
-  * [ ] Detail-Karten mit Cover, Release-Countdown und Vorbestell-/Store-Links.
-* [ ] **Discord Slash-Command:**
-  * [ ] Befehl `/releases` (Optionen: `zeitraum: diese_woche | dieser_monat | naechster_monat`, `plattform: alle | pc | console`).
-  * [ ] Elegantes Discord-Embed mit Verlinkung zum Web-Kalender.
-* [ ] **Automatischer Wochen-Scheduler:**
-  * [ ] Montags-Post um 10:00 Uhr im Game-News-Kanal mit den wichtigsten Releases der laufenden Woche.
+### 2. 📅 Game Release Kalender (`/releases` & `/kalender`) ✅ v2.16.0
+* [x] **Backend & Datenservice:**
+  * [x] Neuer Service `src/services/releaseService.ts` mit kuratierter Release-Liste oder API-Anbindung.
+  * [x] Speicherung von Titel, Release-Datum, Plattformen (PC, PS5, Xbox Series X/S, Switch, Game Pass), Genre, Store- und Trailer-Links.
+  * [x] Interne Bot-API `GET /releases` und `POST /releases` (im Dashboard über `/api/bot/releases`, für manuelle Admin-Einträge).
+* [x] **Web-Dashboard:**
+  * [x] Neue öffentliche Seite `web/src/app/releases/page.tsx`.
+  * [x] Timeline- und Monats-Ansicht (Kommende Wochen / Dieser Monat / Nächster Monat / Später).
+  * [x] Filter nach Plattform (PC, PlayStation, Xbox, Nintendo, Game Pass Day One).
+  * [x] Detail-Karten mit Cover, Release-Countdown und Vorbestell-/Store-Links.
+* [x] **Discord Slash-Command:**
+  * [x] Befehl `/releases` (Optionen: `zeitraum: diese_woche | dieser_monat | naechster_monat`, `plattform: alle | pc | console`).
+  * [x] Elegantes Discord-Embed mit Verlinkung zum Web-Kalender.
+* [x] **Automatischer Wochen-Scheduler:**
+  * [x] Montags-Post um 10:00 Uhr im Game-News-Kanal mit den wichtigsten Releases der laufenden Woche.
 
 ---
 
@@ -324,7 +322,9 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.15.0 (Aktuell):**
+* [x] **v2.16.0 (Aktuell):**
+  * [x] Game-Release-Kalender (Modul „Game-Release-Kalender“), Timeline & Monatsfilter, Vorbestell-Links, `/releases`, Montags-Scheduler.
+* [x] **v2.15.0:**
   * [x] Clip der Woche (Modul „Clip-Showcase“), Web-Konsole zum Mitlesen und Schreiben als Bot.
 * [x] **v2.14.0:**
   * [x] Docker, Installations-Skripte für Linux & Windows, PM2-Konfiguration, Daten entfernter Server löschen.

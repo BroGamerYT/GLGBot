@@ -70,6 +70,7 @@ const helpCommand: Command = {
           name: "🎮 Gaming & Benachrichtigungen",
           value:
             "`/free-games list|post` • Kostenlose Spiele von Epic, Steam & GOG\n" +
+            "`/releases uebersicht|post-woche` • Game-Release-Kalender (Blockbuster & Termine)\n" +
             "`/serverstatus` • Live-Status unserer Game-Server\n" +
             "`/twitch-live start|stop` • Verwaltet persönliche Live-Stream Kanäle\n" +
             "`/setup-live` • Richtet Live-Rolle & Live-Kanäle ein\n" +

@@ -24,7 +24,8 @@ export type BotModuleId =
   | "customCommands"
   | "welcome"
   | "gameServers"
-  | "clips";
+  | "clips"
+  | "releases";
 
 export interface BotModuleInfo {
   id: BotModuleId;
@@ -219,6 +220,14 @@ export const BOT_MODULES: BotModuleInfo[] = [
     emoji: "⚡",
     category: "management",
     commands: [],
+  },
+  {
+    id: "releases",
+    name: "Game-Release-Kalender",
+    description: "Kommende Spiele-Releases mit Plattformen, Countdowns, Slash-Befehl /releases und montaglicher Wochen-Übersicht",
+    emoji: "📅",
+    category: "gaming",
+    commands: ["releases"],
   },
 ];
 

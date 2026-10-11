@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { LogOut, Gift, LifeBuoy, Newspaper, Trophy, Sparkles, LogIn } from "lucide-react";
+import { LogOut, Gift, LifeBuoy, Newspaper, Trophy, Sparkles, LogIn, Calendar } from "lucide-react";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
 import SidebarNav from "@/components/SidebarNav";
 import GuildSwitcher from "@/components/GuildSwitcher";
@@ -50,6 +50,13 @@ export default async function RootLayout({
               >
                 <Newspaper className="w-4 h-4 text-emerald-400" />
                 <span>Game-News</span>
+              </Link>
+              <Link
+                href="/releases"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-discord-card transition-all"
+              >
+                <Calendar className="w-4 h-4 text-purple-400" />
+                <span>Releases</span>
               </Link>
               <Link
                 href="/hilfe"

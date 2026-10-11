@@ -25,6 +25,7 @@ import {
   PartyPopper,
   Clapperboard,
   Terminal,
+  Calendar,
 } from "lucide-react";
 
 export const metadata = {
@@ -48,10 +49,30 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.15.0",
+    version: "v2.16.0",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Game-Release-Kalender & Wöchentliche Highlights",
+    description: "Öffentlicher Kalender für bevorstehende Gaming-Highlights (GTA VI, Monster Hunter Wilds, Doom, Civ VII etc.) mit Filtern, Countdowns, Vorbestell-Links und automatischem Wochen-Post.",
+    highlights: [
+      {
+        icon: Calendar,
+        title: "Release-Kalender im Web & Discord",
+        description: "Dashboard-Übersicht nach Zeitfenster und Plattformen (PC, PlayStation, Xbox, Switch, Game Pass Day One). Eigene Server-Releases können von Admins hinzugefügt werden.",
+      },
+      {
+        icon: Sparkles,
+        title: "Discord-Befehl & Montags-Scheduler",
+        description: "Befehl /releases uebersicht und /releases post-woche. Der Bot postet jeden Montag um 10:00 Uhr die wichtigsten Releases der Woche automatisch in den News-Kanal.",
+      },
+    ],
+  },
+  {
+    version: "v2.15.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Clip der Woche & Web-Konsole",
     description: "Die Community stimmt mit 🔥 über den besten Clip der Woche ab, und Moderatoren können Kanäle im Dashboard mitlesen und als Bot schreiben.",
     highlights: [
