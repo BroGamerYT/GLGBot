@@ -2,22 +2,18 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
+import { getActiveGuildId } from "@/lib/serverGuild";
 
 const DATA_DIR = path.join(process.cwd(), "../data");
 const CONFIG_FILE = path.join(DATA_DIR, "voice_config.json");
 
-function getGuildId() {
-  const rootEnvPath = path.join(process.cwd(), "../.env");
-  if (fs.existsSync(rootEnvPath)) {
-    const parsed = dotenv.parse(fs.readFileSync(rootEnvPath));
-    return parsed.GUILD_ID || process.env.GUILD_ID || "";
-  }
-  return process.env.GUILD_ID || "";
+async function getGuildId() {
+  return getActiveGuildId();
 }
 
 export async function GET() {
   try {
-    const guildId = getGuildId();
+    const guildId = await getGuildId();
     if (fs.existsSync(CONFIG_FILE)) {
       const data = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
       return NextResponse.json(data[guildId] || {});
@@ -30,7 +26,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const guildId = getGuildId();
+    const guildId = await getGuildId();
     const body = await req.json();
 
     if (!fs.existsSync(DATA_DIR)) {

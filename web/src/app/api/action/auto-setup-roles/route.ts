@@ -2,19 +2,20 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
+import { getActiveGuildId } from "@/lib/serverGuild";
 
-function getEnvConfig() {
+async function getEnvConfig() {
   const rootEnvPath = path.join(process.cwd(), "../.env");
   if (fs.existsSync(rootEnvPath)) {
     const parsed = dotenv.parse(fs.readFileSync(rootEnvPath));
     return {
       token: parsed.DISCORD_TOKEN || process.env.DISCORD_TOKEN || "",
-      guildId: parsed.GUILD_ID || process.env.GUILD_ID || "",
+      guildId: await getActiveGuildId(),
     };
   }
   return {
     token: process.env.DISCORD_TOKEN || "",
-    guildId: process.env.GUILD_ID || "",
+    guildId: await getActiveGuildId(),
   };
 }
 
@@ -23,7 +24,7 @@ const ROLE_CONFIG_FILE = path.join(DATA_DIR, "role_panel_config.json");
 const LIVE_CONFIG_FILE = path.join(DATA_DIR, "live_stream_config.json");
 
 export async function POST() {
-  const { token, guildId } = getEnvConfig();
+  const { token, guildId } = await getEnvConfig();
 
   if (!token || !guildId) {
     return NextResponse.json({ error: "Fehlende Discord Credentials." }, { status: 500 });

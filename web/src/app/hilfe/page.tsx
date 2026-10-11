@@ -19,6 +19,7 @@ import {
   FileText,
   Sparkles,
   ShieldAlert,
+  Server,
 } from "lucide-react";
 
 export const metadata = { title: "Hilfe & Befehle | GLGBot Panel" };
@@ -26,6 +27,7 @@ export const metadata = { title: "Hilfe & Befehle | GLGBot Panel" };
 const SECTIONS = [
   { id: "schnellstart", title: "Schnellstart", icon: Rocket },
   { id: "dashboard", title: "Dashboard & Login", icon: KeyRound },
+  { id: "server", title: "Mehrere Server", icon: Server },
   { id: "level", title: "Level & Talk-Partner", icon: Trophy },
   { id: "tickets", title: "Support-Tickets", icon: Ticket },
   { id: "regeln", title: "Regeln & Freischaltung", icon: ScrollText },
@@ -269,6 +271,30 @@ export default function HelpPage() {
                 <strong className="text-white">Admin-Bereich (mit Login):</strong> Der Zugriff auf Ticket-Chats,
                 Server-Backups, Logs und Bot-Konfiguration ist durch Discord-OAuth geschützt. Reinkommen der Server-Owner
                 sowie Mitglieder mit Administrator-Rechten oder in <Cmd>DASHBOARD_USER_IDS</Cmd>.
+              </li>
+            </ul>
+          </Section>
+
+          {/* Mehrere Server */}
+          <Section id="server" title="Mehrere Server (max. 5)" icon={Server}>
+            <p>
+              Der Bot kann bis zu <strong className="text-white">5 Server</strong> gleichzeitig betreuen - aber nur
+              freigegebene. Wird er woanders eingeladen, schreibt er dem Owner kurz warum und verlässt den Server sofort.
+            </p>
+            <ul className="list-disc list-inside space-y-1.5 pl-1">
+              <li>
+                <strong className="text-white">Server wechseln:</strong> oben links unter dem Bot-Namen. Du siehst nur
+                Server, auf denen du Owner, Administrator oder „Server verwalten“ hast.
+              </li>
+              <li>
+                <strong className="text-white">Freigeben:</strong> Der Bot-Besitzer trägt unter{" "}
+                <Link href="/servers" className="text-discord-blurple hover:underline">Server-Freigabe</Link> die Server-ID
+                ein und lädt den Bot dann über „Bot einladen“ ein.
+              </li>
+              <li>
+                <strong className="text-white">Getrennte Daten:</strong> Einstellungen, Level, Regeln, Fälle und Logs gelten
+                immer nur für den jeweiligen Server. Auf neuen Servern sind zuerst nur Regeln, Rollen, Moderation und Voice
+                an - den Rest schaltest du unter <Link href="/modules" className="text-discord-blurple hover:underline">Module</Link> ein.
               </li>
             </ul>
           </Section>

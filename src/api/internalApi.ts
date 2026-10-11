@@ -15,6 +15,7 @@ import { moderationService } from "../services/moderationService";
 import { prisonService } from "../services/prisonService";
 import { blacklistService } from "../services/blacklistService";
 import { setupService, SETUP_MODULES, MODULE_INFO } from "../services/setupService";
+import { guildAccessService } from "../services/guildAccessService";
 import { moduleService } from "../services/moduleService";
 import { liveStreamService } from "../services/liveStreamService";
 
@@ -63,6 +64,11 @@ function loadAdminNotes(): Record<string, string> {
   } catch {}
   return {};
 }
+/** Notizen-Schlüssel: Haupt-Server wie bisher nur User-ID, weitere Server "guildId:userId" */
+function noteKey(guildId: string, userId: string) {
+  const main = (process.env.GUILD_ID || "").trim();
+  return !main || guildId === main ? userId : `${guildId}:${userId}`;
+}
 function saveAdminNotes(notes: Record<string, string>) {
   try {
     const dir = path.dirname(NOTES_FILE);
@@ -82,11 +88,33 @@ export function startInternalApi(client: Client) {
     const given = String(req.headers["x-bot-token"] || "");
     if (!safeEqual(given, token)) return send(res, 401, { error: "Nicht autorisiert." });
 
-    const guildId = process.env.GUILD_ID || "";
+    const route = `${req.method} ${(req.url || "").split("?")[0]}`;
+
+    // ---------------- Server-übergreifend (ohne aktiven Server) ----------------
+    if (route === "GET /guilds") {
+      // Freigegebene Server, auf denen der Bot ist (für Rechteprüfung & Server-Wechsel im Dashboard)
+      const guilds = guildAccessService
+        .getAllowedIds()
+        .map((id) => client.guilds.cache.get(id))
+        .filter((g): g is NonNullable<typeof g> => !!g)
+        .map((g) => ({
+          id: g.id,
+          name: g.name,
+          icon: g.iconURL({ size: 64 }) || null,
+          memberCount: g.memberCount,
+          main: guildAccessService.isMain(g.id),
+        }));
+      return send(res, 200, { guilds, mainGuildId: guildAccessService.mainGuildId || null });
+    }
+
+    // Aktiver Server: vom Dashboard per Header gewählt, sonst Haupt-Server (GUILD_ID)
+    const requested = String(req.headers["x-guild-id"] || "").trim();
+    const guildId =
+      requested && guildAccessService.isAllowed(requested) && client.guilds.cache.has(requested)
+        ? requested
+        : process.env.GUILD_ID || "";
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return send(res, 503, { error: "Bot ist nicht mit dem Server verbunden (GUILD_ID prüfen)." });
-
-    const route = `${req.method} ${(req.url || "").split("?")[0]}`;
     // Wer im Dashboard eingeloggt ist (für den Verlauf)
     const by = decodeURIComponent(String(req.headers["x-dashboard-user"] || "")).slice(0, 64) || undefined;
     const isLoggedIn = req.headers["x-dashboard-auth"] === "1";
@@ -111,6 +139,57 @@ export function startInternalApi(client: Client) {
           return send(res, 200, { ok: true, bot: client.user?.tag, guild: guild.name });
 
         // ---------------- Free-Games ----------------
+        // ---------------- Server-Freigabe (nur Bot-Besitzer) ----------------
+        case "GET /guild-access": {
+          const ownerId = guildAccessService.getBotOwnerId(client);
+          const isOwner = !!actorId && actorId === ownerId;
+          if (!isOwner) return send(res, 200, { isOwner: false });
+          const clientId = client.user?.id || process.env.CLIENT_ID || "";
+          const invite = (id: string) =>
+            `https://discord.com/oauth2/authorize?client_id=${clientId}&scope=bot%20applications.commands&permissions=8&guild_id=${id}&disable_guild_select=true`;
+          return send(res, 200, {
+            isOwner: true,
+            max: guildAccessService.maxGuilds,
+            entries: guildAccessService.getEntries().map((e) => {
+              const g = client.guilds.cache.get(e.id);
+              return {
+                ...e,
+                name: g?.name || e.name || null,
+                icon: g?.iconURL({ size: 64 }) || null,
+                joined: !!g,
+                memberCount: g?.memberCount ?? null,
+                inviteUrl: g ? null : invite(e.id),
+              };
+            }),
+            removed: guildAccessService.getRemoved(),
+          });
+        }
+        case "POST /guild-access/add": {
+          if (!actorId || actorId !== guildAccessService.getBotOwnerId(client)) {
+            return send(res, 403, { error: "Nur der Bot-Besitzer darf Server freigeben." });
+          }
+          const body = await readBody(req);
+          const id = String(body?.guildId || "").trim();
+          const name = String(body?.name || "").trim().slice(0, 100) || undefined;
+          const error = guildAccessService.add(id, name, by);
+          if (error) return send(res, 400, { error });
+          console.log(`[GuildAccess] ${by || actorId} hat Server ${id} freigegeben.`);
+          return send(res, 200, { ok: true });
+        }
+        case "POST /guild-access/remove": {
+          if (!actorId || actorId !== guildAccessService.getBotOwnerId(client)) {
+            return send(res, 403, { error: "Nur der Bot-Besitzer darf Freigaben entfernen." });
+          }
+          const body = await readBody(req);
+          const id = String(body?.guildId || "").trim();
+          const target = client.guilds.cache.get(id);
+          const error = guildAccessService.remove(id, target?.name);
+          if (error) return send(res, 400, { error });
+          if (target) await guildAccessService.rejectGuild(target, "not_allowed");
+          console.log(`[GuildAccess] ${by || actorId} hat die Freigabe für ${target?.name || id} entfernt.`);
+          return send(res, 200, { ok: true, left: !!target });
+        }
+
         // ---------------- Komplett-Einrichtung ----------------
         case "GET /setup": {
           if (!isLoggedIn) return send(res, 401, { error: "Bitte einloggen." });
@@ -285,8 +364,8 @@ export function startInternalApi(client: Client) {
         case "GET /rules": {
           const cfg = rolePanelService.getConfig(guild.id) || {};
           return send(res, 200, {
-            rules: rulesService.getRules(),
-            customized: rulesService.isCustomized(),
+            rules: rulesService.getRules(guild.id),
+            customized: rulesService.isCustomized(guild.id),
             status: {
               rulesChannelId: cfg.rulesChannelId || null,
               permissionsChannelId: cfg.permissionsChannelId || null,
@@ -298,13 +377,13 @@ export function startInternalApi(client: Client) {
         }
         case "PUT /rules": {
           const body = await readBody(req);
-          const error = rulesService.saveRules(body.rules);
+          const error = rulesService.saveRules(body.rules, guild.id);
           if (error) return send(res, 400, { error });
-          return send(res, 200, { ok: true, rules: rulesService.getRules() });
+          return send(res, 200, { ok: true, rules: rulesService.getRules(guild.id) });
         }
         case "POST /rules/reset": {
-          rulesService.resetRules();
-          return send(res, 200, { ok: true, rules: rulesService.getRules() });
+          rulesService.resetRules(guild.id);
+          return send(res, 200, { ok: true, rules: rulesService.getRules(guild.id) });
         }
         case "POST /rules/post": {
           const { rules, perms } = await rulesService.setupChannels(guild);
@@ -699,7 +778,7 @@ export function startInternalApi(client: Client) {
               createdAt: m.user.createdAt?.toISOString() || null,
               voiceMinutes: stats.voiceMinutes || 0,
               messagesCount: stats.messagesCount || 0,
-              adminNote: notes[m.id] || "",
+              adminNote: notes[noteKey(guild.id, m.id)] || "",
               isBot: m.user.bot,
               isOwner: m.id === guild.ownerId,
               isModeratable: m.moderatable,
@@ -982,9 +1061,9 @@ export function startInternalApi(client: Client) {
           const { userId, note } = body;
           if (!userId) return send(res, 400, { error: "userId erforderlich." });
           const notes = loadAdminNotes();
-          notes[userId] = String(note || "").trim();
+          notes[noteKey(guild.id, userId)] = String(note || "").trim();
           saveAdminNotes(notes);
-          return send(res, 200, { ok: true, userId, note: notes[userId] });
+          return send(res, 200, { ok: true, userId, note: notes[noteKey(guild.id, userId)] });
         }
 
         default:

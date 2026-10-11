@@ -101,6 +101,7 @@ pm2 restart discord-bot discord-web
 | Serverregeln | Im Dashboard unter **Regeln** – oder als eigene Vorlage in `config/rules.json` (gleicher Aufbau wie `src/config/rules.ts`) |
 | Animierte Kanal-Banner mit deinem Servernamen | `python scripts/make_banners.py --subtitle "MEIN SERVER"` → landet in `config/banners/` |
 | Alle übrigen Einstellungen (XP, Streamer, Free-Games, News …) | Web-Dashboard bzw. Slash-Befehle, gespeichert in `data/` |
+| Weitere Server (max. 5) | `.env` (`ALLOWED_GUILD_IDS`) oder Dashboard → **Server-Freigabe** |
 
 Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo – deine Einstellungen bleiben bei `git pull` erhalten.
 
@@ -112,6 +113,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | :--- | :--- | :--- | :--- |
 | **Server-Übersicht** | `/` | 🔒 Admin | Live-Zähler für Mitglieder, Kanäle, Rollen und Schnellaktionen. |
 | **Server einrichten** | `/setup` | 🔒 Admin | Bereiche ankreuzen, ein Klick legt alle fehlenden Rollen & Kanäle an (Vorhandenes wird nur verknüpft). |
+| **Server-Freigabe** | `/servers` | 👑 Bot-Besitzer | Bis zu 5 Server freigeben, Einladungs-Links, Belegung „x / 5“, Freigabe entfernen. |
 | **Module** | `/modules` | 🔒 Admin | Funktionen einzeln an- oder ausschalten – ausgeschaltete Module pausieren komplett, Daten bleiben erhalten. |
 | **Benutzerverwaltung** | `/users` | 🔒 Admin | Mitgliederliste mit Nickname-Änderung, Rollen-Zuweisung, XP-Korrektur und Admin-Notizen. |
 | **Moderation & Knast** | `/moderation` | 🔒 Admin | Warns, Timeouts, Kicks, Bans, Gefängnis-System (`/knast`), Bad-Name-Filter und Schimpfwort-Blacklist. |
@@ -126,7 +128,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | **Server-Backups** | `/backups` | 🔒 Admin | 1-Klick JSON-Snapshots aller Rollen, Kanäle und Einstellungen mit Wiederherstellung. |
 | **Server-Regeln** | `/rules` | 🔒 Admin | Regel-Editor mit Vorschau, 1-Klick-Veröffentlichung und Regel-Sperre (Server erst nach Bestätigung sichtbar). |
 | **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 37 Slash-Befehle mit Beschreibungen. |
-| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.7.0. |
+| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.8.0. |
 
 ---
 
@@ -286,6 +288,19 @@ npm run deploy-commands
 npm run dev                 # Bot mit Auto-Reload
 cd web && npm run dev       # Dashboard auf http://localhost:3000
 ```
+
+---
+
+## 🌍 Mehrere Server (max. 5)
+
+Ein Bot kann bis zu **5 Discord-Server** gleichzeitig betreuen - aber nur Server, die freigegeben sind:
+
+* **Haupt-Server** ist `GUILD_ID` aus der `.env` (immer erlaubt). Weitere Server über `ALLOWED_GUILD_IDS` oder im Dashboard unter **Server-Freigabe** (nur für den Bot-Besitzer, `BOT_OWNER_ID` bzw. Owner des Haupt-Servers).
+* Wird der Bot auf einen **nicht freigegebenen** Server eingeladen oder sind die 5 voll, schreibt er dem Owner eine kurze Nachricht und **verlässt den Server sofort** - auch wenn die Einladung passiert ist, während der Bot offline war.
+* Slash-Befehle werden für jeden freigegebenen Server automatisch registriert.
+* Alle Einstellungen, Level, Fälle und Logs sind **pro Server getrennt**. Auf neuen Servern sind zuerst nur die Grundmodule an (Regeln, Rollen, Moderation, Voice) - der Rest wird unter **Module** eingeschaltet.
+* Im Dashboard wechselt man oben links unter dem Bot-Namen zwischen den Servern. Man sieht nur Server, auf denen man Owner, Administrator oder „Server verwalten“ hat.
+* Wird eine Freigabe entfernt, verlässt der Bot den Server; die Daten bleiben gespeichert.
 
 ---
 

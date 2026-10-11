@@ -68,6 +68,7 @@ export async function GET(req: NextRequest) {
       uid: user.id,
       name: user.global_name || user.username,
       avatar: user.avatar || null,
+      g: access.guilds,
     });
 
     const res = NextResponse.redirect(`${baseUrl}/`);

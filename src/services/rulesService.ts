@@ -23,7 +23,17 @@ const RULES_FILE = path.join(process.cwd(), "data", "rules.json");
 /** Eigene Standard-Regeln (nicht im Git-Repo) - ersetzen die eingebauten Beispiel-Regeln. */
 const DEFAULT_RULES_FILE = path.join(process.cwd(), "config", "rules.json");
 
-function loadDefaultRules(): RulesConfig {
+/** Haupt-Server nutzt data/rules.json (wie bisher), weitere Server data/rules/<guildId>.json */
+function rulesFile(guildId?: string): string {
+  const main = (process.env.GUILD_ID || "").trim();
+  if (!guildId || !main || guildId === main) return RULES_FILE;
+  return path.join(process.cwd(), "data", "rules", `${guildId.replace(/\D/g, "")}.json`);
+}
+
+/** Eigene Standard-Regeln aus config/rules.json gelten nur für den Haupt-Server. */
+function loadDefaultRules(guildId?: string): RulesConfig {
+  const main = (process.env.GUILD_ID || "").trim();
+  if (guildId && main && guildId !== main) return RULES;
   try {
     if (fs.existsSync(DEFAULT_RULES_FILE)) {
       const data = JSON.parse(fs.readFileSync(DEFAULT_RULES_FILE, "utf-8"));
@@ -41,27 +51,28 @@ class RulesService {
   // ---------------------------------------------------------------
   //  Regeln laden / speichern (Dashboard-Editor)
   // ---------------------------------------------------------------
-  public getRules(): RulesConfig {
+  public getRules(guildId?: string): RulesConfig {
+    const file = rulesFile(guildId);
     try {
-      if (fs.existsSync(RULES_FILE)) {
-        const data = JSON.parse(fs.readFileSync(RULES_FILE, "utf-8"));
-        if (data && Array.isArray(data.rules)) return { ...loadDefaultRules(), ...data };
+      if (fs.existsSync(file)) {
+        const data = JSON.parse(fs.readFileSync(file, "utf-8"));
+        if (data && Array.isArray(data.rules)) return { ...loadDefaultRules(guildId), ...data };
       }
     } catch (e) {
-      console.error("[Rules] data/rules.json ist ungültig - nutze Standard-Regeln:", e);
+      console.error(`[Rules] ${path.relative(process.cwd(), file)} ist ungültig - nutze Standard-Regeln:`, e);
     }
-    return loadDefaultRules();
+    return loadDefaultRules(guildId);
   }
 
-  public isCustomized(): boolean {
-    return fs.existsSync(RULES_FILE);
+  public isCustomized(guildId?: string): boolean {
+    return fs.existsSync(rulesFile(guildId));
   }
 
   /** Prüft & speichert Regeln. Gibt eine Fehlermeldung zurück oder null. */
-  public saveRules(input: any): string | null {
+  public saveRules(input: any, guildId?: string): string | null {
     const L = RULE_LIMITS;
     if (!input || typeof input !== "object" || !Array.isArray(input.rules)) return "Ungültiges Format.";
-    const RULES = loadDefaultRules();
+    const RULES = loadDefaultRules(guildId);
     const str = (v: any) => (typeof v === "string" ? v.trim() : "");
 
     const rules: RulesConfig = {
@@ -87,16 +98,18 @@ class RulesService {
       if (r.text.length > L.text) return `§${i + 1}: Text zu lang (max. ${L.text} Zeichen).`;
     }
 
-    const dir = path.dirname(RULES_FILE);
+    const file = rulesFile(guildId);
+    const dir = path.dirname(file);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(RULES_FILE + ".tmp", JSON.stringify(rules, null, 2), "utf-8");
-    fs.renameSync(RULES_FILE + ".tmp", RULES_FILE);
+    fs.writeFileSync(file + ".tmp", JSON.stringify(rules, null, 2), "utf-8");
+    fs.renameSync(file + ".tmp", file);
     return null;
   }
 
   /** Setzt die Regeln auf die Standardwerte (config/rules.json bzw. src/config/rules.ts) zurück. */
-  public resetRules() {
-    if (fs.existsSync(RULES_FILE)) fs.unlinkSync(RULES_FILE);
+  public resetRules(guildId?: string) {
+    const file = rulesFile(guildId);
+    if (fs.existsSync(file)) fs.unlinkSync(file);
   }
 
   // ---------------------------------------------------------------
@@ -109,7 +122,7 @@ class RulesService {
    */
   /** Löst {@name}-Platzhalter in Erwähnungen auf (Benutzername, Anzeigename oder Nickname). */
   private async resolveMentions(guild: Guild): Promise<Map<string, string>> {
-    const R = this.getRules();
+    const R = this.getRules(guild.id);
     const all = [R.intro, R.consequences, R.acceptText, ...R.rules.map((r) => r.text)].join("\n");
     const names = [...new Set([...all.matchAll(/{@([^}]+)}/g)].map((m) => m[1]))];
     const result = new Map<string, string>();
@@ -136,7 +149,7 @@ class RulesService {
 
   public async createRulesMessages(guild: Guild, permissionsChannelId?: string) {
     const icon = guild.iconURL({ size: 256 }) || undefined;
-    const RULES = this.getRules();
+    const RULES = this.getRules(guild.id);
     const mentions = await this.resolveMentions(guild);
     const fill = (text: string) =>
       text

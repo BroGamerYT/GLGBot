@@ -150,6 +150,9 @@ export const BOT_MODULES: BotModuleInfo[] = [
   },
 ];
 
+/** Grundmodule, die auf neu freigegebenen Servern sofort an sind */
+export const CORE_MODULES: BotModuleId[] = ["rules", "roles", "moderation", "voice"];
+
 const DATA_DIR = path.join(__dirname, "../../data");
 const CONFIG_FILE = path.join(DATA_DIR, "modules_config.json");
 
@@ -190,8 +193,19 @@ class ModuleService {
 
   public isEnabled(guildId: string, moduleId: BotModuleId): boolean {
     const guildCfg = this.config[guildId];
-    if (!guildCfg) return true; // Standardmäßig alle Module aktiv
-    return guildCfg[moduleId] !== false;
+    if (guildCfg && typeof guildCfg[moduleId] === "boolean") return guildCfg[moduleId];
+    return this.isDefaultEnabled(guildId, moduleId);
+  }
+
+  /**
+   * Standard, solange nichts umgeschaltet wurde:
+   * Haupt-Server (GUILD_ID) bzw. Einzel-Installation -> alle Module an,
+   * weitere freigegebene Server -> nur die Grundmodule (Rest schaltet der Server-Admin selbst ein).
+   */
+  public isDefaultEnabled(guildId: string, moduleId: BotModuleId): boolean {
+    const main = (process.env.GUILD_ID || "").trim();
+    if (!main || guildId === main) return true;
+    return CORE_MODULES.includes(moduleId);
   }
 
   public enableModule(guildId: string, moduleId: BotModuleId): boolean {

@@ -2,7 +2,7 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.6.0 (siehe History ganz unten)
+**Aktueller Stand:** v2.8.0 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
@@ -11,15 +11,15 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 🚀 Priorität 1: Sofort anstehend
 
-### 1. 🎁 Free Games & Game News öffentlich (Read-Only ohne Login)
-* [ ] **Middleware & Routen:**
-  * [ ] `/free-games` und `/news` in `web/src/middleware.ts` zu den öffentlichen Seiten (`isPublicPage`) hinzufügen.
-  * [ ] GET-Endpunkte `GET /api/bot/free-games` und `GET /api/bot/news` für Gäste freigeben (`isPublicApi`).
-* [ ] **UI-Anpassungen:**
-  * [ ] Login-Status im Client über `GET /api/auth/me` prüfen (es gibt kein `useSession` – das gehört zu NextAuth) in `web/src/app/free-games/page.tsx` und `web/src/app/news/page.tsx`.
-  * [ ] **Gast-Modus:** Alle Spiele-Karten, Filter, Countdowns, Store-Links und Treiber-Updates anzeigen.
-  * [ ] **Admin-Controls verbergen:** Buttons zum Manuellen Posten in Discord, Feed-Verwaltung und Webhook-Settings nur für eingeloggte Admins sichtbar machen.
-  * [ ] Öffentliche Navigation in Kopfzeile (`Header`) für Gäste um Free Games & News ergänzen.
+### 1. 🎁 Free Games & Game News öffentlich (Read-Only ohne Login) ✅ v2.7.0
+* [x] **Middleware & Routen:**
+  * [x] `/free-games` und `/news` in `web/src/middleware.ts` zu den öffentlichen Seiten (`isPublicPage`) hinzufügen.
+  * [x] GET-Endpunkte `GET /api/bot/free-games` und `GET /api/bot/news` für Gäste freigeben (`isPublicApi`).
+* [x] **UI-Anpassungen:**
+  * [x] Login-Status im Client über `GET /api/auth/me` prüfen (es gibt kein `useSession` – das gehört zu NextAuth) in `web/src/app/free-games/page.tsx` und `web/src/app/news/page.tsx`.
+  * [x] **Gast-Modus:** Alle Spiele-Karten, Filter, Countdowns, Store-Links und Treiber-Updates anzeigen.
+  * [x] **Admin-Controls verbergen:** Buttons zum Manuellen Posten in Discord, Feed-Verwaltung und Webhook-Settings nur für eingeloggte Admins sichtbar machen.
+  * [x] Öffentliche Navigation in Kopfzeile (`Header`) für Gäste um Free Games & News ergänzen.
 
 ---
 
@@ -44,46 +44,47 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 ---
 
 ### 3. 🏆 Level-Rollen-Belohnungen (Automatische Meilensteine)
-* [ ] **Bot-Levelsystem (`statsService.ts`):**
-  * [ ] Konfigurationsfeld `roleRewards: Record<number, string>` (Level -> Discord-Rollen-ID) in der Guild-Config speichern.
-  * [ ] Level-Up-Handler erweitern: Prüfen, ob für das erreichte Level eine Belohnungs-Rolle hinterlegt ist.
-  * [ ] Automatische Zuweisung der Discord-Rolle an das Mitglied.
-  * [ ] Glückwunsch-Nachricht im Chat oder konfigurierten Ankündigungskanal mit Erwähnung der neuen Rolle.
+* [x] **Bot-Levelsystem (`statsService.ts`):**
+  * [x] Konfigurationsfeld `roleRewards: Record<number, string>` (Level -> Discord-Rollen-ID) in der Guild-Config speichern.
+  * [x] Level-Up-Handler erweitern: Prüfen, ob für das erreichte Level eine Belohnungs-Rolle hinterlegt ist.
+  * [x] Automatische Zuweisung der Discord-Rolle an das Mitglied.
+  * [x] Glückwunsch-Nachricht im Chat oder konfigurierten Ankündigungskanal mit Erwähnung der neuen Rolle.
 * [ ] **Web-Dashboard (`/stats`):**
   * [ ] Einstellungs-Reiter „Rollen-Belohnungen“ im Stats-Konfigurationsbereich.
   * [ ] Interaktive Zuweisungs-Tabelle: Level auswählen (z. B. 5, 10, 15, 20, 25) und Server-Rolle aus Dropdown zuordnen.
   * [ ] Speichern über `/api/bot/stats/config` (wie die übrigen XP-Einstellungen).
-* [ ] **Retroaktive Nachrüstung:**
-  * [ ] Button oder Befehl `/rank sync-roles`, um bestehenden Mitgliedern nachträglich die ihren Leveln entsprechenden Rollen zuzuweisen.
+* [x] **Retroaktive Nachrüstung:**
+  * [x] Befehl `/level sync-roles`, um bestehenden Mitgliedern nachträglich die ihren Leveln entsprechenden Rollen zuzuweisen.
 
 ---
 
 ## 🎯 Priorität 2: Community- & Interaktions-Features
 
-### 4. 🔴 „Gerade Live“-Widget auf der Dashboard-Startseite
-* [ ] Live-Banner auf der Dashboard-Startseite `web/src/app/page.tsx`.
-* [ ] Zeigt aktuell aktive Streamer aus der Community in Echtzeit an (Twitch/YouTube/Voice).
-* [ ] Anzeige mit Avatar, Stream-Titel, Spiel und 1-Klick-Direktlink zum Stream.
+### 4. 🔴 „Gerade Live“-Widget auf der Dashboard-Startseite ✅ v2.7.0
+* [x] Live-Banner auf der Dashboard-Startseite `web/src/app/page.tsx`.
+* [x] Zeigt aktuell aktive Streamer aus der Community in Echtzeit an (Twitch/YouTube/Voice).
+* [x] Anzeige mit Avatar, Stream-Titel, Spiel und 1-Klick-Direktlink zum Stream.
 
 ---
 
-### 5. 🎁 `/daily` Belohnungs- & Streak-System
-* [ ] Täglicher Belohnungs-Befehl `/daily` für Mitglieder.
-* [ ] Feste Basis-XP (z. B. +50 XP) plus ansteigender Streak-Bonus (z. B. Tag 2: +60 XP, Tag 7: +200 XP).
-* [ ] 24h-Cooldown mit 36h-Kulanzfenster für Streaks.
-* [ ] Hinweis: `/daily` steht auch in Punkt 15 (Economy) – **ein** gemeinsamer Befehl: erst XP, später zusätzlich Coins.
-* [ ] Streak-Anzeige im Rang-Befehl `/rank` und im Dashboard-Profil.
+### 5. 🎁 `/daily` Belohnungs- & Streak-System ✅ v2.7.0
+* [x] Täglicher Belohnungs-Befehl `/daily` für Mitglieder.
+* [x] Feste Basis-XP (z. B. +50 XP) plus ansteigender Streak-Bonus (z. B. Tag 2: +60 XP, Tag 7: +200 XP).
+* [x] 24h-Cooldown mit 36h-Kulanzfenster für Streaks.
+* [x] Hinweis: `/daily` steht auch in Punkt 15 (Economy) – **ein** gemeinsamer Befehl: erst XP, später zusätzlich Coins.
+* [x] Streak-Anzeige im Rang-Befehl `/rank`.
+* [ ] Streak-Anzeige im Dashboard-Profil (`/stats`).
 
 ---
 
-### 6. 🎉 Giveaway-System (`/giveaway`)
-* [ ] Befehle:
-  * [ ] `/giveaway start <dauer> <gewinner_anzahl> <preis> [rolle]`
-  * [ ] `/giveaway end <message_id>`
-  * [ ] `/giveaway reroll <message_id>`
-* [ ] Interaktives Embed mit „🎉 Teilnehmen“-Button, Teilnehmerzähler in Echtzeit und Live-Countdown.
-* [ ] Automatische Zufallsziehung bei Ablauf mit Gewinner-Benachrichtigung und Audit-Log.
-* [ ] Optional: Rollen-Voraussetzung (z. B. nur für Level 5+ oder bestimmte Community-Rollen).
+### 6. 🎉 Giveaway-System (`/giveaway`) ✅ v2.7.0
+* [x] Befehle:
+  * [x] `/giveaway start <dauer> <gewinner_anzahl> <preis> [rolle]`
+  * [x] `/giveaway end <message_id>`
+  * [x] `/giveaway reroll <message_id>`
+* [x] Interaktives Embed mit „🎉 Teilnehmen“-Button, Teilnehmerzähler in Echtzeit und Live-Countdown.
+* [x] Automatische Zufallsziehung bei Ablauf mit Gewinner-Benachrichtigung und Audit-Log.
+* [x] Optional: Rollen-Voraussetzung (z. B. nur für Level 5+ oder bestimmte Community-Rollen).
 
 ---
 
@@ -107,7 +108,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ### 9. 🛡️ Erweiterter Auto-Mod & Anti-Spam
 * [x] Automatische Erkennung und Löschung von unerlaubten Discord-Einladungslinks fremder Server *(gibt es schon in `blacklistService.ts`)*.
-* [ ] Mass-Mention-Schutz (>5 Mentions = Auto-Löschung + Verwarnung).
+* [x] Mass-Mention-Schutz (>5 Mentions = Auto-Löschung + 10 Min. Timeout) *(v2.7.0)*.
 * [ ] Verknüpfung mit dem Levelsystem: Automatische Strafpunkte (-XP) bei moderativen Vorfällen.
 
 ---
@@ -209,34 +210,29 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 > * **Zentrale Wartung:** 1x `git pull` & `pm2 restart` aktualisiert alle Server simultan.
 > * **Onboarding nur mit Freigabe:** Server-Besitzer können den Bot einladen, er bleibt aber nur auf Servern, die auf der Freigabe-Liste stehen.
 
-### 16. 🏛️ Multi-Guild (max. 5 Server, nur Freigabe-Liste)
-> ✅ **Entschieden:** maximal **5 Server**, nur Server auf der **Freigabe-Liste**.
-> ⚠️ **Größter Umbau im ganzen Plan.** Bot & Dashboard sind fest auf einen Server ausgelegt: `GUILD_ID` steckt in 17 Stellen in Bot und Dashboard, die interne Bot-API (`src/api/internalApi.ts`) kennt nur einen Server.
+### 16. 🏛️ Multi-Guild (max. 5 Server, nur Freigabe-Liste) ✅ v2.8.0
+> ✅ **Umgesetzt in v2.8.0:** maximal **5 Server**, nur Server auf der **Freigabe-Liste**.
 > * Durch die Grenze von 5 Servern ist **keine Discord-Bot-Verifizierung** nötig (erst ab 100 Servern), die Privileged Intents bleiben ohne Antrag nutzbar.
 > * Wer den Bot für fremde Server hostet, ist für deren Daten verantwortlich (**Datenschutz / DSGVO**, Datenschutzerklärung, Löschung auf Anfrage) – bei max. 5 bekannten Servern überschaubar, sollte aber trotzdem kurz geregelt werden.
 
-* [ ] **🔒 Server-Freigabe & Begrenzung:**
-  * [ ] Neue `.env`-Werte: `ALLOWED_GUILD_IDS` (kommagetrennte Server-IDs) und `MAX_GUILDS=5`. `GUILD_ID` bleibt als **Haupt-Server** (dein eigener Server, immer erlaubt).
-  * [ ] Event `guildCreate`: Wird der Bot auf einen Server eingeladen, der **nicht auf der Freigabe-Liste** steht **oder** schon 5 Server belegt sind → **DM an den Server-Owner** mit kurzer Erklärung (z. B. „Dieser Bot ist privat und nur für freigegebene Server.“) und danach **Server sofort verlassen**.
-  * [ ] Beim Bot-Start alle Server prüfen: nicht freigegebene Server werden ebenfalls verlassen (falls der Bot eingeladen wurde, während er offline war).
-  * [ ] Server-Verwaltung im Dashboard (nur für dich als Bot-Besitzer, `BOT_OWNER_ID` in der `.env`): Freigabe-Liste ansehen, Server hinzufügen/entfernen, Belegung „3 / 5 Server“ anzeigen, Einladungs-Link für freigegebene Server erzeugen.
-  * [ ] Wird ein Server von der Liste entfernt: Bot verlässt ihn, Daten in `data/guilds/<guildId>/` werden nach 30 Tagen gelöscht (oder sofort auf Wunsch).
-
-* [ ] **Globale Discord Slash-Commands:**
-  * [ ] Globale Registrierung `applicationCommands(clientId)` – `deploy-commands` kann das schon, wenn `GUILD_ID` leer ist.
-  * [ ] Befehle sind nach Einladung des Bots automatisch auf jedem Discord-Server verfügbar.
-* [ ] **Strikte Daten- & Konfigurations-Trennung pro Server (`guildId` Partitionierung):**
-  * [ ] Speicherstruktur pro Guild: `data/guilds/<guildId>/config.json`.
-  * [ ] Jeder Server hat seine eigenen Kanäle (`#free-games`, `#logs`, `#voice-master`, etc.) und Rollen.
-  * [ ] Vollständig getrennte Moderations-Cases, Level-Rankings und Audit-Logs (keine Datenvermischung).
-* [ ] **Multi-Guild Server-Switcher im Web-Dashboard:**
-  * [ ] Dropdown-Menü in der oberen Dashboard-Navigationsleiste mit allen Servern des eingeloggten Discord-Admins (gefiltert nach `Administrator` / `Manage_Guild`).
-  * [ ] Server-Kacheln auf einer Übersicht-Seite (`/dashboard/servers`):
-    * [ ] Bereits aktivierte Server verwalten (Klick schaltet aktiven Kontext um).
-    * [ ] **„➕ Bot einladen“** nur für Server, die auf der Freigabe-Liste stehen (mit vorkonfigurierten OAuth2-Berechtigungen). Nicht freigegebene Server werden ausgegraut mit Hinweis „Nicht freigegeben“.
-* [ ] **API-Mandantenfähigkeit:**
-  * [ ] Alle Web-API-Routen (`/api/discord/*`, `/api/config/*`, `/api/bot/*` inkl. der internen Bot-API) akzeptieren den Header bzw. Query-Parameter `?guildId=<id>`.
-  * [ ] Serverseitige Autorisierungsprüfung: Darf der eingeloggte Discord-User diese spezifische `guildId` konfigurieren?
+* [x] **🔒 Server-Freigabe & Begrenzung:**
+  * [x] `.env`-Werte `ALLOWED_GUILD_IDS`, `MAX_GUILDS` (1–5), `BOT_OWNER_ID`. `GUILD_ID` bleibt **Haupt-Server** (immer erlaubt).
+  * [x] Event `guildCreate`: nicht freigegeben oder Limit erreicht → **DM an den Server-Owner** + **Server sofort verlassen**.
+  * [x] Beim Bot-Start alle Server prüfen und nicht freigegebene verlassen.
+  * [x] Dashboard-Seite **„Server-Freigabe“** (`/servers`, nur Bot-Besitzer): Liste, Belegung „x / 5“, freigeben, entfernen, Einladungs-Link.
+  * [x] Freigabe entfernen → Bot verlässt den Server, Daten bleiben gespeichert („Entfernte Server“-Liste).
+  * [ ] Daten entfernter Server nach 30 Tagen automatisch löschen (bzw. sofort auf Knopfdruck).
+* [x] **Slash-Befehle pro Server:** werden für jeden freigegebenen Server automatisch registriert (beim Beitritt, beim Start und in `deploy-commands`) – sofort verfügbar, kein globales Warten.
+* [x] **Daten- & Konfigurations-Trennung pro Server:**
+  * [x] Alle Dienste speichern pro `guildId` (eine Datei je Dienst, Einträge nach Server getrennt) – kein Umbau auf `data/guilds/<guildId>/` nötig.
+  * [x] Regeln pro Server (`data/rules.json` = Haupt-Server, `data/rules/<guildId>.json` = weitere), Admin-Notizen pro Server, Anti-Raid/-Nuke-Zähler pro Server.
+  * [x] Getrennte Moderations-Fälle, Level, Audit-Logs, Module (neue Server starten mit Grundmodulen).
+* [x] **Server-Wechsel im Web-Dashboard:**
+  * [x] Auswahl oben links unter dem Bot-Namen mit allen Servern, auf denen man Owner / Administrator / „Server verwalten“ hat.
+  * [x] Einladungs-Link nur für freigegebene Server (in der Server-Freigabe).
+* [x] **API-Mandantenfähigkeit:**
+  * [x] Aktiver Server per Cookie, Proxy schickt `x-guild-id` an die Bot-API; alte Routen (`/api/config/*`, `/api/discord/*`, `/api/action/*`) nutzen den aktiven Server.
+  * [x] Serverseitige Prüfung: nur Server, die der Nutzer verwalten darf (Rechte werden pro Server alle 60 Sek. bei Discord geprüft).
 
 ---
 
@@ -327,7 +323,12 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.6.0 (Aktuell):**
+* [x] **v2.8.0 (Aktuell):**
+  * [x] Mehrere Server (max. 5) mit Freigabe-Liste, Server-Wechsel im Dashboard, Daten pro Server getrennt.
+* [x] **v2.7.0:**
+  * [x] Module an/aus (`/modules` + Dashboard-Seite), Streamer-Panel mit Kanal-Passwörtern, `/daily`, `/giveaway`, Level-Rollen-Belohnungen, Massen-Erwähnungs-Schutz.
+  * [x] Free-Games & News ohne Login, „Gerade live“-Widget, neues Dashboard-Menü mit Bereichen.
+* [x] **v2.6.0:**
   * [x] „Server einrichten“-Seite im Dashboard (`/setup`) und `/setup-all`: Bereiche ankreuzen, ein Klick legt alle fehlenden Rollen & Kanäle an.
 * [x] **v2.5.0:**
   * [x] Open Source auf GitHub (MIT-Lizenz) mit Installationsanleitung.

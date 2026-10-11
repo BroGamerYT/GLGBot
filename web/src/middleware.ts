@@ -53,7 +53,7 @@ export async function middleware(req: NextRequest) {
     if (session.chk && now - session.chk < ACCESS_RECHECK_SECONDS) return NextResponse.next();
 
     // Rechte erneut bei Discord prüfen: Admin entzogen / Server verlassen -> sofort ausloggen
-    const access = await checkDashboardAccess(session.uid).catch(() => ({ allowed: false as const, reason: "config_error" as const }));
+    const access = await checkDashboardAccess(session.uid).catch(() => ({ allowed: false as const, reason: "config_error" as const, guilds: [] as string[] }));
     if (!access.allowed && access.reason !== "config_error") {
       const base = process.env.DASHBOARD_URL?.replace(/\/+$/, "") || req.nextUrl.origin;
       const res = isApi
@@ -66,7 +66,9 @@ export async function middleware(req: NextRequest) {
 
     const res = NextResponse.next();
     // Bei Discord-Störungen (config_error) nicht aussperren - in einer Minute erneut prüfen
-    const token = await createSessionToken({ uid: session.uid, name: session.name, avatar: session.avatar, exp: session.exp });
+    // Server-Liste aktualisieren (Multi-Guild); bei Discord-Störung die alte Liste behalten
+    const guilds = access.allowed ? access.guilds : session.g;
+    const token = await createSessionToken({ uid: session.uid, name: session.name, avatar: session.avatar, exp: session.exp, g: guilds });
     const base = process.env.DASHBOARD_URL || req.nextUrl.origin;
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,

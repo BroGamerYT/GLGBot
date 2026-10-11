@@ -6,6 +6,21 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.8.0] - 2026-10-11
+
+### Hinzugefügt
+* **Mehrere Server (max. 5) mit Freigabe-Liste:**
+  * Der Bot bleibt nur auf freigegebenen Servern: Haupt-Server (`GUILD_ID`), `ALLOWED_GUILD_IDS` aus der `.env` oder im Dashboard freigegebene Server. Höchstens 5 (`MAX_GUILDS`).
+  * Einladung auf einen nicht freigegebenen Server oder über dem Limit: Der Bot schreibt dem Owner eine kurze Nachricht und verlässt den Server sofort - beim Start auch für Einladungen, die kamen, während er offline war.
+  * Slash-Befehle werden für jeden freigegebenen Server automatisch registriert (auch `deploy-commands`).
+* **Dashboard-Seite „Server-Freigabe“** (`/servers`, nur Bot-Besitzer): Belegung „x / 5“, Server freigeben, Einladungs-Link, Freigabe entfernen (Bot verlässt den Server, Daten bleiben).
+* **Server wechseln im Dashboard:** Auswahl oben links unter dem Bot-Namen. Jeder sieht nur Server, auf denen er Owner, Administrator oder „Server verwalten“ hat; die Rechte werden pro Server geprüft.
+
+### Geändert
+* Regeln, Admin-Notizen sowie Anti-Raid- und Anti-Nuke-Zähler sind jetzt pro Server getrennt (bisherige Daten des Haupt-Servers bleiben unverändert).
+* Neue Server starten nur mit den Grundmodulen (Regeln, Rollen, Moderation, Voice); der Haupt-Server behält alle Module.
+* Eigene Standard-Regeln aus `config/rules.json` gelten nur für den Haupt-Server, weitere Server starten mit den Beispiel-Regeln.
+
 ## [2.7.0] - 2026-10-11
 
 ### Hinzugefügt

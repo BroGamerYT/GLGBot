@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { getActiveGuildId } from "@/lib/serverGuild";
 
 const DATA_DIR = path.join(process.cwd(), "..", "data");
 const NOTIFS_FILE = path.join(DATA_DIR, "stream_notifications.json");
 
-function getGuildId() {
-  return process.env.GUILD_ID || "";
+async function getGuildId() {
+  return getActiveGuildId();
 }
 
 function loadNotifs(): any[] {
@@ -28,7 +29,7 @@ function saveNotifs(list: any[]) {
 }
 
 export async function GET() {
-  const guildId = getGuildId();
+  const guildId = await getGuildId();
   const all = loadNotifs();
 
   // Live-Status kommt aus stream_live_state.json (wird nur vom Bot geschrieben)
@@ -48,7 +49,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const guildId = getGuildId();
+    const guildId = await getGuildId();
     const body = await req.json();
     const { id, platform = "twitch", channelName, displayName: passedDisplayName, profileImageUrl: passedAvatar, channelId: passedChannelId, discordChannelId, pingRoleId, linkedDiscordUserId, customMessage, silent } = body;
 
@@ -159,7 +160,7 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const guildId = getGuildId();
+    const guildId = await getGuildId();
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 

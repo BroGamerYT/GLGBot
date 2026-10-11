@@ -27,6 +27,7 @@ import {
   Settings2,
   ShieldCheck,
   BookOpen,
+  Server,
 } from "lucide-react";
 
 interface NavItem {
@@ -34,6 +35,8 @@ interface NavItem {
   label: string;
   icon: any;
   color: string;
+  /** nur für den Bot-Besitzer sichtbar */
+  ownerOnly?: boolean;
 }
 
 interface NavGroup {
@@ -53,6 +56,7 @@ const GROUPS: NavGroup[] = [
       { href: "/", label: "Übersicht", icon: LayoutDashboard, color: "text-discord-blurple" },
       { href: "/setup", label: "Server einrichten", icon: Wand2, color: "text-indigo-300" },
       { href: "/modules", label: "Module", icon: Blocks, color: "text-indigo-300" },
+      { href: "/servers", label: "Server-Freigabe", icon: Server, color: "text-amber-300", ownerOnly: true },
     ],
   },
   {
@@ -109,6 +113,15 @@ export default function SidebarNav() {
   const pathname = usePathname() || "/";
   // Zugeklappte Bereiche merken (pro Browser)
   const [closed, setClosed] = useState<Set<string>>(new Set());
+  const [isOwner, setIsOwner] = useState(false);
+
+  useEffect(() => {
+    // Server-Freigabe nur dem Bot-Besitzer anzeigen
+    fetch("/api/bot/guild-access")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => setIsOwner(!!j?.isOwner))
+      .catch(() => null);
+  }, []);
 
   useEffect(() => {
     try {
@@ -152,7 +165,7 @@ export default function SidebarNav() {
 
             {open && (
               <div className="mt-1 grid gap-1">
-                {group.items.map((item) => {
+                {group.items.filter((item) => !item.ownerOnly || isOwner || isActive(pathname, item.href)).map((item) => {
                   const active = isActive(pathname, item.href);
                   const Icon = item.icon;
                   return (

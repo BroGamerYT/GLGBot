@@ -46,10 +46,39 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.7.0",
+    version: "v2.8.0",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Mehrere Server (max. 5)",
+    description:
+      "Ein Bot für bis zu 5 freigegebene Server - mit Server-Wechsel im Dashboard, getrennten Daten pro Server und automatischem Verlassen nicht freigegebener Server.",
+    highlights: [
+      {
+        icon: Globe,
+        title: "Freigabe-Liste & Limit",
+        description:
+          "Nur freigegebene Server (max. 5). Bei fremden Einladungen schreibt der Bot dem Owner kurz warum und verlässt den Server sofort.",
+      },
+      {
+        icon: UserCheck,
+        title: "Server wechseln",
+        description:
+          "Oben links im Dashboard zwischen den Servern wechseln. Jeder sieht nur Server, auf denen er Owner, Admin oder „Server verwalten“ hat.",
+      },
+      {
+        icon: FolderTree,
+        title: "Alles pro Server getrennt",
+        description:
+          "Einstellungen, Level, Regeln, Fälle, Logs und Module gelten pro Server. Neue Server starten mit den Grundmodulen.",
+      },
+    ],
+  },
+  {
+    version: "v2.7.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Streamer Control Panel, Passwortschutz & Modulares System",
     description:
       "Umfassendes Creator-Update: Volle Kanalrechte für Streamer, interaktives Streamer-Panel mit Passwortschutz & Gästeverifizierung, sowie modulare Feature-Schalter für alle Bot-Funktionen.",

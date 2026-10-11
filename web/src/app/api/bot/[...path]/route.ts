@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
+import { ACTIVE_GUILD_COOKIE, pickActiveGuild } from "@/lib/activeGuild";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,10 @@ const ALLOWED = new Set([
   "POST moderation/notes",
   "GET setup",
   "POST setup/run",
+  "GET guilds",
+  "GET guild-access",
+  "POST guild-access/add",
+  "POST guild-access/remove",
 ]);
 
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {
@@ -87,6 +92,8 @@ async function proxy(req: NextRequest, { params }: { params: { path: string[] } 
         // Für Rechteprüfungen im Bot: wer ist eingeloggt? (leer = öffentlicher Besucher ohne Login)
         "x-dashboard-user-id": session?.uid || "",
         "x-dashboard-auth": session ? "1" : "0",
+        // Multi-Guild: gewählter Server (nur einer, den der Nutzer verwalten darf; sonst Haupt-Server)
+        "x-guild-id": pickActiveGuild(session, req.cookies.get(ACTIVE_GUILD_COOKIE)?.value),
       },
       body: req.method === "GET" ? undefined : await req.text(),
       cache: "no-store",

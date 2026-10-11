@@ -4,6 +4,7 @@ import { Guild, GuildMember, Message, Client, EmbedBuilder, PermissionFlagsBits 
 import { auditLogService } from "./auditLogService";
 
 interface ActionRecord {
+  guildId?: string;
   userId: string;
   timestamp: number;
 }
@@ -67,7 +68,8 @@ class SecurityService {
   private channelDeletes: ActionRecord[] = [];
   private roleDeletes: ActionRecord[] = [];
   private bans: ActionRecord[] = [];
-  private recentJoins: number[] = [];
+  /** Beitritte der letzten Sekunden - pro Server getrennt */
+  private recentJoinsByGuild = new Map<string, number[]>();
 
   constructor() {
     this.ensureDataDir();
@@ -127,19 +129,19 @@ class SecurityService {
     let threshold: number;
 
     if (action === "CHANNEL_DELETE") {
-      this.channelDeletes.push({ userId, timestamp: now });
+      this.channelDeletes.push({ guildId: guild.id, userId, timestamp: now });
       this.channelDeletes = this.channelDeletes.filter((r) => r.timestamp > oneMinAgo);
-      targetArray = this.channelDeletes.filter((r) => r.userId === userId);
+      targetArray = this.channelDeletes.filter((r) => r.userId === userId && r.guildId === guild.id);
       threshold = this.config.antiNuke.maxChannelDeletesPerMin;
     } else if (action === "ROLE_DELETE") {
-      this.roleDeletes.push({ userId, timestamp: now });
+      this.roleDeletes.push({ guildId: guild.id, userId, timestamp: now });
       this.roleDeletes = this.roleDeletes.filter((r) => r.timestamp > oneMinAgo);
-      targetArray = this.roleDeletes.filter((r) => r.userId === userId);
+      targetArray = this.roleDeletes.filter((r) => r.userId === userId && r.guildId === guild.id);
       threshold = this.config.antiNuke.maxRoleDeletesPerMin;
     } else {
-      this.bans.push({ userId, timestamp: now });
+      this.bans.push({ guildId: guild.id, userId, timestamp: now });
       this.bans = this.bans.filter((r) => r.timestamp > oneMinAgo);
-      targetArray = this.bans.filter((r) => r.userId === userId);
+      targetArray = this.bans.filter((r) => r.userId === userId && r.guildId === guild.id);
       threshold = this.config.antiNuke.maxBansPerMin;
     }
 
@@ -347,11 +349,11 @@ class SecurityService {
 
     const now = Date.now();
     const tenSecAgo = now - 10000;
-    this.recentJoins.push(now);
-    this.recentJoins = this.recentJoins.filter((t) => t > tenSecAgo);
+    const recentJoins = [...(this.recentJoinsByGuild.get(guild.id) || []), now].filter((t) => t > tenSecAgo);
+    this.recentJoinsByGuild.set(guild.id, recentJoins);
 
-    if (this.recentJoins.length >= this.config.antiRaid.maxJoinsIn10s) {
-      console.warn(`🚨 [ANTI-RAID] Möglicher Raid erkannt! ${this.recentJoins.length} Joins in 10s.`);
+    if (recentJoins.length >= this.config.antiRaid.maxJoinsIn10s) {
+      console.warn(`🚨 [ANTI-RAID] Möglicher Raid erkannt! ${recentJoins.length} Joins in 10s.`);
 
       await auditLogService.log(
         {
@@ -367,7 +369,7 @@ class SecurityService {
             name: guild.name,
           },
           details: {
-            joinsCount: this.recentJoins.length,
+            joinsCount: recentJoins.length,
             timeframe: "10 Sekunden",
             warning: "Ungewöhnlich viele Server-Beitritte registriert.",
           },

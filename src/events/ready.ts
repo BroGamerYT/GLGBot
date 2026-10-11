@@ -9,6 +9,7 @@ import { gameNewsService } from "../services/gameNewsService";
 import { ticketService } from "../services/ticketService";
 import { statsService } from "../services/statsService";
 import { giveawayService } from "../services/giveawayService";
+import { guildAccessService } from "../services/guildAccessService";
 
 const readyEvent: BotEvent<Events.ClientReady> = {
   name: Events.ClientReady,
@@ -25,6 +26,12 @@ const readyEvent: BotEvent<Events.ClientReady> = {
       activities: [{ name: "Community & Security | /help", type: ActivityType.Custom }],
       status: "online",
     });
+
+    // Server-Freigabe (max. 5): nicht freigegebene Server verlassen, Befehle für weitere Server registrieren
+    guildAccessService
+      .enforce(client)
+      .then(() => console.log(`🔐 Freigegebene Server: ${guildAccessService.getAllowedIds().length}/${guildAccessService.maxGuilds}`))
+      .catch((e) => console.error("[GuildAccess] Fehler beim Abgleich:", e));
 
     // Automatischer Benachrichtigungsdienst für Gratis-Spiele
     freeGamesService.startAutoChecker(client);

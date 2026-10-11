@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { LogOut, Gift, LifeBuoy, Newspaper, Trophy, Sparkles, LogIn } from "lucide-react";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
 import SidebarNav from "@/components/SidebarNav";
+import GuildSwitcher from "@/components/GuildSwitcher";
 import { BRANDING, BOT_INITIALS, DASHBOARD_HOST } from "@/lib/branding";
 
 export const metadata: Metadata = {
@@ -104,9 +105,9 @@ export default async function RootLayout({
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-discord-blurple to-indigo-400 flex items-center justify-center font-bold text-white shadow-lg shadow-discord-blurple/20">
                 {BOT_INITIALS}
               </div>
-              <div>
+              <div className="min-w-0">
                 <h1 className="font-bold text-white leading-tight">{BRANDING.bot} Panel</h1>
-                <p className="text-xs text-gray-400">{BRANDING.community}</p>
+                <GuildSwitcher fallbackName={BRANDING.community} />
               </div>
             </div>
 

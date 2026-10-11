@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 import { BRANDING } from "@/lib/branding";
+import { getActiveGuildId } from "@/lib/serverGuild";
 
 function getBotToken() {
   const rootEnvPath = path.join(process.cwd(), "../.env");
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
     }
 
     // Nur Kanäle des eigenen Servers erlauben
-    const guildId = process.env.GUILD_ID;
+    const guildId = await getActiveGuildId();
     const chRes = await fetch(`https://discord.com/api/v10/channels/${encodeURIComponent(channelId)}`, {
       headers: { Authorization: `Bot ${token}` },
       cache: "no-store",
