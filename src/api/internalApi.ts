@@ -972,8 +972,9 @@ export function startInternalApi(client: Client) {
         }
         case "POST /news/feeds/test": {
           const body = await readBody(req);
-          const error = await gameNewsService.postLatest(guild, String(body.id));
-          return error ? send(res, 400, { error }) : send(res, 200, { ok: true });
+          const withPing = Boolean(body?.withPing);
+          const error = await gameNewsService.postLatest(guild, String(body.id), withPing);
+          return error ? send(res, 400, { error }) : send(res, 200, { ok: true, withPing });
         }
         case "POST /news/steam-lookup": {
           const body = await readBody(req);

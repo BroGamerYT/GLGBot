@@ -157,7 +157,7 @@ class FreeGamesService {
   public async fetchEpic(): Promise<FreeGame[] | null> {
     try {
       const res = await fetch(
-        "https://store-site-backend-static.akamaized.net/freeGamesPromotions?locale=de-DE&country=DE&allowCountries=DE",
+        "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=de-DE&country=DE&allowCountries=DE",
         { headers: { "User-Agent": "Mozilla/5.0 GLGBot" } }
       );
       if (!res.ok) return null;

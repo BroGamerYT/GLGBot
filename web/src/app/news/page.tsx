@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Newspaper, Plus, Trash2, Send, RefreshCw, Search, Gamepad2, Cpu, MonitorSmartphone, Link2, CheckCircle2,
   Pickaxe, X, ExternalLink, Sparkles, Hash, AtSign, History, Minus, Play, Pause, Clock, Wrench, Download,
-  Filter, ChevronRight, SlidersHorizontal, BookOpen
+  Filter, ChevronRight, SlidersHorizontal, BookOpen, Bell
 } from "lucide-react";
 
 interface HistoryEntry { at: string; action: "added" | "removed" | "enabled" | "disabled"; name: string; type: SourceType; channelId: string; by?: string }
@@ -367,9 +367,13 @@ export default function NewsPage() {
     });
   };
 
-  const test = (feed: Feed) =>
-    run(`test:${feed.id}`, async () => {
-      await api("news/feeds/test", { id: feed.id });
+  const test = (feed: Feed, withPing = false) =>
+    run(`test:${feed.id}:${withPing ? "ping" : "noping"}`, async () => {
+      await api("news/feeds/test", { id: feed.id, withPing });
+      const role = feed.roleId ? roles.find((r) => r.id === feed.roleId) : null;
+      if (withPing && role) {
+        return `📨 Neuester Beitrag von „${feed.name}“ wurde in #${channelName(feed.channelId)} mit @${role.name}-Rollen-Ping gesendet!`;
+      }
       return `📨 Neuester Beitrag von „${feed.name}“ wurde in #${channelName(feed.channelId)} gepostet (ohne Ping).`;
     });
 
@@ -827,13 +831,23 @@ export default function NewsPage() {
                       {f.type === "minecraft" && <Toggle on={Boolean(f.snapshots)} onClick={() => update(f, { snapshots: !f.snapshots })} label="Snapshots" />}
                       <Toggle on={f.enabled} onClick={() => update(f, { enabled: !f.enabled })} label="Aktiv" />
                       <button
-                        onClick={() => test(f)}
+                        onClick={() => test(f, false)}
                         disabled={busy !== null}
-                        title="Neuesten Beitrag jetzt posten (ohne Ping)"
-                        className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-discord-card disabled:opacity-40"
+                        title="Neuesten Beitrag sofort posten (ohne Ping / Test)"
+                        className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-discord-card disabled:opacity-40 transition-colors"
                       >
-                        {busy === `test:${f.id}` ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        {busy === `test:${f.id}:noping` ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                       </button>
+                      {f.roleId && (
+                        <button
+                          onClick={() => test(f, true)}
+                          disabled={busy !== null}
+                          title={`Neuesten Beitrag MIT @${roles.find((r) => r.id === f.roleId)?.name || "Rolle"}-Ping senden`}
+                          className="p-2 rounded-lg text-amber-400 hover:text-amber-300 hover:bg-amber-400/10 disabled:opacity-40 transition-colors"
+                        >
+                          {busy === `test:${f.id}:ping` ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+                        </button>
+                      )}
                       <button onClick={() => remove(f)} disabled={busy !== null} title="Entfernen" className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-discord-card disabled:opacity-40">
                         <Trash2 className="w-4 h-4" />
                       </button>

@@ -513,8 +513,8 @@ class GameNewsService {
     });
   }
 
-  /** Neuesten Beitrag sofort posten (Test-Button im Dashboard, ohne Ping). */
-  public async postLatest(guild: Guild, id: string): Promise<string | null> {
+  /** Neuesten Beitrag sofort posten (Test-Button im Dashboard, optional mit Rollen-Ping). */
+  public async postLatest(guild: Guild, id: string, withPing = false): Promise<string | null> {
     const feed = this.getFeeds(guild.id).find((f) => f.id === id);
     if (!feed) return "Quelle nicht gefunden.";
     const items = await this.fetchItems(feed);
@@ -522,7 +522,7 @@ class GameNewsService {
     const latest = this.filterItems(feed, items)[0];
     if (!latest) return "Es gibt noch keinen passenden Beitrag.";
     try {
-      await this.send(guild, feed, latest, false);
+      await this.send(guild, feed, latest, withPing);
       return null;
     } catch (e: any) {
       return `Konnte nicht posten: ${e?.message || e}`;
