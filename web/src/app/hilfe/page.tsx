@@ -22,6 +22,7 @@ import {
   Server,
   Coins,
 } from "lucide-react";
+import DynamicRulesView from "@/components/DynamicRulesView";
 
 export const metadata = { title: "Hilfe & Befehle | GLGBot Panel" };
 
@@ -96,6 +97,7 @@ const COMMANDS: { group: string; items: [string, string, string][] }[] = [
     group: "Community & Ranglisten (Für alle)",
     items: [
       ["/help", "Zeigt die strukturierte Hilfe-Übersicht und Links zum Webinterface & Support.", "Alle"],
+      ["/rules [paragraph]", "Zeigt das offizielle, aktuelle Regelwerk unseres Servers (oder einen bestimmten Paragraphen wie §1) direkt im Chat an.", "Alle"],
       ["/web-login", "Generiert einen 30 Minuten gültigen Einmal-Code und 1-Klick-Link zum Anmelden im Webinterface / Shop.", "Alle"],
       ["/rank [mitglied]", "Grafische Rangkarte mit Level, Server-Rang, Fortschrittsbalken, Nachrichten, Voice-Zeit und Daily-Serie.", "Alle"],
       ["/level status", "Dein Level-Status: Fortschritt und wie viele Nachrichten / Voice-Minuten bis zum nächsten Level fehlen (nur für dich sichtbar).", "Alle"],
@@ -442,18 +444,25 @@ export default function HelpPage() {
             </ul>
           </Section>
 
-          {/* Regeln */}
-          <Section id="regeln" title="Regeln & Freischaltung" icon={ScrollText}>
+          {/* Regeln & Live-Regelwerk */}
+          <Section id="regeln" title="Serverregeln & Freischaltung" icon={ScrollText}>
             <p>
-              Der Bot postet eure Regeln schön formatiert in <strong className="text-white">#regeln</strong> - mit einem
-              grünen Button <strong>„Regeln akzeptieren“</strong>. Wer klickt, bekommt die{" "}
-              <strong className="text-white">Gast-Rolle</strong> und sieht danach alle freigegebenen Kanäle.
+              Hier findest du das offizielle, aktuell gültige Regelwerk unseres Discord-Servers.
+              Diese Ansicht ist <strong>live mit dem Bot synchronisiert</strong> — wenn Administratoren Regeln im Dashboard
+              oder über Befehle anpassen, wird der Inhalt hier sofort aktualisiert.
             </p>
-            <p className="font-semibold text-white">Regel-Sperre</p>
-            <p>
-              Ist die Sperre aktiv, sehen neue Mitglieder <strong>nur #regeln</strong>, bis sie die Regeln akzeptieren.
-              Beim Einschalten bekommen alle, die schon auf dem Server sind, automatisch die Gast-Rolle.
-            </p>
+
+            <DynamicRulesView />
+
+            <div className="pt-3 border-t border-discord-border space-y-2">
+              <p className="font-semibold text-white">Funktionsweise der Regel-Sperre</p>
+              <p className="text-gray-400 text-xs leading-relaxed">
+                Der Bot postet eure Regeln formatiert in <strong className="text-white">#regeln</strong> — mit einem
+                grünen Button <strong>„Regeln akzeptieren“</strong>. Wer klickt, bekommt automatisch die{" "}
+                <strong className="text-white">Gast-Rolle</strong> und sieht danach alle freigegebenen Kanäle.
+                Ist die Regel-Sperre aktiv (<Cmd>/setup-rules lock</Cmd>), sehen neue Mitglieder ausschließlich den Regelkanal, bis sie die Regeln bestätigt haben.
+              </p>
+            </div>
           </Section>
 
           {/* Rollen */}

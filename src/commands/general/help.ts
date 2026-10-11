@@ -66,8 +66,9 @@ const helpCommand: Command = {
           inline: false,
         },
         {
-          name: "📩 Support, Tickets & Community",
+          name: "📩 Support, Tickets, Regeln & Community",
           value:
+            "`/rules [paragraph]` • Zeigt das offizielle, aktuelle Regelwerk (oder z.B. §1) an\n" +
             "`/setup-tickets` • Postet das Ticket-Panel für private Support-Anfragen\n" +
             "`/suggest neu|status` • Reiche Vorschläge mit Upvote/Downvote-Buttons ein\n" +
             "`/giveaway start|end|reroll` • Verlosungen mit Teilnahme-Button\n" +
@@ -118,10 +119,12 @@ const helpCommand: Command = {
       .setTimestamp();
 
     const helpUrl = dashboardLink("/hilfe");
+    const rulesUrl = dashboardLink("/hilfe#regeln");
     const components = helpUrl
       ? [
           new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder().setLabel("Web-Dashboard & Dokumentation").setStyle(ButtonStyle.Link).setURL(helpUrl).setEmoji("🌐")
+            new ButtonBuilder().setLabel("Web-Dashboard & Hilfe").setStyle(ButtonStyle.Link).setURL(helpUrl).setEmoji("🌐"),
+            new ButtonBuilder().setLabel("Live-Serverregeln").setStyle(ButtonStyle.Link).setURL(rulesUrl || helpUrl).setEmoji("📜")
           ),
         ]
       : [];

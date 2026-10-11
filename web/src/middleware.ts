@@ -46,7 +46,8 @@ export async function middleware(req: NextRequest) {
       pathname.startsWith("/api/bot/news") ||
       pathname.startsWith("/api/bot/live/active") ||
       pathname.startsWith("/api/bot/releases") ||
-      pathname.startsWith("/api/bot/economy")) &&
+      pathname.startsWith("/api/bot/economy") ||
+      pathname.startsWith("/api/bot/rules")) &&
       (req.method === "GET" || req.method === "HEAD"));
 
   if (isPublicApi) {
