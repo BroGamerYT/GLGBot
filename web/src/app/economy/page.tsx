@@ -22,6 +22,11 @@ import {
   Gift,
   Tag,
   Flame,
+  Palette,
+  TrendingUp,
+  Info,
+  HelpCircle,
+  Zap,
 } from "lucide-react";
 
 interface EconomyConfig {
@@ -34,6 +39,8 @@ interface EconomyConfig {
   dailyBaseCoins: number;
   dailyStreakBonusCoins: number;
   payFeePercent: number;
+  xpPerCoin?: number;
+  enableXpExchange?: boolean;
 }
 
 interface ShopItem {
@@ -41,8 +48,9 @@ interface ShopItem {
   name: string;
   description: string;
   price: number;
-  type: "role" | "badge" | "custom_voice" | "custom";
+  type: "role" | "color" | "badge" | "custom_voice" | "custom";
   roleId?: string;
+  colorHex?: string;
   badgeIcon?: string;
   stock?: number;
   requiredLevel?: number;
@@ -105,14 +113,22 @@ export default function EconomyPage() {
   const [activeTab, setActiveTab] = useState<"shop" | "leaderboard" | "inventory" | "admin">("shop");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
+  // User Profil & Level (für Börsentausch)
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [exchangeXpAmount, setExchangeXpAmount] = useState<number>(100);
+  const [exchanging, setExchanging] = useState(false);
+  const [settingUpColors, setSettingUpColors] = useState(false);
+  const [showHowToEarn, setShowHowToEarn] = useState(true);
+
   // Admin Modal für Shop-Item
   const [showItemModal, setShowItemModal] = useState(false);
   const [editingItem, setEditingItem] = useState<ShopItem | null>(null);
   const [itemName, setItemName] = useState("");
   const [itemDesc, setItemDesc] = useState("");
   const [itemPrice, setItemPrice] = useState(500);
-  const [itemType, setItemType] = useState<"role" | "badge" | "custom_voice" | "custom">("role");
+  const [itemType, setItemType] = useState<"role" | "color" | "badge" | "custom_voice" | "custom">("role");
   const [itemRoleId, setItemRoleId] = useState("");
+  const [itemColorHex, setItemColorHex] = useState("#FF3366");
   const [itemBadgeIcon, setItemBadgeIcon] = useState("⭐");
   const [itemStock, setItemStock] = useState(-1);
   const [itemRequiredLevel, setItemRequiredLevel] = useState(0);
@@ -162,11 +178,56 @@ export default function EconomyPage() {
       setTransactions(data.transactions || []);
       setUserWallet(data.userWallet || null);
       setUserInventory(data.userInventory || []);
+      setUserProfile(data.userProfile || null);
       setRoles(data.roles || []);
     } catch (err: any) {
       setError(err?.message || "Konnte Daten nicht laden");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleExchangeXp() {
+    if (!isLoggedIn) {
+      window.location.href = "/login";
+      return;
+    }
+    setExchanging(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch("/api/bot/economy/exchange-xp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ xp: exchangeXpAmount }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Fehler beim Börsen-Umtausch");
+      setSuccess(`🎉 Börsen-Erfolg! ${exchangeXpAmount.toLocaleString("de-DE")} XP erfolgreich in +${data.coinsEarned.toLocaleString("de-DE")} ${config?.currencyName} umgewandelt!`);
+      await loadData();
+    } catch (err: any) {
+      setError(err?.message || "Fehler beim Umtausch");
+    } finally {
+      setExchanging(false);
+    }
+  }
+
+  async function handleSetupColors() {
+    setSettingUpColors(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch("/api/bot/economy/setup-colors", {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Fehler beim Einrichten der Farbrollen");
+      setSuccess(`🎨 Fertig! ${data.createdRoles} Discord-Farbrollen erstellt und ${data.addedItems} Namensfarben zum Shop hinzugefügt!`);
+      await loadData();
+    } catch (err: any) {
+      setError(err?.message || "Fehler beim Setup der Farbrollen");
+    } finally {
+      setSettingUpColors(false);
     }
   }
 
@@ -202,6 +263,7 @@ export default function EconomyPage() {
     setItemPrice(500);
     setItemType("role");
     setItemRoleId(roles[0]?.id || "");
+    setItemColorHex("#FF3366");
     setItemBadgeIcon("⭐");
     setItemStock(-1);
     setItemRequiredLevel(0);
@@ -216,6 +278,7 @@ export default function EconomyPage() {
     setItemPrice(item.price);
     setItemType(item.type);
     setItemRoleId(item.roleId || roles[0]?.id || "");
+    setItemColorHex(item.colorHex || "#FF3366");
     setItemBadgeIcon(item.badgeIcon || "⭐");
     setItemStock(item.stock ?? -1);
     setItemRequiredLevel(item.requiredLevel ?? 0);
@@ -234,7 +297,8 @@ export default function EconomyPage() {
         description: itemDesc,
         price: Number(itemPrice),
         type: itemType,
-        roleId: itemType === "role" ? itemRoleId : undefined,
+        roleId: itemType === "role" || itemType === "color" ? itemRoleId : undefined,
+        colorHex: itemType === "color" ? itemColorHex : undefined,
         badgeIcon: itemType === "badge" ? itemBadgeIcon : undefined,
         stock: Number(itemStock),
         requiredLevel: Number(itemRequiredLevel),
@@ -476,11 +540,180 @@ export default function EconomyPage() {
       {/* Tab: SHOP */}
       {activeTab === "shop" && (
         <div className="space-y-6">
+          {/* Info-Banner: Wie verdiene ich Coins & Marktwirtschaft */}
+          <div className="bg-gradient-to-r from-amber-500/10 via-discord-card to-discord-card border border-amber-500/20 rounded-2xl p-5 shadow-lg">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                  <Coins className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>💡 So funktioniert das Coins- & Wirtschaftssystem</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300">
+                      Community-Guide
+                    </span>
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Sammle Coins durch tägliche Aktivität auf dem Discord-Server oder investiere deine Level-Punkte.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowHowToEarn(!showHowToEarn)}
+                className="text-xs text-amber-300 hover:text-white px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all shrink-0"
+              >
+                {showHowToEarn ? "Einklappen ▲" : "Details anzeigen ▼"}
+              </button>
+            </div>
+
+            {showHowToEarn && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-4 pt-4 border-t border-discord-border/50 text-xs">
+                <div className="p-3 rounded-xl bg-discord-dark/50 border border-discord-border/40">
+                  <span className="font-semibold text-white flex items-center gap-1.5 mb-1">
+                    💬 Text-Chat Aktivität
+                  </span>
+                  <p className="text-gray-400">
+                    Schreibe in Kanälen: <strong>{config?.messageCoinsMin || 1}–{config?.messageCoinsMax || 3} Coins</strong> pro Nachricht (60s Cooldown).
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-discord-dark/50 border border-discord-border/40">
+                  <span className="font-semibold text-white flex items-center gap-1.5 mb-1">
+                    🎙️ Sprachkanal (Talk)
+                  </span>
+                  <p className="text-gray-400">
+                    Sei im Voice mit Freunden: <strong>+{config?.voiceCoinsPerMinute || 1} Coin</strong> pro Minute aktiver Gesprächszeit.
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-discord-dark/50 border border-discord-border/40">
+                  <span className="font-semibold text-white flex items-center gap-1.5 mb-1">
+                    🎁 Täglicher Bonus
+                  </span>
+                  <p className="text-gray-400">
+                    Nutze <code>/daily</code> auf Discord: <strong>{config?.dailyBaseCoins || 100} Coins</strong> + <strong>+{config?.dailyStreakBonusCoins || 15} Coins</strong> pro Streak-Tag!
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-discord-dark/50 border border-discord-border/40">
+                  <span className="font-semibold text-white flex items-center gap-1.5 mb-1">
+                    📈 Level-Börse (XP)
+                  </span>
+                  <p className="text-gray-400">
+                    Tausche verdiente Level-Punkte in Coins um. Kurs: <strong>1 Coin = {config?.xpPerCoin || 10} XP</strong>.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* XP-Börse (Marktwirtschaft & Level-Punkte investieren) */}
+          {config?.enableXpExchange !== false && (
+            <div className="bg-gradient-to-r from-emerald-500/10 via-discord-card to-discord-card border border-emerald-500/20 rounded-2xl p-5 shadow-lg space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <TrendingUp className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <span>📈 Level-Punkte Börse & Marktwirtschaft</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300">
+                        Kurs: 1 {config?.currencyName || "Coin"} = {config?.xpPerCoin || 10} XP
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Investiere deine gesammelten Level-XP in Coins, um dir exklusive Rollen und Namensfarben zu kaufen.
+                    </p>
+                  </div>
+                </div>
+
+                {isLoggedIn && userProfile ? (
+                  <div className="flex items-center gap-4 text-xs bg-discord-dark/70 px-4 py-2 rounded-xl border border-discord-border self-start md:self-auto">
+                    <div>
+                      <span className="text-gray-400 block text-[10px]">Dein Level</span>
+                      <strong className="text-emerald-400 font-bold text-sm">Level {userProfile.progress?.level || userProfile.stats?.level || 1}</strong>
+                    </div>
+                    <div className="w-px h-6 bg-discord-border"></div>
+                    <div>
+                      <span className="text-gray-400 block text-[10px]">Verfügbare XP</span>
+                      <strong className="text-white font-bold text-sm">{(userProfile.progress?.currentXp || userProfile.stats?.xp || 0).toLocaleString("de-DE")} XP</strong>
+                    </div>
+                  </div>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white transition-all self-start md:self-auto"
+                  >
+                    Einloggen zum Tauschen
+                  </Link>
+                )}
+              </div>
+
+              {isLoggedIn && (
+                <div className="p-4 rounded-xl bg-discord-dark/50 border border-discord-border/50 flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex-1 w-full space-y-2">
+                    <div className="flex items-center justify-between text-xs text-gray-400">
+                      <span>Wie viele XP möchtest du tauschen?</span>
+                      <span className="text-emerald-300 font-semibold">
+                        Ergibt: +{Math.floor(exchangeXpAmount / (config?.xpPerCoin || 10)).toLocaleString("de-DE")} {config?.currencyName || "Coins"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={config?.xpPerCoin || 10}
+                        max={userProfile?.stats?.xp || 50000}
+                        step={config?.xpPerCoin || 10}
+                        value={exchangeXpAmount}
+                        onChange={(e) => setExchangeXpAmount(Math.max(10, Number(e.target.value)))}
+                        className="flex-1 px-3 py-2 rounded-xl bg-discord-dark border border-discord-border text-white text-sm font-semibold"
+                      />
+                      <div className="flex items-center gap-1 text-xs">
+                        {[100, 500, 1000].map((val) => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => setExchangeXpAmount(val)}
+                            className="px-2.5 py-2 rounded-lg bg-discord-card hover:bg-discord-card/80 text-gray-300 border border-discord-border text-xs transition-colors"
+                          >
+                            +{val}
+                          </button>
+                        ))}
+                        {userProfile?.stats?.xp && (
+                          <button
+                            type="button"
+                            onClick={() => setExchangeXpAmount(userProfile.stats.xp)}
+                            className="px-2.5 py-2 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/30 text-xs transition-colors font-semibold"
+                          >
+                            Max
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleExchangeXp}
+                    disabled={exchanging || exchangeXpAmount < (config?.xpPerCoin || 10) || (userProfile?.stats?.xp !== undefined && userProfile.stats.xp < exchangeXpAmount)}
+                    className="w-full md:w-auto px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white font-bold text-sm transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 shrink-0"
+                  >
+                    {exchanging ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <TrendingUp className="w-4 h-4" />
+                    )}
+                    <span>XP in Coins umtauschen</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Kategorie-Filter */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
             {[
               { id: "all", label: "Alle Artikel" },
               { id: "role", label: "🎭 Discord-Rollen" },
+              { id: "color", label: "🎨 Namensfarben" },
               { id: "badge", label: "⭐ Profil-Badges" },
               { id: "custom_voice", label: "🔊 Voice-Features" },
               { id: "custom", label: "🎁 Besondere Vorteile" },
@@ -524,19 +757,28 @@ export default function EconomyPage() {
                     <div>
                       <div className="flex items-start justify-between gap-3 mb-3">
                         <div className="flex items-center gap-2">
-                          <span className="text-2xl">
-                            {item.type === "role"
-                              ? "🎭"
-                              : item.type === "badge"
-                              ? item.badgeIcon || "⭐"
-                              : item.type === "custom_voice"
-                              ? "🔊"
-                              : "🎁"}
+                          <span className="text-2xl flex items-center justify-center">
+                            {item.type === "color" ? (
+                              <span
+                                className="w-6 h-6 rounded-full border border-white/30 shadow-sm inline-block"
+                                style={{ backgroundColor: item.colorHex || "#FF3366" }}
+                              ></span>
+                            ) : item.type === "role" ? (
+                              "🎭"
+                            ) : item.type === "badge" ? (
+                              item.badgeIcon || "⭐"
+                            ) : item.type === "custom_voice" ? (
+                              "🔊"
+                            ) : (
+                              "🎁"
+                            )}
                           </span>
                           <div>
                             <h3 className="font-bold text-white text-base leading-tight">{item.name}</h3>
                             <span className="text-[11px] text-gray-400 capitalize">
-                              {item.type === "role"
+                              {item.type === "color"
+                                ? "🎨 Namensfarbe"
+                                : item.type === "role"
                                 ? "Discord-Rolle"
                                 : item.type === "badge"
                                 ? "Profil-Badge"
@@ -857,6 +1099,32 @@ export default function EconomyPage() {
                   />
                 </div>
 
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-discord-border">
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">Börsenkurs (XP pro Coin)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={editConfig.xpPerCoin ?? 10}
+                      onChange={(e) => setEditConfig({ ...editConfig, xpPerCoin: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl bg-discord-dark border border-discord-border text-white text-sm"
+                      placeholder="Standard: 10"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-6">
+                    <input
+                      type="checkbox"
+                      id="enableXpExchange"
+                      checked={editConfig.enableXpExchange !== false}
+                      onChange={(e) => setEditConfig({ ...editConfig, enableXpExchange: e.target.checked })}
+                      className="w-4 h-4 rounded text-discord-blurple"
+                    />
+                    <label htmlFor="enableXpExchange" className="text-xs text-gray-300 cursor-pointer">
+                      Level-XP Börsentausch erlauben
+                    </label>
+                  </div>
+                </div>
+
                 <button
                   type="submit"
                   disabled={saving}
@@ -936,6 +1204,56 @@ export default function EconomyPage() {
                 {saving ? "Wird ausgeführt..." : "Kontostand anpassen"}
               </button>
             </form>
+          </div>
+
+          {/* Quick Action: Farbrollen Setup */}
+          <div className="bg-discord-card border border-discord-border rounded-2xl p-6 space-y-4 lg:col-span-2">
+            <h3 className="font-bold text-white text-base flex items-center gap-2">
+              <Palette className="w-4 h-4 text-pink-400" />
+              Namensfarben & Farbrollen 1-Klick Setup
+            </h3>
+            <p className="text-xs text-gray-400">
+              Möchtest du deinen Mitgliedern bunte Chat-Namen über den Belohnungs-Shop anbieten? Mit einem Klick erstellt der Bot 6 leuchtende Standard-Farbrollen auf deinem Server und fügt sie direkt in den Shop ein.
+            </p>
+
+            <div className="p-4 rounded-xl bg-discord-dark/50 border border-discord-border/50 space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {[
+                  { name: "Neonrot", hex: "#FF3366" },
+                  { name: "Cyber-Cyan", hex: "#00F0FF" },
+                  { name: "Goldgelb", hex: "#FFD700" },
+                  { name: "Smaragdgrün", hex: "#10B981" },
+                  { name: "Amethyst", hex: "#A855F7" },
+                  { name: "Flammenorange", hex: "#F97316" },
+                ].map((c) => (
+                  <span
+                    key={c.name}
+                    className="px-2.5 py-1 rounded-lg text-xs font-semibold text-white border border-white/10 flex items-center gap-1.5 shadow-sm"
+                    style={{ backgroundColor: `${c.hex}25` }}
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.hex }}></span>
+                    {c.name}
+                  </span>
+                ))}
+              </div>
+
+              <div className="text-xs text-amber-300/90 bg-amber-500/10 p-3 rounded-xl border border-amber-500/20 leading-relaxed">
+                💡 <strong>Wichtiger Discord-Tipp:</strong> Ziehe die neu erstellten Farbrollen in den Discord-Servereinstellungen (Rollen) <strong>über</strong> die normalen Mitgliedsrollen, damit Discord die Farbe für den Mitgliedsnamen im Chat und in der Mitgliederliste übernimmt!
+              </div>
+
+              <button
+                onClick={handleSetupColors}
+                disabled={settingUpColors}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 disabled:opacity-50 text-white font-bold text-xs transition-all shadow-md shadow-pink-500/20 flex items-center justify-center gap-2"
+              >
+                {settingUpColors ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Palette className="w-4 h-4" />
+                )}
+                <span>🎨 6 Farbrollen auf Discord erstellen & zum Shop hinzufügen</span>
+              </button>
+            </div>
           </div>
 
           {/* Letzte Transaktionen */}
@@ -1035,6 +1353,7 @@ export default function EconomyPage() {
                     className="w-full px-3 py-2 rounded-xl bg-discord-dark border border-discord-border text-white text-sm"
                   >
                     <option value="role">🎭 Discord-Rolle</option>
+                    <option value="color">🎨 Namensfarbe (Rolle)</option>
                     <option value="badge">⭐ Profil-Badge</option>
                     <option value="custom_voice">🔊 Voice-Feature</option>
                     <option value="custom">🎁 Sonstiges</option>
@@ -1042,21 +1361,45 @@ export default function EconomyPage() {
                 </div>
               </div>
 
-              {itemType === "role" && (
+              {(itemType === "role" || itemType === "color") && (
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Zu vergebende Discord-Rolle</label>
+                  <label className="text-xs text-gray-400 block mb-1">
+                    {itemType === "color" ? "Farbrolle auswählen" : "Zu vergebende Discord-Rolle"}
+                  </label>
                   <select
                     value={itemRoleId}
                     onChange={(e) => setItemRoleId(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-discord-dark border border-discord-border text-white text-sm"
                     required
                   >
+                    <option value="">Rolle auswählen...</option>
                     {roles.map((r) => (
                       <option key={r.id} value={r.id}>
                         @{r.name}
                       </option>
                     ))}
                   </select>
+                </div>
+              )}
+
+              {itemType === "color" && (
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Vorschau-Farbe (HEX)</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={itemColorHex}
+                      onChange={(e) => setItemColorHex(e.target.value)}
+                      className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0 shrink-0"
+                    />
+                    <input
+                      type="text"
+                      value={itemColorHex}
+                      onChange={(e) => setItemColorHex(e.target.value)}
+                      className="flex-1 px-3 py-2 rounded-xl bg-discord-dark border border-discord-border text-white text-sm font-mono"
+                      placeholder="#FF3366"
+                    />
+                  </div>
                 </div>
               )}
 

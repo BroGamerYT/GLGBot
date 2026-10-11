@@ -249,25 +249,35 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 * Prüfung alle 15 Minuten, beim Hinzufügen wird nichts Altes gepostet.
 
 ### 10. 📅 Game-Release-Kalender
-* **Kommende Spiele im Überblick:** Titel, Release-Datum, Plattformen (PC, PS5, Xbox Series, Switch, Game Pass), Genre, Cover sowie Store- und Trailer-Links. Admins können im Dashboard eigene Einträge ergänzen.
+* **Kommende Spiele & Große Updates:** Titel, Release-Datum, Plattformen (PC, PS5, Xbox Series, Switch, Game Pass), Genre, Cover sowie Store- und Trailer-Links.
+* **Aktive Server-Spiele & Major Updates:** Berücksichtigt aktive Community-Spiele (Euro Truck Simulator 2, Call of Duty, GTA Online, Gray Zone Warfare, Minecraft) mit großen Updates und DLCs.
+* **Filter & Badges:** Filter-Pills im Dashboard für *Alle*, *⚡ Große Updates & DLCs*, *🌟 Triple-A Blockbuster*, *🎮 Aktive Server-Spiele* und *🕹️ Neue Vollversionen*.
 * **Slash-Befehl `/releases`:**
   * `/releases uebersicht [zeitraum] [plattform]`: Zeitraum *Diese Woche*, *Dieser Monat*, *Nächster Monat* oder *Alle kommenden*; Plattform *Alle*, *PC*, *PS5*, *Xbox Series*, *Switch* oder *Game Pass*.
   * `/releases post-woche`: Postet die Releases der laufenden Woche in den Ankündigungskanal.
 * **Wochen-Post:** Montags um 10:00 Uhr automatisch im Game-News-Kanal.
 * **Öffentliche Dashboard-Seite (`/releases`):** Ohne Login erreichbar, mit Zeitraum-Ansicht, Plattform-Filter und Release-Countdown.
 
-### 11. 💰 Community-Wirtschaft & Belohnungs-Shop
+### 11. 💰 Community-Wirtschaft, XP-Börse & Belohnungs-Shop
 * **Server-Währung (Coins):**
   * Konfigurierbarer Währungsname (z. B. *Coins*, *Credits*) und Symbol (`🪙`).
   * Einnahmequellen: Chat-Nachrichten, Voice-Aktivität und täglicher Bonus via `/daily` mit Streak-Bonus.
+  * Interaktiver Guide im Dashboard („💡 So funktioniert das Coins- & Wirtschaftssystem“) zur transparenten Übersicht für alle Mitglieder.
+* **📈 Level-Punkte Börse & Marktwirtschaft (`/shop tauschen`):**
+  * Mitglieder können ihre hart erarbeiteten Level-XP direkt in Server-Coins umtauschen.
+  * Flexibler Wechselkurs (`xpPerCoin`, z. B. 10 XP = 1 Coin) und Ein-/Ausschalten der Börse im Dashboard live konfigurierbar.
+* **🎨 Namensfarben-System (Discord Farbrollen):**
+  * Eigene Namensfarben im Shop kaufen, die die Farbe des Discord-Namens in der Mitgliederliste ändern.
+  * **1-Klick Farbrollen-Generator:** Erstellt im Dashboard automatisch 6 leuchtende Farbrollen (`🎨 Neonrot`, `🎨 Cyber-Cyan`, `🎨 Goldgelb`, `🎨 Smaragdgrün`, `🎨 Amethystviolett`, `🎨 Flammenorange`) und trägt sie als Shop-Items ein.
+  * **Automatischer Rollen-Tausch:** Beim Kauf einer neuen Namensfarbe wird die alte Farbrolle automatisch entfernt, um Konflikte in der Rollen-Hierarchie zu verhindern.
 * **Belohnungs-Shop (`/shop`):**
-  * Rollen, Profil-Badges und Voice-Features im Web oder per Slash-Befehl kaufen – Discord-Rollen vergibt der Bot automatisch.
+  * Rollen, Namensfarben, Profil-Badges und Voice-Features im Web oder per Slash-Befehl kaufen – Discord-Rollen vergibt der Bot automatisch.
 * **Transaktionen & Guthaben:**
   * `/balance`: Zeigt das persönliche Guthaben, den Vermögens-Rang und die letzten Transaktionen an.
   * `/pay <mitglied> <betrag>`: Sichere Überweisung zwischen Mitgliedern (mit Saldenprüfung).
 * **Admin-Finanzverwaltung:**
   * `/economy geben | abziehen | setzen | reset`: Konten manuell anpassen, mit Grund im Log.
-  * Volle Verwaltung im Dashboard unter `/economy`.
+  * Volle Verwaltung im Dashboard unter `/economy` (nur für eingeloggte Admins sichtbar).
 
 ### 12. ⚡ 1-Klick Server-Templates & Auto-Setup Wizard
 * **5 Vorlagen:** 🎮 *Gaming Clan & E-Sport*, 🌐 *Multi-Gaming Community*, 💻 *Coding / Dev / Tech*, 🌸 *Anime, Manga & Hangout*, 🔴 *Content Creator & Streamer*.

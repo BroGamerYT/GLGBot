@@ -14,12 +14,17 @@ import { moduleService } from "./moduleService";
 
 export type ReleasePlatform = "PC" | "PS5" | "Xbox" | "Switch" | "Game Pass";
 
+export type ReleaseCategory = "game" | "major_update" | "dlc";
+
 export interface GameRelease {
   id: string;
   title: string;
   releaseDate: string; // Format: "YYYY-MM-DD"
   platforms: ReleasePlatform[];
   genre: string;
+  category?: ReleaseCategory;
+  isTripleA?: boolean;
+  isServerGame?: boolean;
   description?: string;
   coverUrl?: string;
   storeUrl?: string;
@@ -40,12 +45,89 @@ export interface ReleaseConfig {
 }
 
 export const CURATED_RELEASES: GameRelease[] = [
+  // --- Aktive Server-Spiele & Große Updates ---
+  {
+    id: "curated-ets2-nordic",
+    title: "Euro Truck Simulator 2 – Nordic Horizons DLC & 1.54 Update",
+    releaseDate: "2026-11-12",
+    platforms: ["PC"],
+    genre: "Simulation / Open World",
+    category: "major_update",
+    isServerGame: true,
+    description: "Riesige Kartenerweiterung für den Norden Europas: Norwegen, Schweden und Finnland bis zum Polarkreis inklusive technischer Überarbeitung.",
+    coverUrl: "https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=600&auto=format&fit=crop&q=80",
+    storeUrl: "https://store.steampowered.com/app/227300/Euro_Truck_Simulator_2/",
+    isCurated: true,
+    createdAt: 1728640000000,
+  },
+  {
+    id: "curated-cod-bo6-update",
+    title: "Call of Duty: Black Ops 6 – Season 1 Reloaded & Warzone Integration",
+    releaseDate: "2026-11-14",
+    platforms: ["PC", "PS5", "Xbox", "Game Pass"],
+    genre: "Ego-Shooter / Action",
+    category: "major_update",
+    isTripleA: true,
+    isServerGame: true,
+    description: "Großes Content-Update mit neuen Mehrspieler-Karten, Waffen, neuem Zombies-Kapitel und voller Warzone-Integration.",
+    coverUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80",
+    storeUrl: "https://store.steampowered.com/app/1938090/Call_of_Duty/",
+    isCurated: true,
+    createdAt: 1728640000000,
+  },
+  {
+    id: "curated-gta-online-winter",
+    title: "GTA Online – Großes Winter Heist & Business Update 2026",
+    releaseDate: "2026-12-10",
+    platforms: ["PC", "PS5", "Xbox"],
+    genre: "Action / Open World / Multiplayer",
+    category: "major_update",
+    isTripleA: true,
+    isServerGame: true,
+    description: "Das traditionell größte Update des Jahres für GTA Online: Neuer Heist-Raid, exklusive Immobilien, Schneefall-Event und neue Luxusfahrzeuge.",
+    coverUrl: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80",
+    storeUrl: "https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/",
+    isCurated: true,
+    createdAt: 1728640000000,
+  },
+  {
+    id: "curated-grayzone-nightops",
+    title: "Gray Zone Warfare – Major Update 0.2 'Night Ops'",
+    releaseDate: "2026-11-25",
+    platforms: ["PC"],
+    genre: "Taktik-Shooter / Extraction",
+    category: "major_update",
+    isServerGame: true,
+    description: "Vollständiger dynamischer Tag-Nacht-Zyklus, Nachtsichtgeräte, NVG-Optiken, überarbeitete KI-Wahrnehmung und 20+ neue Missionen.",
+    coverUrl: "https://images.unsplash.com/photo-1552824792-7cf513c9320e?w=600&auto=format&fit=crop&q=80",
+    storeUrl: "https://store.steampowered.com/app/2479810/Gray_Zone_Warfare/",
+    isCurated: true,
+    createdAt: 1728640000000,
+  },
+  {
+    id: "curated-minecraft-update",
+    title: "Minecraft Java & Bedrock – Bundles & Bravery (1.22 Update)",
+    releaseDate: "2026-11-05",
+    platforms: ["PC", "PS5", "Xbox", "Switch", "Game Pass"],
+    genre: "Sandbox / Survival",
+    category: "major_update",
+    isServerGame: true,
+    description: "Offizielles Bündel-System für das Inventar, neue Rüstungsverzierungen, härtere Erkundungsherausforderungen und verbesserte Weltengenerierung.",
+    coverUrl: "https://images.unsplash.com/photo-1627856013091-fed6e4e30025?w=600&auto=format&fit=crop&q=80",
+    storeUrl: "https://www.minecraft.net/",
+    isCurated: true,
+    createdAt: 1728640000000,
+  },
+
+  // --- Große Triple-A Blockbuster Releases ---
   {
     id: "curated-gta6",
     title: "Grand Theft Auto VI",
     releaseDate: "2026-11-20",
     platforms: ["PS5", "Xbox"],
     genre: "Action / Open World",
+    category: "game",
+    isTripleA: true,
     description: "Kehre zurück nach Vice City im nächsten Blockbuster von Rockstar Games.",
     coverUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80",
     storeUrl: "https://www.rockstargames.com/VI",
@@ -59,6 +141,8 @@ export const CURATED_RELEASES: GameRelease[] = [
     releaseDate: "2026-10-28",
     platforms: ["PC", "PS5", "Xbox"],
     genre: "Action-RPG",
+    category: "game",
+    isTripleA: true,
     description: "Erkunde wilde neue Ökosysteme und jage gewaltige Monster in dynamischen Landschaften.",
     coverUrl: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80",
     storeUrl: "https://store.steampowered.com/app/2246340/Monster_Hunter_Wilds/",
@@ -71,9 +155,25 @@ export const CURATED_RELEASES: GameRelease[] = [
     releaseDate: "2026-11-15",
     platforms: ["PC", "PS5", "Xbox", "Game Pass"],
     genre: "Ego-Shooter",
+    category: "game",
+    isTripleA: true,
     description: "Das Prequel zu DOOM (2016) und DOOM Eternal in einer düsteren mittelalterlichen Hölle.",
     coverUrl: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=80",
     storeUrl: "https://bethesda.net/game/doom-the-dark-ages",
+    isCurated: true,
+    createdAt: 1728640000000,
+  },
+  {
+    id: "curated-borderlands4",
+    title: "Borderlands 4",
+    releaseDate: "2026-12-15",
+    platforms: ["PC", "PS5", "Xbox"],
+    genre: "Looter-Shooter / Action-RPG",
+    category: "game",
+    isTripleA: true,
+    description: "Entkomme von einem neuen mysteriösen Planeten im nächsten Kapitel des ultimativen Looter-Shooters von Gearbox.",
+    coverUrl: "https://images.unsplash.com/photo-1563089145-599997674d42?w=600&auto=format&fit=crop&q=80",
+    storeUrl: "https://store.steampowered.com/app/1285190/Borderlands_4/",
     isCurated: true,
     createdAt: 1728640000000,
   },
@@ -83,6 +183,8 @@ export const CURATED_RELEASES: GameRelease[] = [
     releaseDate: "2026-10-24",
     platforms: ["PC", "PS5", "Xbox", "Switch"],
     genre: "Rundenstrategie / 4X",
+    category: "game",
+    isTripleA: true,
     description: "Führe deine Zivilisation durch Zeitalter des menschlichen Fortschritts.",
     coverUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80",
     storeUrl: "https://store.steampowered.com/app/1295660/Sid_Meiers_Civilization_VII/",
@@ -95,6 +197,8 @@ export const CURATED_RELEASES: GameRelease[] = [
     releaseDate: "2026-12-05",
     platforms: ["PC", "Xbox", "Game Pass"],
     genre: "Action-RPG / Fantasy",
+    category: "game",
+    isTripleA: true,
     description: "Ein neuer Beginn für das legendäre Rollenspiel-Franchise von Playground Games.",
     coverUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80",
     storeUrl: "https://www.xbox.com/games/fable",
@@ -107,6 +211,8 @@ export const CURATED_RELEASES: GameRelease[] = [
     releaseDate: "2026-11-30",
     platforms: ["PC", "PS5", "Xbox"],
     genre: "Action-Adventure",
+    category: "game",
+    isTripleA: true,
     description: "Erlebe die Ursprünge des organisierten Verbrechens im Sizilien der 1900er-Jahre.",
     coverUrl: "https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=600&auto=format&fit=crop&q=80",
     storeUrl: "https://store.steampowered.com/app/2182300/Mafia_The_Old_Country/",
@@ -119,6 +225,7 @@ export const CURATED_RELEASES: GameRelease[] = [
     releaseDate: "2026-12-18",
     platforms: ["PC", "Xbox", "Game Pass"],
     genre: "Survival / Erkundung",
+    category: "game",
     description: "Erkunde einen brandneuen Ozean-Planeten mit optionalem 4-Spieler Koop-Modus.",
     coverUrl: "https://images.unsplash.com/photo-1682687220063-4742bd7fd538?w=600&auto=format&fit=crop&q=80",
     storeUrl: "https://store.steampowered.com/app/1962700/Subnautica_2/",
@@ -131,6 +238,8 @@ export const CURATED_RELEASES: GameRelease[] = [
     releaseDate: "2026-12-22",
     platforms: ["PS5"],
     genre: "Action-Adventure",
+    category: "game",
+    isTripleA: true,
     description: "Der Nachfolger von Ghost of Tsushima: Eine neue Legende rund um den Berg Yōtei im Jahr 1603.",
     coverUrl: "https://images.unsplash.com/photo-1528164344705-475426879c0d?w=600&auto=format&fit=crop&q=80",
     isCurated: true,

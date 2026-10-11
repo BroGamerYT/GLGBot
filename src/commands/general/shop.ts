@@ -27,6 +27,7 @@ const shopCommand: Command = {
             .addChoices(
               { name: "Alle Artikel", value: "all" },
               { name: "Discord-Rollen", value: "role" },
+              { name: "Namensfarben", value: "color" },
               { name: "Profil-Badges", value: "badge" },
               { name: "Voice-Features", value: "custom_voice" }
             )
@@ -38,6 +39,18 @@ const shopCommand: Command = {
         .setDescription("Kaufe einen Artikel anhand seiner Artikel-ID.")
         .addStringOption((opt) =>
           opt.setName("artikel").setDescription("ID des Artikels (z. B. aus /shop uebersicht)").setRequired(true)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("tauschen")
+        .setDescription("Tausche deine Level-XP an der Börse in Coins um.")
+        .addIntegerOption((opt) =>
+          opt
+            .setName("xp")
+            .setDescription("Anzahl an Level-XP, die du in Coins investieren möchtest")
+            .setRequired(true)
+            .setMinValue(10)
         )
     ),
   execute: async (interaction: ChatInputCommandInteraction) => {
@@ -87,6 +100,8 @@ const shopCommand: Command = {
           const typeLabel =
             item.type === "role"
               ? "🎭 Rolle"
+              : item.type === "color"
+              ? "🎨 Namensfarbe"
               : item.type === "badge"
               ? "⭐ Badge"
               : item.type === "custom_voice"
@@ -160,15 +175,37 @@ const shopCommand: Command = {
         .setFooter({ text: `${BRANDING.community} Shop` })
         .setTimestamp();
 
-      if (item.type === "role" && item.roleId) {
+      if ((item.type === "role" || item.type === "color") && item.roleId) {
         embed.addFields({
-          name: "🎭 Rolle zugewiesen",
+          name: item.type === "color" ? "🎨 Namensfarbe aktiviert" : "🎭 Rolle zugewiesen",
           value: `Die Rolle <@&${item.roleId}> wurde deinem Profil hinzugefügt!`,
           inline: false,
         });
       }
 
       await interaction.editReply({ embeds: [embed] });
+    }
+
+    if (sub === "tauschen") {
+      const xp = interaction.options.getInteger("xp", true);
+      const res = economyService.exchangeXpForCoins(interaction.guild, interaction.user, xp);
+      if (!res.success) {
+        await interaction.reply({ content: `❌ ${res.error}`, ephemeral: true });
+        return;
+      }
+      const embed = new EmbedBuilder()
+        .setColor(0x2ecc71)
+        .setTitle("📈 Börsen-Umtausch erfolgreich!")
+        .setDescription(
+          `Du hast erfolgreich **${xp.toLocaleString("de-DE")} XP** in **+${res.coinsEarned?.toLocaleString("de-DE")} ${cfg.currencyName}** umgewandelt!\n\n` +
+          `🪙 **Neuer Kontostand:** **${res.newBalance?.toLocaleString("de-DE")} ${cfg.currencySymbol}**\n` +
+          `📊 **Neuer Level-Stand:** Level **${res.newLevel}** (${res.newXp?.toLocaleString("de-DE")} XP)` +
+          (res.oldLevel && res.newLevel && res.oldLevel > res.newLevel ? ` *(Level von ${res.oldLevel} auf ${res.newLevel} angepasst)*` : "") +
+          `\n\n*Wechselkurs: 1 ${cfg.currencyName} = ${res.rate} XP*`
+        )
+        .setFooter({ text: `${BRANDING.community} Community-Börse` })
+        .setTimestamp();
+      await interaction.reply({ embeds: [embed] });
     }
   },
 };

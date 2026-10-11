@@ -398,11 +398,28 @@ class PrisonService {
         }
       }
 
-      // Falls Mitglied im Gefängnis-Voice ist -> trennen
+      // Falls Mitglied im Gefängnis-Voice ist -> in AFK-Kanal verschieben (oder trennen falls kein AFK vorhanden)
       if (member.voice.channel) {
         const chName = member.voice.channel.name.toLowerCase();
         if (chName.includes("gefängnis") || chName.includes("knast")) {
-          await member.voice.disconnect("Aus Gefängnis entlassen").catch(() => null);
+          const afkChannel =
+            guild.afkChannel ||
+            guild.channels.cache.find(
+              (c) =>
+                c.isVoiceBased() &&
+                (c.name.toLowerCase().includes("afk") ||
+                  c.name.toLowerCase().includes("nickerchen") ||
+                  c.name.toLowerCase().includes("einkaufen"))
+            );
+          if (afkChannel && afkChannel.id !== member.voice.channelId) {
+            await member.voice
+              .setChannel(afkChannel.id, "Aus Gefängnis entlassen -> in AFK-Kanal verschoben")
+              .catch(async () => {
+                await member.voice.disconnect("Aus Gefängnis entlassen").catch(() => null);
+              });
+          } else {
+            await member.voice.disconnect("Aus Gefängnis entlassen").catch(() => null);
+          }
         }
       }
 

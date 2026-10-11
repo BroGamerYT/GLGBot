@@ -23,6 +23,9 @@ interface GameRelease {
   releaseDate: string; // YYYY-MM-DD
   platforms: ("PC" | "PS5" | "Xbox" | "Switch" | "Game Pass")[];
   genre: string;
+  category?: "game" | "major_update" | "dlc";
+  isTripleA?: boolean;
+  isServerGame?: boolean;
   description?: string;
   coverUrl?: string;
   storeUrl?: string;
@@ -61,6 +64,7 @@ export default function ReleasesPage() {
   // Filter-Status
   const [timeframe, setTimeframe] = useState<"upcoming" | "week" | "month" | "next_month" | "all">("upcoming");
   const [selectedPlatform, setSelectedPlatform] = useState<string>("alle");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   // Admin Config Form
   const [channelId, setChannelId] = useState("");
@@ -253,20 +257,27 @@ export default function ReleasesPage() {
     }
 
     // Zeitraum-Filter
-    if (timeframe === "all") return true;
-    if (timeframe === "week") {
-      return r.releaseDate >= startOfWeekStr && r.releaseDate <= endOfWeekStr;
+    if (timeframe !== "all") {
+      if (timeframe === "week") {
+        if (r.releaseDate < startOfWeekStr || r.releaseDate > endOfWeekStr) return false;
+      } else if (timeframe === "month") {
+        const d = new Date(r.releaseDate);
+        if (d.getFullYear() !== currentYear || d.getMonth() !== currentMonth) return false;
+      } else if (timeframe === "next_month") {
+        const d = new Date(r.releaseDate);
+        if (d.getFullYear() !== nextMonthYear || d.getMonth() !== nextMonth) return false;
+      } else if (timeframe === "upcoming") {
+        if (r.releaseDate < todayStr) return false;
+      }
     }
-    if (timeframe === "month") {
-      const d = new Date(r.releaseDate);
-      return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
-    }
-    if (timeframe === "next_month") {
-      const d = new Date(r.releaseDate);
-      return d.getFullYear() === nextMonthYear && d.getMonth() === nextMonth;
-    }
-    // upcoming: alles ab heute
-    return r.releaseDate >= todayStr;
+
+    // Kategorie & Typ-Filter
+    if (selectedCategory === "major_update" && r.category !== "major_update" && r.category !== "dlc") return false;
+    if (selectedCategory === "triple_a" && !r.isTripleA) return false;
+    if (selectedCategory === "server_game" && !r.isServerGame) return false;
+    if (selectedCategory === "game" && (r.category === "major_update" || r.category === "dlc")) return false;
+
+    return true;
   });
 
   const getDaysDiff = (dateStr: string) => {
@@ -450,6 +461,32 @@ export default function ReleasesPage() {
           ))}
         </div>
 
+        {/* Kategorie & Typ Pills */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-discord-border pb-3">
+          <span className="text-xs text-gray-400 flex items-center gap-1.5 mr-1">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Typ:
+          </span>
+          {[
+            { id: "all", label: "Alle Titel & Updates" },
+            { id: "major_update", label: "⚡ Große Updates & DLCs" },
+            { id: "triple_a", label: "🌟 Triple-A Blockbuster" },
+            { id: "server_game", label: "🎮 Aktive Server-Spiele" },
+            { id: "game", label: "🕹️ Neue Vollversionen" },
+          ].map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setSelectedCategory(c.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                selectedCategory === c.id
+                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"
+                  : "bg-discord-dark text-gray-400 hover:text-white hover:bg-discord-dark/80"
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+
         {/* Plattform Pills */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-gray-400 flex items-center gap-1.5 mr-1">
@@ -543,7 +580,6 @@ export default function ReleasesPage() {
                     </span>
                   </div>
 
-                  {/* Release Date Badge */}
                   <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md border border-white/10 text-white text-xs font-semibold">
                     <Clock className="w-3.5 h-3.5 text-discord-blurple" />
                     {formattedDate}
@@ -553,6 +589,23 @@ export default function ReleasesPage() {
                 {/* Content */}
                 <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                   <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {r.category === "major_update" && (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5" /> Großes Update / DLC
+                        </span>
+                      )}
+                      {r.isTripleA && (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">
+                          🌟 Triple-A
+                        </span>
+                      )}
+                      {r.isServerGame && (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          🎮 Server-Spiel
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="text-lg font-bold text-white group-hover:text-discord-blurple transition-colors leading-tight">
                         {r.title}

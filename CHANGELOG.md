@@ -6,6 +6,23 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.20.0] - 2026-10-11
+
+### Hinzugefügt
+* **Wirtschafts- & Marktwirtschafts-System (XP-Börse & Verdienst-Guide):**
+  * **Level-XP Börse (`/shop tauschen <xp>` & Dashboard `/economy`):** Mitglieder können erworbene Level-XP in Server-Coins umtauschen. Wechselkurs (`xpPerCoin`, z. B. 10 XP = 1 Coin) und Ein-/Ausschalten der Börse sind live im Dashboard konfigurierbar.
+  * **Interaktiver Verdienst-Guide:** Detaillierte Übersicht im Dashboard („💡 So funktioniert das Coins- & Wirtschaftssystem“) mit Erklärungen für Textnachrichten, Voice-Aktivität, tägliche Belohnung (`/daily`) und XP-Börse.
+  * **Persönliches Profil & Live-Rechner:** Direkte Anzeige von Rang, Level, XP und Live-Vorschau der erhaltenen Coins bei Eingabe des Börsenbetrags.
+* **Discord-Namensfarben (Farbrollen-Shop & 1-Klick Setup):**
+  * **1-Klick Rollen-Generator:** Administratoren können im Dashboard mit einem Klick 6 leuchtende Farbrollen (`🎨 Neonrot`, `🎨 Cyber-Cyan`, `🎨 Goldgelb`, `🎨 Smaragdgrün`, `🎨 Amethystviolett`, `🎨 Flammenorange`) auf Discord anlegen lassen, die sofort im Shop erscheinen.
+  * **Namensfarben-Shop:** Neuer Filter-Tab `🎨 Namensfarben` im Dashboard und `/shop uebersicht kategorie:color` in Discord.
+  * **Automatischer Rollen-Tausch:** Beim Erwerb einer neuen Namensfarbe werden alte Farbrollen des Benutzers automatisch entzogen, sodass Discord immer die gewünschte Farbe anzeigt und kein Rollenchaos entsteht.
+* **Voice-Knast AFK-Verschiebung:**
+  * **Automatischer Transfer in AFK:** Bei Ablauf der Haftstrafe oder Entlassung via `/knast entlassen` wird der Insasse nicht mehr hart aus dem Voice getrennt, sondern direkt in den AFK-Kanal des Servers (`AFK / Nickerchen/Einkaufen` bzw. `guild.afkChannel`) verschoben.
+* **Erweiterter Release-Kalender (`/releases`):**
+  * **Aktive Server-Spiele & Große Updates/DLCs:** Aufnahme von Titeln wie Euro Truck Simulator 2 (Nordic Horizons & 1.54), Call of Duty Black Ops 6, GTA Online (Winter Heist Update), Gray Zone Warfare (Night Ops 0.2) und Minecraft.
+  * **Triple-A & Update-Filter:** Schnellfilter-Pills für `[Alle]`, `[⚡ Große Updates & DLCs]`, `[🌟 Triple-A Blockbuster]`, `[🎮 Aktive Server-Spiele]` und `[🕹️ Neue Vollversionen]`.
+
 ## [2.19.0] - 2026-10-11
 
 ### Hinzugefügt

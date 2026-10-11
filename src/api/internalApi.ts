@@ -400,6 +400,7 @@ export function startInternalApi(client: Client) {
           const transactions = isLoggedIn ? economyService.getTransactions(guild.id, 50) : [];
           const userWallet = actorId ? economyService.getOrCreateWallet(guild.id, actorId) : null;
           const userInventory = actorId ? economyService.getUserInventory(guild.id, actorId) : [];
+          const userProfile = actorId ? statsService.getUserProfile(guild.id, actorId) : null;
 
           const roles = guild.roles.cache
             .filter((r) => r.id !== guild.id && !r.managed)
@@ -413,6 +414,7 @@ export function startInternalApi(client: Client) {
             transactions,
             userWallet,
             userInventory,
+            userProfile,
             roles,
           });
         }
@@ -424,6 +426,27 @@ export function startInternalApi(client: Client) {
           const body = await readBody(req);
           const updated = economyService.updateConfig(guild.id, body);
           return send(res, 200, { ok: true, config: updated });
+        }
+        case "POST /economy/exchange-xp": {
+          if (!isLoggedIn || !actorId) return send(res, 401, { error: "Bitte einloggen." });
+          const member = await guild.members.fetch(actorId).catch(() => null);
+          if (!member) return send(res, 404, { error: "Mitglied auf dem Server nicht gefunden." });
+          const body = await readBody(req);
+          const xp = Number(body?.xp);
+          if (isNaN(xp) || xp <= 0) return send(res, 400, { error: "Ungültiger XP-Betrag." });
+          const result = economyService.exchangeXpForCoins(guild, member.user, xp);
+          if (!result.success) return send(res, 400, { error: result.error });
+          const profile = statsService.getUserProfile(guild.id, actorId);
+          return send(res, 200, { ok: true, ...result, userProfile: profile });
+        }
+        case "POST /economy/setup-colors": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageRoles) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Rollen verwalten“." });
+          }
+          const result = await economyService.setupColorRoles(guild);
+          const shopItems = economyService.getShopItems(guild.id, false);
+          return send(res, 200, { ok: true, ...result, shopItems });
         }
         case "POST /economy/shop/add": {
           const actor = await getActor();
@@ -440,6 +463,7 @@ export function startInternalApi(client: Client) {
             price: Math.max(1, Math.floor(body.price)),
             type: body.type || "custom",
             roleId: body.roleId ? String(body.roleId) : undefined,
+            colorHex: body.colorHex ? String(body.colorHex) : undefined,
             badgeIcon: body.badgeIcon ? String(body.badgeIcon) : undefined,
             stock: body.stock !== undefined ? Number(body.stock) : -1,
             requiredLevel: body.requiredLevel ? Number(body.requiredLevel) : 0,

@@ -15,6 +15,8 @@ export interface EconomyConfig {
   dailyBaseCoins: number;
   dailyStreakBonusCoins: number;
   payFeePercent: number; // 0 bis 10 Prozent Gebühr (Standard 0)
+  xpPerCoin: number; // Wechselkurs: z.B. 10 XP = 1 Coin (Standard: 10)
+  enableXpExchange: boolean; // Erlaubt Level-XP in Coins zu investieren
 }
 
 export const DEFAULT_ECONOMY_CONFIG: EconomyConfig = {
@@ -27,9 +29,11 @@ export const DEFAULT_ECONOMY_CONFIG: EconomyConfig = {
   dailyBaseCoins: 100,
   dailyStreakBonusCoins: 15,
   payFeePercent: 0,
+  xpPerCoin: 10,
+  enableXpExchange: true,
 };
 
-export type ShopItemType = "role" | "badge" | "custom_voice" | "custom";
+export type ShopItemType = "role" | "color" | "badge" | "custom_voice" | "custom";
 
 export interface ShopItem {
   id: string;
@@ -38,6 +42,7 @@ export interface ShopItem {
   price: number;
   type: ShopItemType;
   roleId?: string;
+  colorHex?: string;
   badgeIcon?: string;
   stock?: number; // -1 = unendlich
   requiredLevel?: number; // 0 = keine Anforderung
@@ -493,8 +498,8 @@ class EconomyService {
       };
     }
 
-    // Wenn es eine Discord-Rolle ist, Rolle vergeben
-    if (item.type === "role" && item.roleId) {
+    // Wenn es eine Discord-Rolle oder Farbrolle ist, Rolle vergeben
+    if ((item.type === "role" || item.type === "color") && item.roleId) {
       const role = guild.roles.cache.get(item.roleId);
       if (!role) {
         return { success: false, error: "Die verknüpfte Rolle existiert auf diesem Discord-Server nicht mehr." };
@@ -502,6 +507,19 @@ class EconomyService {
       if (member.roles.cache.has(item.roleId)) {
         return { success: false, error: "Du besitzt diese Rolle bereits!" };
       }
+
+      // Bei Farbrollen: Vorherige Farbrollen entfernen, damit die neue Farbe sofort sichtbar ist
+      if (item.type === "color") {
+        const colorRoleIds = store.shopItems
+          .filter((i) => i.type === "color" && i.roleId)
+          .map((i) => i.roleId!);
+        for (const cId of colorRoleIds) {
+          if (cId !== item.roleId && member.roles.cache.has(cId)) {
+            await member.roles.remove(cId, "Farbwechsel im Belohnungs-Shop").catch(() => null);
+          }
+        }
+      }
+
       try {
         await member.roles.add(role, `Kauf im GLGBot Belohnungs-Shop (${item.name})`);
       } catch (err: any) {
@@ -588,6 +606,141 @@ class EconomyService {
 
     this.scheduleSave();
     return coinsPerMin;
+  }
+
+  /**
+   * Tauscht Level-XP in Coins um (Marktwirtschaft / Börse).
+   */
+  public exchangeXpForCoins(
+    guild: Guild,
+    user: User,
+    xpAmount: number
+  ): {
+    success: boolean;
+    error?: string;
+    coinsEarned?: number;
+    newBalance?: number;
+    newXp?: number;
+    newLevel?: number;
+    oldLevel?: number;
+    rate?: number;
+  } {
+    if (!moduleService.isEnabled(guild.id, "economy")) {
+      return { success: false, error: "Das Wirtschafts-Modul ist auf diesem Server deaktiviert." };
+    }
+
+    const cfg = this.getConfig(guild.id);
+    if (!cfg.enableXpExchange) {
+      return { success: false, error: "Der XP-Börsentausch ist auf diesem Server derzeit deaktiviert." };
+    }
+
+    const rate = Math.max(1, cfg.xpPerCoin || 10);
+    const cleanXp = Math.floor(xpAmount);
+    if (isNaN(cleanXp) || cleanXp < rate) {
+      return {
+        success: false,
+        error: `Du musst mindestens ${rate} XP investieren, um 1 ${cfg.currencyName} zu erhalten.`,
+      };
+    }
+
+    const stats = statsService.getOrCreateUser(guild, user);
+    if (stats.xp < cleanXp) {
+      return {
+        success: false,
+        error: `Nicht genügend Level-Punkte! Du hast aktuell ${stats.xp.toLocaleString("de-DE")} XP, möchtest aber ${cleanXp.toLocaleString("de-DE")} XP tauschen.`,
+      };
+    }
+
+    const coinsEarned = Math.floor(cleanXp / rate);
+    const actualXpDeducted = coinsEarned * rate;
+
+    // XP abziehen & Level neu berechnen
+    const deduction = statsService.deductXp(guild.id, user.id, actualXpDeducted);
+    if (!deduction) {
+      return { success: false, error: "Fehler beim Abziehen der XP." };
+    }
+
+    // Coins gutschreiben
+    const wallet = this.addCoins(
+      guild.id,
+      user.id,
+      coinsEarned,
+      `Börsen-Umtausch: ${actualXpDeducted} XP in ${coinsEarned} ${cfg.currencyName} investiert (Kurs: 1 ${cfg.currencyName} = ${rate} XP)`,
+      "admin",
+      undefined,
+      user.tag
+    );
+
+    return {
+      success: true,
+      coinsEarned,
+      newBalance: wallet.balance,
+      newXp: deduction.newXp,
+      newLevel: deduction.newLevel,
+      oldLevel: deduction.oldLevel,
+      rate,
+    };
+  }
+
+  /**
+   * Erstellt auf dem Discord-Server 6 Standard-Farbrollen und fügt sie zum Shop hinzu.
+   */
+  public async setupColorRoles(guild: Guild): Promise<{ createdRoles: number; addedItems: number }> {
+    const COLOR_PRESETS = [
+      { name: "🎨 Neonrot", color: 0xff3366, hex: "#FF3366", price: 2000, desc: "Leuchtendes Neonrot für deinen Namen im Chat." },
+      { name: "🎨 Cyber-Cyan", color: 0x00f0ff, hex: "#00F0FF", price: 2000, desc: "Futuristisches Cyanblau für deinen Namen im Chat." },
+      { name: "🎨 Goldgelb", color: 0xffd700, hex: "#FFD700", price: 2500, desc: "Edles Goldgelb für deinen Namen im Chat." },
+      { name: "🎨 Smaragdgrün", color: 0x10b981, hex: "#10B981", price: 2000, desc: "Sattes Smaragdgrün für deinen Namen im Chat." },
+      { name: "🎨 Amethystviolett", color: 0xa855f7, hex: "#A855F7", price: 2000, desc: "Königliches Violett für deinen Namen im Chat." },
+      { name: "🎨 Flammenorange", color: 0xf97316, hex: "#F97316", price: 2000, desc: "Feuriges Orange für deinen Namen im Chat." },
+    ];
+
+    let createdRoles = 0;
+    let addedItems = 0;
+    const store = this.getOrCreateGuildStore(guild.id);
+
+    for (const preset of COLOR_PRESETS) {
+      let role = guild.roles.cache.find((r) => r.name.toLowerCase() === preset.name.toLowerCase());
+      if (!role) {
+        try {
+          role = await guild.roles.create({
+            name: preset.name,
+            color: preset.color,
+            reason: "GLGBot Namensfarben-Setup für Belohnungs-Shop",
+          });
+          createdRoles++;
+        } catch (e) {
+          console.error(`[EconomyService] Konnte Farbrolle "${preset.name}" nicht erstellen:`, e);
+          continue;
+        }
+      }
+
+      const existing = store.shopItems.find(
+        (i) => (role && i.roleId === role.id) || i.name.toLowerCase() === preset.name.toLowerCase()
+      );
+      if (!existing && role) {
+        store.shopItems.push({
+          id: "color_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 6),
+          name: preset.name,
+          description: preset.desc,
+          price: preset.price,
+          type: "color",
+          roleId: role.id,
+          colorHex: preset.hex,
+          badgeIcon: "🎨",
+          stock: -1,
+          requiredLevel: 0,
+          enabled: true,
+        });
+        addedItems++;
+      }
+    }
+
+    if (addedItems > 0) {
+      this.scheduleSave();
+    }
+
+    return { createdRoles, addedItems };
   }
 
   public claimDailyCoins(guildId: string, userId: string, streak: number, userTag?: string): number {
