@@ -2,7 +2,7 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.8.0 (siehe History ganz unten)
+**Aktueller Stand:** v2.9.0 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
@@ -43,16 +43,16 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-### 3. 🏆 Level-Rollen-Belohnungen (Automatische Meilensteine)
+### 3. 🏆 Level-Rollen-Belohnungen (Automatische Meilensteine) ✅ v2.9.0
 * [x] **Bot-Levelsystem (`statsService.ts`):**
   * [x] Konfigurationsfeld `roleRewards: Record<number, string>` (Level -> Discord-Rollen-ID) in der Guild-Config speichern.
   * [x] Level-Up-Handler erweitern: Prüfen, ob für das erreichte Level eine Belohnungs-Rolle hinterlegt ist.
   * [x] Automatische Zuweisung der Discord-Rolle an das Mitglied.
   * [x] Glückwunsch-Nachricht im Chat oder konfigurierten Ankündigungskanal mit Erwähnung der neuen Rolle.
-* [ ] **Web-Dashboard (`/stats`):**
-  * [ ] Einstellungs-Reiter „Rollen-Belohnungen“ im Stats-Konfigurationsbereich.
-  * [ ] Interaktive Zuweisungs-Tabelle: Level auswählen (z. B. 5, 10, 15, 20, 25) und Server-Rolle aus Dropdown zuordnen.
-  * [ ] Speichern über `/api/bot/stats/config` (wie die übrigen XP-Einstellungen).
+* [x] **Web-Dashboard (`/stats`):** *(v2.9.0)*
+  * [x] Einstellungs-Reiter „Rollen-Belohnungen“ im Stats-Konfigurationsbereich.
+  * [x] Interaktive Zuweisungs-Tabelle: Level auswählen (z. B. 5, 10, 15, 20, 25) und Server-Rolle aus Dropdown zuordnen.
+  * [x] Speichern über `/api/bot/stats/config` mit Prüfung (Rolle unter Bot-Rolle, keine Admin-Rechte ohne Admin).
 * [x] **Retroaktive Nachrüstung:**
   * [x] Befehl `/level sync-roles`, um bestehenden Mitgliedern nachträglich die ihren Leveln entsprechenden Rollen zuzuweisen.
 
@@ -73,7 +73,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 * [x] 24h-Cooldown mit 36h-Kulanzfenster für Streaks.
 * [x] Hinweis: `/daily` steht auch in Punkt 15 (Economy) – **ein** gemeinsamer Befehl: erst XP, später zusätzlich Coins.
 * [x] Streak-Anzeige im Rang-Befehl `/rank`.
-* [ ] Streak-Anzeige im Dashboard-Profil (`/stats`).
+* [x] Streak-Anzeige im Dashboard-Profil (`/stats`) *(v2.9.0)*.
 
 ---
 
@@ -109,7 +109,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 ### 9. 🛡️ Erweiterter Auto-Mod & Anti-Spam
 * [x] Automatische Erkennung und Löschung von unerlaubten Discord-Einladungslinks fremder Server *(gibt es schon in `blacklistService.ts`)*.
 * [x] Mass-Mention-Schutz (>5 Mentions = Auto-Löschung + 10 Min. Timeout) *(v2.7.0)*.
-* [ ] Verknüpfung mit dem Levelsystem: Automatische Strafpunkte (-XP) bei moderativen Vorfällen.
+* [x] Verknüpfung mit dem Levelsystem: Automatische Strafpunkte (-XP) bei moderativen Vorfällen *(Warn, Timeout, Knast, Kick, Ban, Wortfilter - einstellbar unter Level-Einstellungen)*.
 
 ---
 
@@ -311,19 +311,21 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 🧰 Bekannte Probleme & Technik-Schulden
 
-* [ ] **Automatische Sicherung des `data/`-Ordners** (Level, Strafen, Einstellungen, Streamer): täglicher Export auf dem Server, z. B. 7 Tage aufbewahren. Wichtiger als die meisten neuen Features.
-* [ ] **Backup wiederherstellen setzt die @everyone-Rechte zurück** – dadurch kann die Regel-Sperre aufgehoben werden. Nach dem Restore Sperre automatisch neu anwenden.
+* [x] **Automatische Sicherung des `data/`-Ordners** *(v2.9.0: täglich nach `data/_snapshots/<Datum>/`, 7 Tage)* (Level, Strafen, Einstellungen, Streamer): täglicher Export auf dem Server, z. B. 7 Tage aufbewahren. Wichtiger als die meisten neuen Features.
+* [x] **Backup wiederherstellen setzt die @everyone-Rechte zurück** *(v2.9.0: Sperre wird danach automatisch neu angewendet)* – dadurch kann die Regel-Sperre aufgehoben werden. Nach dem Restore Sperre automatisch neu anwenden.
 * [ ] **Twitch- & YouTube-Erkennung** läuft über inoffizielle Wege (Twitch-GQL, YouTube-Seite) und kann bei Änderungen kaputtgehen → langfristig offizielle Twitch-API (Client-ID/Secret) als Option.
-* [ ] **„ping“-Auto-Antwort** reagiert in jedem Kanal → auf bestimmte Kanäle beschränken oder abschaltbar machen.
+* [x] **„ping“-Auto-Antwort** *(v2.9.0: nur noch `!ping`)* reagierte in jedem Kanal → auf bestimmte Kanäle beschränken oder abschaltbar machen.
 * [ ] **AMD- & Intel-Treiber-News** sind Beta (Seiten-Auslesen) und können ausfallen.
 * [ ] **Öffentliches GitHub-Repo** (`BroGamerYT/GLGBot`) wird nicht automatisch aktualisiert: neue Versionen vor dem Hochladen auf private Daten prüfen (Domain, IPs, IDs, Namen).
-* [ ] **Automatische Tests / Build-Check** (z. B. GitHub Actions: `tsc` + `next build` bei jedem Push), damit Fehler vor dem Hochladen auffallen.
+* [x] **Automatische Tests / Build-Check** *(v2.9.0: GitHub Actions `.github/workflows/build.yml`)* (z. B. GitHub Actions: `tsc` + `next build` bei jedem Push), damit Fehler vor dem Hochladen auffallen.
 
 ---
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.8.0 (Aktuell):**
+* [x] **v2.9.0 (Aktuell):**
+  * [x] Level-Rollen-Belohnungen im Dashboard, Daily-Serie im Profil, tägliche Daten-Sicherung, Regel-Sperre nach Backup-Restore, `!ping` statt „ping“, Build-Check auf GitHub.
+* [x] **v2.8.0:**
   * [x] Mehrere Server (max. 5) mit Freigabe-Liste, Server-Wechsel im Dashboard, Daten pro Server getrennt.
 * [x] **v2.7.0:**
   * [x] Module an/aus (`/modules` + Dashboard-Seite), Streamer-Panel mit Kanal-Passwörtern, `/daily`, `/giveaway`, Level-Rollen-Belohnungen, Massen-Erwähnungs-Schutz.

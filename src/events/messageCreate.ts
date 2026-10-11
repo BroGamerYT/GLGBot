@@ -39,8 +39,8 @@ const messageCreateEvent: BotEvent<Events.MessageCreate> = {
       content = content.replace(/^@silent\s*/, "").trim();
     }
 
-    // Reagiere auf !ping, /ping oder ping (auch wenn @silent davor stand)
-    if (content === "!ping" || content === "/ping" || content === "ping") {
+    // Reagiere auf !ping (auch wenn @silent davor stand) - ein einfaches "ping" im Chat löst nichts mehr aus
+    if (content === "!ping") {
       const sent = await message.reply({
         content: "🏓 Berechne Ping...",
         flags: isSilent ? [MessageFlags.SuppressNotifications] : undefined,

@@ -102,6 +102,7 @@ pm2 restart discord-bot discord-web
 | Animierte Kanal-Banner mit deinem Servernamen | `python scripts/make_banners.py --subtitle "MEIN SERVER"` → landet in `config/banners/` |
 | Alle übrigen Einstellungen (XP, Streamer, Free-Games, News …) | Web-Dashboard bzw. Slash-Befehle, gespeichert in `data/` |
 | Weitere Server (max. 5) | `.env` (`ALLOWED_GUILD_IDS`) oder Dashboard → **Server-Freigabe** |
+| Tägliche Daten-Sicherung | automatisch nach `data/_snapshots/<Datum>/` (7 Tage, `DATA_SNAPSHOT_DAYS`) |
 
 Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo – deine Einstellungen bleiben bei `git pull` erhalten.
 
@@ -128,7 +129,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | **Server-Backups** | `/backups` | 🔒 Admin | 1-Klick JSON-Snapshots aller Rollen, Kanäle und Einstellungen mit Wiederherstellung. |
 | **Server-Regeln** | `/rules` | 🔒 Admin | Regel-Editor mit Vorschau, 1-Klick-Veröffentlichung und Regel-Sperre (Server erst nach Bestätigung sichtbar). |
 | **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 37 Slash-Befehle mit Beschreibungen. |
-| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.8.0. |
+| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.9.0. |
 
 ---
 
@@ -226,7 +227,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | Befehl | Beschreibung | Berechtigung |
 |---|---|---|
 | `/help` | Übersicht aller Befehle mit Link zum Dashboard. | Alle |
-| `/ping` | Zeigt die Latenz des Bots. | Alle |
+| `/ping` | Zeigt die Latenz des Bots (im Chat auch `!ping`). | Alle |
 | `/rank [mitglied]` | Rangkarte mit Level, XP, Fortschritt und XP-Herkunft. | Alle |
 | `/level status [oeffentlich]` | Eigener Level-Status: wie viele XP / Nachrichten / Voice-Minuten bis zum nächsten Level fehlen (nur für dich sichtbar). | Alle |
 | `/level sync-roles [mitglied]` | Verdiente Level-Belohnungsrollen nachträglich vergeben. | Alle |

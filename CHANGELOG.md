@@ -6,6 +6,19 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.9.0] - 2026-10-11
+
+### Hinzugefügt
+* **Level-Rollen-Belohnungen im Dashboard:** Neuer Reiter „Rollen-Belohnungen“ in den Level-Einstellungen (`/stats`). Level wählen, Rolle zuordnen, speichern. Geprüft wird: Rolle unter der Bot-Rolle, keine Admin-/Verwaltungsrechte (außer für Administratoren), nur Rollen unter der eigenen.
+* **Daily-Serie im Profil:** Das Nutzerprofil auf `/stats` zeigt die aktuelle `/daily`-Serie.
+* **Tägliche Daten-Sicherung:** Alle Bot-Daten (Level, Strafen, Einstellungen, Streamer, Regeln …) werden täglich nach `data/_snapshots/<Datum>/` kopiert, die letzten 7 Tage bleiben erhalten (`DATA_SNAPSHOT_DAYS`).
+* **Build-Check auf GitHub:** Bei jedem Push prüft GitHub automatisch, ob Bot und Dashboard fehlerfrei bauen.
+
+### Behoben
+* Backup wiederherstellen hob die Regel-Sperre auf - sie wird danach jetzt automatisch neu angewendet.
+* Die Ping-Antwort reagierte auf jedes „ping“ im Chat - jetzt nur noch auf `!ping` (oder `/ping`).
+* Speichern der Level-Einstellungen zeigt bei Fehlern jetzt eine Meldung.
+
 ## [2.8.0] - 2026-10-11
 
 ### Hinzugefügt

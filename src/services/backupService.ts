@@ -474,6 +474,18 @@ class BackupService {
       }
     }
 
+    // Das Wiederherstellen setzt @everyone-Rechte zurück -> aktive Regel-Sperre danach erneut anwenden
+    try {
+      const { rolePanelService } = await import("./rolePanelService");
+      if (rolePanelService.getConfig(guild.id)?.serverLocked) {
+        const { rulesService } = await import("./rulesService");
+        await rulesService.lockServer(guild);
+        console.log(`[Backup] Regel-Sperre nach Wiederherstellung erneut aktiviert (${guild.name}).`);
+      }
+    } catch (e: any) {
+      result.errors.push(`Regel-Sperre konnte nicht erneut aktiviert werden: ${e?.message || e}`);
+    }
+
     return result;
   }
 

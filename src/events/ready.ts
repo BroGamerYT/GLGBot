@@ -10,6 +10,7 @@ import { ticketService } from "../services/ticketService";
 import { statsService } from "../services/statsService";
 import { giveawayService } from "../services/giveawayService";
 import { guildAccessService } from "../services/guildAccessService";
+import { dataSnapshotService } from "../services/dataSnapshotService";
 
 const readyEvent: BotEvent<Events.ClientReady> = {
   name: Events.ClientReady,
@@ -35,6 +36,9 @@ const readyEvent: BotEvent<Events.ClientReady> = {
 
     // Automatischer Benachrichtigungsdienst für Gratis-Spiele
     freeGamesService.startAutoChecker(client);
+
+    // Tägliche Sicherung aller Bot-Daten (data/_snapshots, 7 Tage)
+    dataSnapshotService.start();
 
     // Automatischer Snapshot-Scheduler für Server-Backups
     backupService.startAutoBackupSchedule(client);

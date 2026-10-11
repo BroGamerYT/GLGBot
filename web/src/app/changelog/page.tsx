@@ -46,10 +46,39 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.8.0",
+    version: "v2.9.0",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Level-Belohnungen, Daten-Sicherung & Fehlerbehebungen",
+    description:
+      "Rollen-Belohnungen lassen sich jetzt im Dashboard einstellen, alle Bot-Daten werden täglich gesichert und mehrere bekannte Probleme sind behoben.",
+    highlights: [
+      {
+        icon: Trophy,
+        title: "Rollen-Belohnungen im Dashboard",
+        description:
+          "Neuer Reiter in den Level-Einstellungen: Level wählen, Rolle zuordnen, fertig. Dazu zeigt das Profil die aktuelle Daily-Serie.",
+      },
+      {
+        icon: Archive,
+        title: "Tägliche Daten-Sicherung",
+        description:
+          "Level, Strafen, Einstellungen, Streamer und Regeln werden jeden Tag gesichert - die letzten 7 Tage bleiben erhalten.",
+      },
+      {
+        icon: CheckCircle2,
+        title: "Fehlerbehebungen",
+        description:
+          "Regel-Sperre bleibt nach einer Backup-Wiederherstellung aktiv, die Ping-Antwort reagiert nur noch auf !ping, und GitHub prüft jeden Push automatisch.",
+      },
+    ],
+  },
+  {
+    version: "v2.8.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Mehrere Server (max. 5)",
     description:
       "Ein Bot für bis zu 5 freigegebene Server - mit Server-Wechsel im Dashboard, getrennten Daten pro Server und automatischem Verlassen nicht freigegebener Server.",

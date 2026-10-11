@@ -16,6 +16,7 @@ import { prisonService } from "../services/prisonService";
 import { blacklistService } from "../services/blacklistService";
 import { setupService, SETUP_MODULES, MODULE_INFO } from "../services/setupService";
 import { guildAccessService } from "../services/guildAccessService";
+import { dailyService } from "../services/dailyService";
 import { moduleService } from "../services/moduleService";
 import { liveStreamService } from "../services/liveStreamService";
 
@@ -680,7 +681,7 @@ export function startInternalApi(client: Client) {
           const totalPenaltiesXp = cases.reduce((sum, c) => sum + (c.xpLost || 0), 0);
 
           return send(res, 200, {
-            profile,
+            profile: profile ? { ...profile, dailyStreak: dailyService.getStreak(guild.id, userId) } : profile,
             partners,
             cases: cases.map((c) => ({
               id: c.id,
@@ -727,8 +728,37 @@ export function startInternalApi(client: Client) {
           if (typeof body.kickPenaltyXp === "number") patch.kickPenaltyXp = Math.max(0, Math.floor(body.kickPenaltyXp));
           if (typeof body.banPenaltyXp === "number") patch.banPenaltyXp = Math.max(0, Math.floor(body.banPenaltyXp));
 
-          if (body.roleRewards && typeof body.roleRewards === "object") {
-            patch.roleRewards = body.roleRewards;
+          if (body.roleRewards && typeof body.roleRewards === "object" && !Array.isArray(body.roleRewards)) {
+            // Rollen-Belohnungen prüfen: gültiges Level, Rolle existiert, Bot kann sie vergeben,
+            // keine Admin-/Verwaltungsrechte (außer für Owner & Administratoren), nur unter der eigenen Rolle
+            const actor = await getActor();
+            const actorIsAdmin = !!actor && (actor.id === guild.ownerId || actor.permissions.has(PermissionFlagsBits.Administrator));
+            const maxLevel = Number(patch.maxLevel ?? statsService.getConfig(guild.id).maxLevel ?? 25);
+            const botTop = guild.members.me?.roles.highest.position ?? 0;
+            const DANGEROUS =
+              PermissionFlagsBits.Administrator |
+              PermissionFlagsBits.ManageGuild |
+              PermissionFlagsBits.ManageRoles |
+              PermissionFlagsBits.ManageChannels |
+              PermissionFlagsBits.BanMembers |
+              PermissionFlagsBits.KickMembers |
+              PermissionFlagsBits.ManageWebhooks;
+            const clean: Record<number, string> = {};
+            for (const [lvlRaw, roleIdRaw] of Object.entries(body.roleRewards).slice(0, 25)) {
+              const lvl = Math.floor(Number(lvlRaw));
+              const roleId = String(roleIdRaw || "");
+              if (!roleId) continue; // leer = entfernen
+              if (!Number.isFinite(lvl) || lvl < 1 || lvl > maxLevel) return send(res, 400, { error: `Ungültiges Level ${lvlRaw} (1 bis ${maxLevel}).` });
+              const role = guild.roles.cache.get(roleId);
+              if (!role || role.managed || role.id === guild.id) return send(res, 400, { error: `Level ${lvl}: Rolle nicht gefunden oder nicht vergebbar.` });
+              if (role.position >= botTop) return send(res, 400, { error: `Level ${lvl}: Die Rolle „${role.name}“ steht über der Bot-Rolle - der Bot kann sie nicht vergeben.` });
+              if (!actorIsAdmin && (role.permissions.bitfield & DANGEROUS) !== BigInt(0)) {
+                return send(res, 403, { error: `Level ${lvl}: Rollen mit Admin- oder Verwaltungsrechten dürfen nur Administratoren als Belohnung festlegen.` });
+              }
+              if (!(await outranks(role.position))) return send(res, 403, { error: `Level ${lvl}: Du kannst nur Rollen unter deiner höchsten Rolle festlegen.` });
+              clean[lvl] = roleId;
+            }
+            patch.roleRewards = clean;
           }
 
           const updated = statsService.setConfig(guild.id, patch);
