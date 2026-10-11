@@ -5,13 +5,27 @@ import { fetchBotGuilds } from "@/lib/guilds";
 
 export const dynamic = "force-dynamic";
 
-/** Server, die der eingeloggte Nutzer verwalten darf, plus aktiver Server. */
+/** Server, die der Nutzer auswählen darf, plus aktiver Server. */
 export async function GET(req: NextRequest) {
   const session = await verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);
-  if (!session) return NextResponse.json({ error: "Nicht eingeloggt." }, { status: 401 });
+  const botGuilds = (await fetchBotGuilds()) || [];
+
+  if (!session) {
+    const cookieGuild = req.cookies.get(ACTIVE_GUILD_COOKIE)?.value;
+    const active = (cookieGuild && botGuilds.some((b) => b.id === cookieGuild))
+      ? cookieGuild
+      : (botGuilds[0]?.id || process.env.GUILD_ID || "");
+    const guilds = botGuilds.map((g) => ({
+      id: g.id,
+      name: g.name,
+      icon: g.icon || null,
+      main: !!g.main,
+    }));
+    return NextResponse.json({ active, guilds });
+  }
+
   const active = pickActiveGuild(session, req.cookies.get(ACTIVE_GUILD_COOKIE)?.value);
   const allowed = session.g?.length ? session.g : [active];
-  const botGuilds = (await fetchBotGuilds()) || [];
   const guilds = allowed.map((id) => {
     const g = botGuilds.find((b) => b.id === id);
     return { id, name: g?.name || id, icon: g?.icon || null, main: !!g?.main };
@@ -19,16 +33,24 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ active, guilds });
 }
 
-/** Aktiven Server wechseln (nur auf einen Server, den der Nutzer verwalten darf). */
+/** Aktiven Server wechseln. */
 export async function POST(req: NextRequest) {
   const session = await verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);
-  if (!session) return NextResponse.json({ error: "Nicht eingeloggt." }, { status: 401 });
   const body = await req.json().catch(() => ({}));
   const guildId = String(body?.guildId || "");
-  const allowed = session.g?.length ? session.g : [pickActiveGuild(session, null)];
-  if (!allowed.includes(guildId)) {
-    return NextResponse.json({ error: "Diesen Server darfst du nicht verwalten." }, { status: 403 });
+  const botGuilds = (await fetchBotGuilds()) || [];
+
+  if (!session) {
+    if (!botGuilds.some((b) => b.id === guildId)) {
+      return NextResponse.json({ error: "Server nicht gefunden." }, { status: 404 });
+    }
+  } else {
+    const allowed = session.g?.length ? session.g : [pickActiveGuild(session, null)];
+    if (!allowed.includes(guildId)) {
+      return NextResponse.json({ error: "Auf diesen Server hast du keinen Zugriff." }, { status: 403 });
+    }
   }
+
   const res = NextResponse.json({ ok: true, active: guildId });
   res.cookies.set(ACTIVE_GUILD_COOKIE, guildId, {
     httpOnly: true,

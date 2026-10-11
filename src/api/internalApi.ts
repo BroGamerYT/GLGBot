@@ -30,6 +30,7 @@ import { releaseService } from "../services/releaseService";
 import { economyService } from "../services/economyService";
 import { templateService } from "../services/templateService";
 import { authCodeService } from "../services/authCodeService";
+import { systemService } from "../services/systemService";
 import { CHANNEL_STYLES } from "../utils/fontUtils";
 
 /**
@@ -137,6 +138,29 @@ export function startInternalApi(client: Client) {
       if (!code) return send(res, 400, { error: "Code fehlt." });
       const result = await authCodeService.verifyCode(code, client);
       if (!result.valid) return send(res, 400, { error: result.error || "Ungültiger Code." });
+      return send(res, 200, result);
+    }
+
+    // ---------------- System-Manager (Logs & Neustart) ----------------
+    if (route === "GET /system/logs") {
+      const parsedUrl = new URL(req.url || "", "http://localhost");
+      const service = (parsedUrl.searchParams.get("service") || "all") as any;
+      const limit = parseInt(parsedUrl.searchParams.get("limit") || "150", 10);
+      const query = parsedUrl.searchParams.get("q") || "";
+      const level = (parsedUrl.searchParams.get("level") || "all") as any;
+      const data = await systemService.getLogs({ service, limit, query, level });
+      return send(res, 200, data);
+    }
+
+    if (route === "POST /system/restart") {
+      const body = await readBody(req);
+      const target = (body?.target || "bot") as "bot" | "web" | "all";
+      const result = await systemService.restart(target);
+      return send(res, 200, result);
+    }
+
+    if (route === "POST /system/logs/clear") {
+      const result = await systemService.clearLogs();
       return send(res, 200, result);
     }
 

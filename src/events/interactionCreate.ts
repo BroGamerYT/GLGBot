@@ -18,10 +18,16 @@ import { moduleService } from "../services/moduleService";
 import { customCommandService } from "../services/customCommandService";
 import { lfgService } from "../services/lfgService";
 import { giveawayService } from "../services/giveawayService";
+import { directMessageService } from "../services/directMessageService";
 
 const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
   name: Events.InteractionCreate,
   execute: async (client, interaction: Interaction) => {
+    // Direktnachrichten-Interaktionen (Buttons & Dropdowns in DMs)
+    if ((interaction.isButton() || interaction.isStringSelectMenu()) && (!interaction.guildId || interaction.customId.startsWith("dm_"))) {
+      await directMessageService.handleInteraction(interaction as any, client);
+      return;
+    }
     // 1. Slash-Befehle
     if (interaction.isChatInputCommand()) {
       const command = client.commands.get(interaction.commandName);

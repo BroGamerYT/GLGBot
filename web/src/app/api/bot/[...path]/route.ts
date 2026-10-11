@@ -116,6 +116,9 @@ const ALLOWED = new Set([
   "GET templates",
   "POST templates/apply",
   "POST channels/rename-style",
+  "GET system/logs",
+  "POST system/restart",
+  "POST system/logs/clear",
 ]);
 
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {

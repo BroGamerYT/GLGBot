@@ -8,12 +8,19 @@ import { moduleService } from "../services/moduleService";
 import { customCommandService } from "../services/customCommandService";
 import { clipService } from "../services/clipService";
 import { economyService } from "../services/economyService";
+import { directMessageService } from "../services/directMessageService";
 
 const messageCreateEvent: BotEvent<Events.MessageCreate> = {
   name: Events.MessageCreate,
   execute: async (client, message: Message) => {
     // Ignoriere Nachrichten von Bots
     if (message.author.bot) return;
+
+    // Direktnachrichten (DM an den Bot)
+    if (!message.guild) {
+      await directMessageService.handleMessage(message, client);
+      return;
+    }
 
     // Phishing- & Scam-Schutz
     const isPhishing = await securityService.handlePhishingMessage(message, client);

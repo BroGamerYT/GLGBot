@@ -41,6 +41,7 @@ export async function middleware(req: NextRequest) {
 
   const isPublicApi =
     pathname.startsWith("/api/auth/") ||
+    pathname.startsWith("/api/guild") ||
     ((pathname.startsWith("/api/bot/stats") ||
       pathname.startsWith("/api/bot/free-games") ||
       pathname.startsWith("/api/bot/news") ||
@@ -70,12 +71,11 @@ export async function middleware(req: NextRequest) {
   }
 
   if (session) {
-    if (isPublicPage) {
-      return NextResponse.next();
-    }
-
     // Wenn der Nutzer ein reguläres Community-Mitglied ist (kein Admin):
     if (session.isAdmin === false) {
+      if (isPublicPage) {
+        return NextResponse.next();
+      }
       const base = process.env.DASHBOARD_URL?.replace(/\/+$/, "") || req.nextUrl.origin;
       return isApi
         ? NextResponse.json({ error: "Dieser Bereich ist Administratoren vorbehalten." }, { status: 403 })
@@ -83,18 +83,52 @@ export async function middleware(req: NextRequest) {
     }
 
     const now = Math.floor(Date.now() / 1000);
-    if (session.chk && now - session.chk < ACCESS_RECHECK_SECONDS) return NextResponse.next();
+    if (session.chk && now - session.chk < ACCESS_RECHECK_SECONDS) {
+      return NextResponse.next();
+    }
 
-    // Rechte erneut bei Discord prüfen: Admin entzogen / Server verlassen -> sofort ausloggen
+    // Rechte erneut bei Discord prüfen: Admin entzogen / Server verlassen -> sofort reagieren
     const access = await checkDashboardAccess(session.uid).catch(() => ({ allowed: false as const, reason: "config_error" as const, guilds: [] as string[] }));
     if (!access.allowed && access.reason !== "config_error") {
+      console.warn(`[Auth] ${session.name} (${session.uid}) Admin-Rechte entzogen: ${access.reason}`);
       const base = process.env.DASHBOARD_URL?.replace(/\/+$/, "") || req.nextUrl.origin;
-      const res = isApi
-        ? NextResponse.json({ error: "Deine Dashboard-Rechte wurden entzogen." }, { status: 401 })
-        : NextResponse.redirect(new URL("/login?error=revoked", base));
-      res.cookies.delete({ name: SESSION_COOKIE, path: "/" });
-      console.warn(`[Auth] ${session.name} (${session.uid}) automatisch ausgeloggt: ${access.reason}`);
-      return res;
+
+      if (access.reason === "no_permission") {
+        // Ist weiterhin Discord-Mitglied, hat aber keine Admin-Rechte mehr:
+        // Zu regulärem Mitglied herabstufen, damit er Shop/Rangliste/News weiter nutzen kann:
+        const token = await createSessionToken({
+          uid: session.uid,
+          name: session.name,
+          avatar: session.avatar,
+          exp: session.exp,
+          g: session.g,
+          isAdmin: false,
+        });
+        const res = isPublicPage
+          ? NextResponse.next()
+          : (isApi
+              ? NextResponse.json({ error: "Deine Admin-Rechte wurden entzogen." }, { status: 403 })
+              : NextResponse.redirect(new URL("/economy?notice=admin_revoked", base)));
+        res.cookies.set(SESSION_COOKIE, token, {
+          httpOnly: true,
+          secure: isSecureUrl(base),
+          sameSite: "lax",
+          path: "/",
+          maxAge: Math.max(0, session.exp - now),
+        });
+        return res;
+      } else {
+        // Gar kein Server-Mitglied mehr -> komplett ausloggen
+        const res = isApi
+          ? NextResponse.json({ error: "Deine Dashboard-Rechte wurden entzogen." }, { status: 401 })
+          : NextResponse.redirect(new URL("/login?error=revoked", base));
+        res.cookies.delete({ name: SESSION_COOKIE, path: "/" });
+        return res;
+      }
+    }
+
+    if (isPublicPage) {
+      return NextResponse.next();
     }
 
     const res = NextResponse.next();

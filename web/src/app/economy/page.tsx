@@ -513,7 +513,7 @@ export default function EconomyPage() {
               <span>Mein Inventar ({userInventory.length})</span>
             </button>
           )}
-          {isLoggedIn && (
+          {isLoggedIn && currentUser?.isAdmin && (
             <button
               onClick={() => setActiveTab("admin")}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
@@ -528,7 +528,7 @@ export default function EconomyPage() {
           )}
         </div>
 
-        {activeTab === "shop" && isLoggedIn && (
+        {activeTab === "shop" && isLoggedIn && currentUser?.isAdmin && (
           <button
             onClick={openCreateItem}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-medium text-xs transition-all shadow-md shadow-amber-500/20"
@@ -561,12 +561,23 @@ export default function EconomyPage() {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowHowToEarn(!showHowToEarn)}
-                className="text-xs text-amber-300 hover:text-white px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all shrink-0"
-              >
-                {showHowToEarn ? "Einklappen ▲" : "Details anzeigen ▼"}
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {currentUser?.isAdmin && (
+                  <button
+                    onClick={() => setActiveTab("admin")}
+                    className="text-xs font-semibold text-amber-300 hover:text-white px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 transition-all flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                    <span>⚙️ Währungseinstellungen bearbeiten</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowHowToEarn(!showHowToEarn)}
+                  className="text-xs text-amber-300 hover:text-white px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all"
+                >
+                  {showHowToEarn ? "Einklappen ▲" : "Details anzeigen ▼"}
+                </button>
+              </div>
             </div>
 
             {showHowToEarn && (

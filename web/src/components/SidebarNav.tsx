@@ -111,6 +111,7 @@ const GROUPS: NavGroup[] = [
       { href: "/moderation", label: "Benutzerverwaltung", icon: Gavel, color: "text-rose-400" },
       { href: "/tickets", label: "Support-Tickets", icon: Ticket, color: "text-indigo-400" },
       { href: "/console", label: "Web-Konsole", icon: Terminal, color: "text-lime-300" },
+      { href: "/system-logs", label: "Live-Logs & Neustart", icon: Terminal, color: "text-emerald-400" },
       { href: "/logs", label: "Audit-Logs", icon: FileText, color: "text-cyan-400" },
     ],
   },
