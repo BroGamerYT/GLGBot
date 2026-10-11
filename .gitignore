@@ -17,3 +17,4 @@ data_from_server/
 # Persönliche Einstellungen (eigene Regeln, eigene Banner, Server-Zugang)
 /config/
 /server_config.ini
+_backups/
