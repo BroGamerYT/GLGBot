@@ -275,7 +275,11 @@ export default function HelpPage() {
                 <strong className="text-white">Öffentlich erreichbar (ohne Login):</strong> Alle Mitglieder können{" "}
                 <Link href="/hilfe" className="text-discord-blurple hover:underline">/hilfe</Link>,{" "}
                 <Link href="/changelog" className="text-discord-blurple hover:underline">/changelog</Link> und die{" "}
-                <Link href="/stats" className="text-discord-blurple hover:underline">/stats</Link> Ranglisten frei im Browser
+                <Link href="/stats" className="text-discord-blurple hover:underline">/stats</Link> (Ranglisten),{" "}
+                <Link href="/news" className="text-discord-blurple hover:underline">/news</Link> (Game-News),{" "}
+                <Link href="/free-games" className="text-discord-blurple hover:underline">/free-games</Link>,{" "}
+                <Link href="/releases" className="text-discord-blurple hover:underline">/releases</Link> (Release-Kalender) und{" "}
+                <Link href="/economy" className="text-discord-blurple hover:underline">/economy</Link> (Shop) frei im Browser
                 aufrufen.
               </li>
               <li>
