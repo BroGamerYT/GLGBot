@@ -4,12 +4,35 @@ import { tempVoiceService } from "../services/tempVoiceService";
 import { auditLogService } from "../services/auditLogService";
 import { fetchAuditExecutor } from "../utils/auditExecutor";
 import { moduleService } from "../services/moduleService";
+import { prisonService } from "../services/prisonService";
 
 const voiceStateUpdateEvent: BotEvent<Events.VoiceStateUpdate> = {
   name: Events.VoiceStateUpdate,
   execute: async (client, oldState: VoiceState, newState: VoiceState) => {
     const guild = newState.guild || oldState.guild;
     const member = newState.member || oldState.member;
+
+    // 0. Gefängnis Voice Enforcement (Inhaftierte dürfen nur im Gefängnis-Voice sein)
+    if (member && guild && newState.channelId && prisonService.isImprisoned(guild.id, member.id)) {
+      try {
+        const currentChannelName = (newState.channel?.name || "").toLowerCase();
+        const isPrisonVoice =
+          currentChannelName.includes("gefängnis-voice") ||
+          currentChannelName.includes("knast-voice") ||
+          currentChannelName.includes("gefängnis-talk");
+
+        if (!isPrisonVoice) {
+          const prisonRole = await prisonService.ensurePrisonRole(guild);
+          const prisonVoice = await prisonService.ensurePrisonVoiceChannel(guild, prisonRole);
+          await member.voice.setChannel(prisonVoice, "Gefangener darf reguläre Sprachkanäle nicht betreten").catch(async () => {
+            await member.voice.disconnect("Gefangener darf reguläre Sprachkanäle nicht betreten").catch(() => null);
+          });
+          return;
+        }
+      } catch (err) {
+        console.error("[VoiceStateUpdate] Fehler bei Prison Voice Enforcement:", err);
+      }
+    }
 
     // 1. Audit Logging für Voice-Events (falls AuditLog-Modul aktiv)
     try {

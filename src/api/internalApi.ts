@@ -1550,12 +1550,17 @@ export function startInternalApi(client: Client) {
 
             case "prison": {
               if (!targetMember) return send(res, 404, { error: "Mitglied nicht gefunden." });
+              const durationMinutes =
+                typeof body.durationMinutes === "number" && body.durationMinutes > 0
+                  ? body.durationMinutes
+                  : null;
               const result = await prisonService.imprison(
                 guild,
                 targetMember,
                 reason,
                 { id: modUser.id, tag: modName, avatar: modUser.displayAvatarURL() },
-                client
+                client,
+                durationMinutes
               );
               if (!result.ok) return send(res, 400, { error: result.error });
               return send(res, 200, { ok: true, xpPenalty: result.xpPenalty });

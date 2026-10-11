@@ -135,7 +135,7 @@ const COMMANDS: { group: string; items: [string, string, string][] }[] = [
       ["/warn [user] [grund]", "Verwarnt ein Mitglied mit automatischer DM und speichert Fall-ID.", "Mitglieder kicken"],
       ["/timeout [user] [dauer] [grund]", "Schaltet ein Mitglied für 1m bis 1w stumm (Discord Timeout).", "Stummschalten"],
       ["/kick [user] [grund]", "Kickt ein Mitglied vom Discord-Server.", "Mitglieder kicken"],
-      ["/knast einsperren | freilassen | liste", "Gefängnis: entzieht alle Rollen, sperrt alle Kanäle außer #gefängnis, -1.000 XP. Freilassen stellt die Rollen wieder her. (Englisches Discord: /prison)", "Mitglieder moderieren"],
+      ["/knast einsperren [mitglied] [grund] [dauer] | freilassen | liste", "Gefängnis: entzieht Rollen, sperrt Kanäle, isoliert in #gefängnis & #gefängnis-voice, Timer (z. B. 60m), -1.000 XP. Automatische oder manuelle Entlassung stellt Rollen wieder her. (Englisches Discord: /prison)", "Mitglieder moderieren"],
       ["/ban [user] [grund] [delete_days]", "Bannt ein Mitglied dauerhaft und löscht optional Nachrichten (0-7 Tage).", "Bannen"],
       ["/unban [user_id] [grund]", "Hebt den Bann eines Nutzers anhand der Discord-ID auf.", "Bannen"],
       ["/cases view [id]", "Zeigt Details zu einem gespeicherten Moderationsfall an.", "Nachrichten verwalten"],

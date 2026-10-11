@@ -54,10 +54,30 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.18.2",
+    version: "v2.19.0",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Voice-Knast & Automatischer Haft-Timer",
+    description: "Vollständiger Voice-Knast mit Sprachkanal 🔒・gefängnis-voice, automatischer Verschiebung, Voice-Enforcement und flexibler Haftdauer (z. B. 60 Min.) mit automatischem Release-Scheduler.",
+    highlights: [
+      {
+        icon: Mic,
+        title: "Voice-Knast & Auto-Verschiebung",
+        description: "Inhaftierte werden automatisch in den isolierten Sprachkanal #🔒・gefängnis-voice verschoben. Reguläre Sprachkanäle sind blockiert.",
+      },
+      {
+        icon: Lock,
+        title: "Haftdauer & Auto-Release Scheduler",
+        description: "Haftstrafen können nun mit Zeitbegrenzung (z. B. 60m) vergeben werden. Der Bot entlässt Mitglieder bei Ablauf automatisch und stellt alle Rollen wieder her.",
+      },
+    ],
+  },
+  {
+    version: "v2.18.2",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Gaming-News Kacheln & Interaktive Vollansicht",
     description: "Öffentliches News-Magazin mit ansprechenden Kachel-Karten, Cover-Bildern, Teasern und interaktivem Artikel-Modal für vollständige Patchnotes und Treiberdetails.",
     highlights: [

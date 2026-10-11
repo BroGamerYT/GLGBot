@@ -6,6 +6,20 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.19.0] - 2026-10-11
+
+### Hinzugefügt
+* **Voice-Knast (`#🔒・gefängnis-voice`) & Automatische Verschiebung:**
+  * **Isolierter Sprachkanal:** Automatisches Anlegen von `🔒・gefängnis-voice` mit exklusiven Rechten für die Gefängnis-Rolle; reguläre Mitglieder haben keinen Zugriff.
+  * **Automatisches Verschieben:** Befindet sich ein Mitglied beim Inhaftieren in einem Sprachkanal, wird es sofort in den Gefängnis-Voice verschoben.
+  * **Voice-Enforcement:** Inhaftierte Mitglieder können keine regulären Sprachkanäle betreten. Bei Beitrittsversuchen werden sie umgehend in den Gefängnis-Voice zurückverschoben oder getrennt.
+  * **Cleanup bei Entlassung:** Beim Aufheben der Haftstrafe wird das Mitglied automatisch aus dem Gefängnis-Voice getrennt und kann wieder alle regulären Kanäle nutzen.
+* **Haftdauer-Timer & Automatischer Release-Scheduler:**
+  * **Timer-Option in `/knast einsperren`:** Neue Option `dauer` mit Schnellauswahl (15m, 30m, 60m / 1h, 2h, 6h, 12h, 24h, 3d, 7d oder unbegrenzt).
+  * **Automatischer Background-Scheduler:** Prüft alle 30 Sekunden aktive Strafen und entlässt Mitglieder bei Ablauf der Zeit automatisch mit Wiederherstellung aller ursprünglichen Rollen.
+  * **Ablauf-Anzeige:** `/knast liste` und Benachrichtigungs-Embeds zeigen einen dynamischen Discord-Countdown (`<t:...:R>`) bis zur Entlassung.
+  * **Web-Dashboard (`/moderation`):** Das Knast-Modal bietet jetzt ein Haftdauer-Dropdown (inkl. 60 Min.); die Gefängnis-Karten zeigen Ablaufzeit und verbleibende Dauer an.
+
 ## [2.18.2] - 2026-10-11
 
 ### Hinzugefügt

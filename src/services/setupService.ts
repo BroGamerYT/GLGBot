@@ -47,7 +47,7 @@ export const MODULE_INFO: Record<SetupModule, { label: string; description: stri
   },
   tickets: { label: "Support-Tickets", description: "#support mit Ticket-Button." },
   logs: { label: "Audit-Log", description: "Geschützter Log-Kanal, nur für das Team sichtbar." },
-  prison: { label: "Gefängnis (/knast)", description: "Gefängnis-Rolle und #gefängnis-Kanal." },
+  prison: { label: "Gefängnis (/knast)", description: "Gefängnis-Rolle, #gefängnis-Textkanal & Gefängnis-Voice." },
   lock: {
     label: "Regel-Sperre aktivieren",
     description: "Neue Mitglieder sehen nur #regeln, bis sie die Regeln akzeptieren. Bestehende Mitglieder werden automatisch freigeschaltet.",
@@ -315,6 +315,13 @@ class SetupService {
         const chBefore = findText(guild, (n) => n === "🔒・gefängnis" || n === "gefängnis");
         const ch = await prisonService.ensurePrisonChannel(guild, role);
         add(`#${ch.name}`, !chBefore);
+        const vchBefore = guild.channels.cache.find(
+          (c) =>
+            (c.name === "🔒・gefängnis-voice" || c.name === "gefängnis-voice" || c.name === "🔒・knast-voice") &&
+            c.type === ChannelType.GuildVoice
+        );
+        const vch = await prisonService.ensurePrisonVoiceChannel(guild, role);
+        add(`🔊 ${vch.name}`, !vchBefore);
         return;
       }
     }

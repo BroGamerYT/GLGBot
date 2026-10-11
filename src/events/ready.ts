@@ -19,6 +19,7 @@ import { lfgService } from "../services/lfgService";
 import { gameServerService } from "../services/gameServerService";
 import { clipService } from "../services/clipService";
 import { releaseService } from "../services/releaseService";
+import { prisonService } from "../services/prisonService";
 
 const readyEvent: BotEvent<Events.ClientReady> = {
   name: Events.ClientReady,
@@ -94,6 +95,9 @@ const readyEvent: BotEvent<Events.ClientReady> = {
 
     // Game-Release-Kalender Scheduler starten
     releaseService.startWeeklyScheduler(client);
+
+    // Automatischer Scheduler für zeitlich befristete Gefängnisstrafen
+    prisonService.startScheduler(client);
   },
 };
 

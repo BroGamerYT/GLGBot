@@ -181,12 +181,14 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
   * Nickname direkt im Web anpassen oder zurücksetzen.
   * XP-Punkte manuell korrigieren (Hinzufügen, Abziehen oder Festlegen).
   * Persistente Admin-Notizen zu jedem Nutzer hinterlegen.
-* **Gefängnis-System (`/knast` & `/moderation`):**
-  * `/knast einsperren` isoliert ein Mitglied mit der Rolle `🔒・Gefängnis` (englisches Discord: `/prison lock`).
-  * Alle bisherigen Rollen werden gespeichert und entzogen, das Mitglied fliegt aus dem Voice.
-  * Alle Kategorien und Kanäle werden für die Gefängnis-Rolle gesperrt - sichtbar bleibt nur `#🔒・gefängnis`.
-  * Inhaftierte können sich weder über „Regeln akzeptieren“ noch über die Rollen-Buttons Rollen zurückholen.
-  * `/knast freilassen` stellt alle ursprünglichen Rollen wieder her, `/knast liste` zeigt alle Inhaftierten.
+* **Gefängnis- & Voice-Knast System (`/knast` & `/moderation`):**
+  * `/knast einsperren <mitglied> <grund> [dauer]` isoliert ein Mitglied mit der Rolle `🔒・Gefängnis` (englisches Discord: `/prison lock`).
+  * Alle bisherigen Rollen werden gesichert und entzogen.
+  * **Voice-Knast:** Befindet sich das Mitglied in einem Sprachkanal, wird es automatisch in `#🔒・gefängnis-voice` verschoben. Andere Sprachkanäle sind gesperrt.
+  * **Automatischer Timer:** Wählbare Haftdauer (z. B. 15m, 30m, 60m, 2h, 24h oder dauerhaft). Nach Ablauf der Zeit erfolgt eine automatische Entlassung mit Wiederherstellung aller Rollen.
+  * Alle regulären Kanäle werden für die Gefängnis-Rolle gesperrt – sichtbar bleiben nur `#🔒・gefängnis` und `#🔒・gefängnis-voice`.
+  * Inhaftierte können sich weder über „Regeln akzeptieren“ noch über Rollen-Buttons Rollen zurückholen.
+  * `/knast freilassen` hebt die Haft manuell auf, `/knast liste` zeigt alle Inhaftierten inklusive Restzeit-Countdown.
 * **Rangprüfung:** Moderatoren können nur Mitglieder bestrafen, die **unter** ihrer höchsten Rolle stehen - weder sich selbst noch den Owner. Das gilt für Slash-Befehle und das Dashboard.
 * **Automatischer Minus-Level & XP-Abzug:**
   * Jeder Regelverstoß (Warnung, Timeout, Gefängnis, Kick, Ban) zieht dem Nutzer automatisch konfigurierte XP ab (`-250 XP`, `-500 XP`, `-1.000 XP`) und kann zu einem Stufenabstieg führen.
@@ -311,7 +313,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | `/voice lock \| unlock \| hide \| unhide \| name \| limit \| bitrate \| permit \| reject \| transfer \| claim \| password` | Eigene Lobby steuern (inkl. Passwort). | Lobby-Besitzer |
 | `/warn <mitglied> <grund>` | Verwarnung mit XP-Abzug. | Mitglieder moderieren |
 | `/timeout <mitglied> <dauer> <grund>` | Timeout mit XP-Abzug. | Mitglieder moderieren |
-| `/knast einsperren \| freilassen \| liste` | Gefängnis-System (englisches Discord: `/prison lock \| release \| list`). | Mitglieder moderieren |
+| `/knast einsperren \| freilassen \| liste` | Gefängnis-System mit Voice-Knast & Timer (englisches Discord: `/prison lock \| release \| list`). | Mitglieder moderieren |
 | `/kick <mitglied> [grund]` | Kick mit XP-Abzug. | Mitglieder kicken |
 | `/ban <mitglied> [grund] [tage]` | Bann mit Nachrichten-Bereinigung. | Mitglieder bannen |
 | `/unban <user_id>` | Bann aufheben. | Mitglieder bannen |

@@ -2,7 +2,7 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.18.2 (siehe History ganz unten)
+**Aktueller Stand:** v2.19.0 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
@@ -323,7 +323,10 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.18.2 (Aktuell):**
+* [x] **v2.19.0 (Aktuell):**
+  * [x] Voice-Knast mit isoliertem Sprachkanal `🔒・gefängnis-voice`, automatischer Verschiebung beim Inhaftieren, Rückhol-Enforcement bei Kanalwechsel und Trennung bei Entlassung.
+  * [x] Flexibler Haftdauer-Timer in `/knast einsperren [mitglied] [grund] [dauer]` und im Web-Dashboard (`/moderation`), 30s-Scheduler zur automatischen Entlassung und Restzeit-Countdown in `/knast liste`.
+* [x] **v2.18.2:**
   * [x] Interaktives Gaming-News Magazin mit Bild-Kacheln, Live-Suche, Kategorien-Filtern und vollständiger Artikel-Vollansicht im Modal mit Patchnotes & Screenshots (`/news`).
 * [x] **v2.18.1:**
   * [x] Community-Badges & Aktivitäts-Meilensteine auf der Rangkarte (`/rank`), eigenes Hintergrundbild für Willkommens-Karten mit Glassmorphismus-Filter (Dashboard `/welcome`), Windows-Installer Autostart & Desktop-Verknüpfung.
