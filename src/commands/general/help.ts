@@ -34,11 +34,19 @@ const helpCommand: Command = {
         {
           name: "🏆 Level & Ranglisten",
           value:
-            "`/rank [user]` • Zeigt dein Level, gesammelte XP und Rangkarte\n" +
+            "`/rank [user]` • Zeigt dein Level, gesammelte XP, Coins & Rangkarte\n" +
             "`/level status` • Dein Level-Status: wie viele XP bis zum nächsten Level fehlen\n" +
             "`/level sync-roles` • Holt verdiente Level-Belohnungsrollen nach\n" +
-            "`/daily` • Tägliche XP-Belohnung mit Streak-Bonus\n" +
-            "`/leaderboard` • Die Top 10 aktivsten Server-Mitglieder",
+            "`/daily` • Tägliche XP- & Coins-Belohnung mit Streak-Bonus\n" +
+            "`/leaderboard` • Die Top 10 aktivsten oder wohlhabendsten Mitglieder",
+          inline: false,
+        },
+        {
+          name: "🪙 Wirtschaft & Belohnungs-Shop",
+          value:
+            "`/balance [user]` • Prüfe dein Kontoguthaben, Vermögens-Rang und Transaktionen\n" +
+            "`/pay <user> <betrag>` • Überweise Coins an ein anderes Mitglied\n" +
+            "`/shop uebersicht|kaufen` • Belohnungs-Shop für Rollen, Badges & exklusive Vorteile",
           inline: false,
         },
         {
@@ -90,6 +98,7 @@ const helpCommand: Command = {
           value:
             "`/setup-all` • Richtet alle fehlenden Rollen & Kanäle auf einmal ein\n" +
             "`/modules status|enable|disable|toggle` • Funktionen an- oder ausschalten\n" +
+            "`/economy geben|abziehen|setzen|reset` • Nutzerguthaben als Admin verwalten\n" +
             "`/server-stats einrichten|entfernen` • Live-Zähler-Kanäle ganz oben\n" +
             "`/backup create|list|restore` • Vollständige Rollen- & Kanal-Snapshots\n" +
             "`/setup-rules post|lock|unlock` • Regeln posten & Server bis zur Bestätigung sperren\n" +

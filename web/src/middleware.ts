@@ -35,6 +35,8 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/news/") ||
     pathname === "/releases" ||
     pathname.startsWith("/releases/") ||
+    pathname === "/economy" ||
+    pathname.startsWith("/economy/") ||
     pathname.startsWith("/go/");
 
   const isPublicApi =
@@ -43,7 +45,8 @@ export async function middleware(req: NextRequest) {
       pathname.startsWith("/api/bot/free-games") ||
       pathname.startsWith("/api/bot/news") ||
       pathname.startsWith("/api/bot/live/active") ||
-      pathname.startsWith("/api/bot/releases")) &&
+      pathname.startsWith("/api/bot/releases") ||
+      pathname.startsWith("/api/bot/economy")) &&
       (req.method === "GET" || req.method === "HEAD"));
 
   if (isPublicPage || isPublicApi) {

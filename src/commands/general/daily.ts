@@ -34,8 +34,9 @@ const dailyCommand: Command = {
 
     let desc =
       `Klasse, <@${interaction.user.id}>! Du hast deine tägliche Belohnung abgeholt.\n\n` +
-      `✨ **Belohnung:** **+${res.totalXp} XP** *(Basis: +${res.baseXp} XP${res.bonusXp > 0 ? ` + Streak-Bonus: +${res.bonusXp} XP` : ""})*\n` +
-      `🔥 **Aktuelle Serie:** **${res.currentStreak} Tag(e)** in Folge!`;
+      `✨ **XP-Belohnung:** **+${res.totalXp} XP** *(Basis: +${res.baseXp} XP${res.bonusXp > 0 ? ` + Streak-Bonus: +${res.bonusXp} XP` : ""})*` +
+      (res.coins !== undefined ? `\n🪙 **Währungs-Bonus:** **+${res.coins} ${res.currencyName || "Coins"}**` : "") +
+      `\n🔥 **Aktuelle Serie:** **${res.currentStreak} Tag(e)** in Folge!`;
 
     if (res.streakBroken) {
       desc += `\n⚠️ *Hinweis: Deine Serie wurde auf Tag 1 zurückgesetzt, da mehr als 36 Stunden vergangen sind.*`;

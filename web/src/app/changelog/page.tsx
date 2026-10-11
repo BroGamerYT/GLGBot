@@ -26,6 +26,8 @@ import {
   Clapperboard,
   Terminal,
   Calendar,
+  Coins,
+  ShoppingBag,
 } from "lucide-react";
 
 export const metadata = {
@@ -49,10 +51,30 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.16.0",
+    version: "v2.17.0",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Community-Wirtschaft & Belohnungs-Shop",
+    description: "Vollständiges Economy-System mit Server-Währung (Coins 🪙), Chat-/Voice-Belohnungen, Überweisungen (/pay), Kontostand (/balance) und Belohnungs-Shop (/shop) für Rollen und Badges.",
+    highlights: [
+      {
+        icon: Coins,
+        title: "Server-Währung & Belohnungsraten",
+        description: "Frei konfigurierbare Währung gesammelt durch Chat-Nachrichten, aktive Voice-Zeit und tägliche /daily Belohnungen inklusive Streak-Bonus.",
+      },
+      {
+        icon: ShoppingBag,
+        title: "Belohnungs-Shop im Web & Chat",
+        description: "Exklusive Discord-Rollen (automatische Zuweisung), Profil-Badges und Voice-Features mit Live-Bestand, Mindestlevel-Anforderungen und Sofortkauf.",
+      },
+    ],
+  },
+  {
+    version: "v2.16.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Game-Release-Kalender & Wöchentliche Highlights",
     description: "Öffentlicher Kalender für bevorstehende Gaming-Highlights (GTA VI, Monster Hunter Wilds, Doom, Civ VII etc.) mit Filtern, Countdowns, Vorbestell-Links und automatischem Wochen-Post.",
     highlights: [

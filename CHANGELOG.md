@@ -6,6 +6,26 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.17.0] - 2026-10-11
+
+### Hinzugefügt
+* **Community-Wirtschaft & Belohnungs-Shop (Dashboard „Wirtschaft & Shop“, `/shop`, `/balance`, `/pay`, `/economy`):**
+  * **Server-Währung (Coins):** Frei konfigurierbare Server-Währung (Name & Symbol, z. B. Coins 🪙), gesammelt durch Chat-Aktivität (konfigurierbare Min/Max/Cooldown), Voice-Zeit (pro Minute) und tägliche `/daily` Belohnungen (inkl. Streak-Bonus).
+  * **Discord Slash-Commands:**
+    * `/balance [mitglied]`: Zeigt den aktuellen Kontostand, den Vermögens-Rang, die Gesamteinnahmen und die letzten Transaktionen an.
+    * `/pay <mitglied> <betrag>`: Überweist Coins sicher an ein anderes Mitglied (mit Saldenprüfung, optionaler Server-Gebühr und Transaktions-Log).
+    * `/shop uebersicht [kategorie]`: Interaktiver Store-Katalog für Rollen, Profil-Badges und Voice-Features mit Direktlink zum Web-Dashboard.
+    * `/shop kaufen <artikel>`: Kauft einen Artikel direkt im Chat; Discord-Rollen werden dem Mitglied vom Bot automatisch zugewiesen.
+    * `/economy geben|abziehen|setzen|reset`: Umfassende Admin-Befehle zur Verwaltung von Nutzerkonten mit Begründung im Audit-Log.
+    * `/leaderboard kategorie:coins`: Zeigt die Top 10 reichsten Mitglieder des Servers.
+    * Integration in `/rank`: Zeigt den aktuellen Coins-Kontostand direkt auf der Rangkarte an.
+  * **Web-Dashboard (`/economy`):**
+    * Öffentlicher Shop-Katalog mit Kategorien, Live-Bestand, Mindestlevel-Anforderungen und Sofortkauf.
+    * Vermögens-Rangliste der Top 20 reichsten Mitglieder.
+    * Persönliches Inventar mit Kauf-Historie.
+    * Admin-Bereich: Konfiguration der Verdienstraten, Erstellen/Bearbeiten von Artikeln mit Rollen-Verknüpfung, manuelle Guthaben-Anpassung und Transaktions-Historie.
+  * **Neues Modul „Wirtschaft & Belohnungs-Shop“:** Vollständig modular an- und abschaltbar über das Dashboard oder `/modules`.
+
 ## [2.16.0] - 2026-10-11
 
 ### Hinzugefügt

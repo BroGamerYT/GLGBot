@@ -102,6 +102,13 @@ const ALLOWED = new Set([
   "POST releases/update",
   "POST releases/delete",
   "POST releases/post-week",
+  "GET economy",
+  "POST economy/config",
+  "POST economy/shop/add",
+  "POST economy/shop/update",
+  "POST economy/shop/delete",
+  "POST economy/shop/buy",
+  "POST economy/admin/balance",
 ]);
 
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {

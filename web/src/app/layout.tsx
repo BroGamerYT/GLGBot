@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { LogOut, Gift, LifeBuoy, Newspaper, Trophy, Sparkles, LogIn, Calendar } from "lucide-react";
+import { LogOut, Gift, LifeBuoy, Newspaper, Trophy, Sparkles, LogIn, Calendar, Coins } from "lucide-react";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
 import SidebarNav from "@/components/SidebarNav";
 import GuildSwitcher from "@/components/GuildSwitcher";
@@ -78,6 +78,13 @@ export default async function RootLayout({
               >
                 <Trophy className="w-4 h-4 text-yellow-400" />
                 <span>Rangliste</span>
+              </Link>
+              <Link
+                href="/economy"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-discord-card transition-all"
+              >
+                <Coins className="w-4 h-4 text-amber-400" />
+                <span>Shop</span>
               </Link>
               <Link
                 href="/login"

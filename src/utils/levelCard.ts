@@ -2,6 +2,8 @@ import { AttachmentBuilder, EmbedBuilder, Guild, User } from "discord.js";
 import { renderRankCard } from "./cards";
 import { statsService } from "../services/statsService";
 import { dailyService } from "../services/dailyService";
+import { moduleService } from "../services/moduleService";
+import { economyService } from "../services/economyService";
 import { BRANDING } from "../config/branding";
 
 /**
@@ -43,8 +45,19 @@ export function buildLevelCard(guild: Guild, user: User, opts: { title?: string;
       { name: "💬 Chat-Nachrichten", value: stats.messagesCount.toLocaleString("de-DE"), inline: true },
       { name: "🎙️ Voice-Zeit", value: statsService.formatMinutes(stats.voiceMinutes), inline: true },
       { name: "🔥 Daily-Serie", value: streak > 0 ? `${streak} Tag(e)` : "0 Tage", inline: true }
-    )
-    .setFooter({ text: `${BRANDING.community} Level-System` })
+    );
+
+  if (moduleService.isEnabled(guild.id, "economy")) {
+    const econCfg = economyService.getConfig(guild.id);
+    const balance = economyService.getBalance(guild.id, user.id);
+    embed.addFields({
+      name: `${econCfg.currencySymbol} ${econCfg.currencyName}`,
+      value: `${balance.toLocaleString("de-DE")} ${econCfg.currencySymbol}`,
+      inline: true,
+    });
+  }
+
+  embed.setFooter({ text: `${BRANDING.community} Level-System` })
     .setTimestamp();
 
   if (opts.showNextSteps && !progress.isMaxLevel) {

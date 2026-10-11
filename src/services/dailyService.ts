@@ -3,6 +3,8 @@ import path from "path";
 import { Guild, User } from "discord.js";
 import { readJsonFile, writeJsonAtomic } from "../utils/jsonFile";
 import { statsService } from "./statsService";
+import { moduleService } from "./moduleService";
+import { economyService } from "./economyService";
 
 export interface DailyUserData {
   userId: string;
@@ -23,6 +25,9 @@ export interface DailyClaimResult {
   baseXp: number;
   bonusXp: number;
   totalXp: number;
+  coins?: number;
+  currencyName?: string;
+  currencySymbol?: string;
   nextClaimTimestamp: number;
   leveledUp?: boolean;
   newLevel?: number;
@@ -151,6 +156,17 @@ class DailyService {
     // XP im StatsService gutschreiben
     const xpResult = await statsService.addCustomXp(guild, user, totalXp, "Tägliche Belohnung");
 
+    // Falls Wirtschafts-Modul aktiv ist, Coins gutschreiben
+    let coinsAwarded: number | undefined;
+    let currencyName: string | undefined;
+    let currencySymbol: string | undefined;
+    if (moduleService.isEnabled(guild.id, "economy")) {
+      coinsAwarded = economyService.claimDailyCoins(guild.id, user.id, userData.currentStreak, user.tag);
+      const cfg = economyService.getConfig(guild.id);
+      currencyName = cfg.currencyName;
+      currencySymbol = cfg.currencySymbol;
+    }
+
     return {
       success: true,
       currentStreak: userData.currentStreak,
@@ -158,6 +174,9 @@ class DailyService {
       baseXp: BASE_XP,
       bonusXp,
       totalXp,
+      coins: coinsAwarded,
+      currencyName,
+      currencySymbol,
       nextClaimTimestamp: now + COOLDOWN_MS,
       leveledUp: xpResult?.leveledUp,
       newLevel: xpResult?.newLevel,

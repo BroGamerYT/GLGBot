@@ -3,6 +3,7 @@ import path from "path";
 import { Guild, User, Client, ChannelType, GuildMember } from "discord.js";
 import { readJsonFile, writeJsonAtomic } from "../utils/jsonFile";
 import { moduleService } from "./moduleService";
+import { economyService } from "./economyService";
 
 export interface TalkPartnerEntry {
   tag: string;
@@ -377,7 +378,9 @@ class StatsService {
 
     this.trackerInterval = setInterval(() => {
       for (const guild of client.guilds.cache.values()) {
-        if (!moduleService.isEnabled(guild.id, "levels")) continue; // Modul ausgeschaltet
+        const levelsEnabled = moduleService.isEnabled(guild.id, "levels");
+        const economyEnabled = moduleService.isEnabled(guild.id, "economy");
+        if (!levelsEnabled && !economyEnabled) continue; // Beide Module ausgeschaltet
         const afkChannelId = guild.afkChannelId;
         const cfg = this.getConfig(guild.id);
 
@@ -397,17 +400,23 @@ class StatsService {
 
           if (members.length === 0) continue;
 
-          // 1. Jedem aktiven Mitglied 1 Minute Voice + konfigurierte Voice-XP geben
+          // 1. Jedem aktiven Mitglied 1 Minute Voice + konfigurierte Voice-XP / Coins geben
           const voiceXp = cfg.voiceXpPerMinute ?? 5;
           for (const member of members) {
-            const stats = this.getOrCreateUser(guild, member.user);
-            stats.voiceMinutes += 1;
-            stats.xp += voiceXp;
+            if (levelsEnabled) {
+              const stats = this.getOrCreateUser(guild, member.user);
+              stats.voiceMinutes += 1;
+              stats.xp += voiceXp;
 
-            const progress = this.calculateLevelProgress(stats.xp, cfg);
-            if (progress.level > stats.level) {
-              stats.level = progress.level;
-              this.syncUserRoleRewards(guild, member, progress.level).catch(() => null);
+              const progress = this.calculateLevelProgress(stats.xp, cfg);
+              if (progress.level > stats.level) {
+                stats.level = progress.level;
+                this.syncUserRoleRewards(guild, member, progress.level).catch(() => null);
+              }
+            }
+
+            if (economyEnabled) {
+              economyService.addVoiceCoins(guild, member.user);
             }
           }
 

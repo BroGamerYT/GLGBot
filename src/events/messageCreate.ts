@@ -7,6 +7,7 @@ import { blacklistService } from "../services/blacklistService";
 import { moduleService } from "../services/moduleService";
 import { customCommandService } from "../services/customCommandService";
 import { clipService } from "../services/clipService";
+import { economyService } from "../services/economyService";
 
 const messageCreateEvent: BotEvent<Events.MessageCreate> = {
   name: Events.MessageCreate,
@@ -103,6 +104,11 @@ const messageCreateEvent: BotEvent<Events.MessageCreate> = {
           }
         }
       }
+    }
+
+    // Wirtschafts-System: Coins für Nachricht gutschreiben (falls Economy-Modul aktiv)
+    if (message.guild && moduleService.isEnabled(message.guild.id, "economy")) {
+      economyService.addMessageCoins(message.guild, message.author);
     }
   },
 };

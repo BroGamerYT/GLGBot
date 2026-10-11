@@ -27,6 +27,7 @@ import { moduleService } from "../services/moduleService";
 import { clipService } from "../services/clipService";
 import { liveStreamService } from "../services/liveStreamService";
 import { releaseService } from "../services/releaseService";
+import { economyService } from "../services/economyService";
 
 /**
  * Interne Schnittstelle für das Web-Dashboard.
@@ -388,6 +389,115 @@ export function startInternalApi(client: Client) {
           const ok = await releaseService.postWeeklyReleases(client, guild.id);
           if (!ok) return send(res, 400, { error: "Wochen-Post konnte nicht versendet werden. Prüfe den konfigurierten Kanal." });
           return send(res, 200, { ok: true });
+        }
+
+        // ---------------- Wirtschaft & Shop ----------------
+        case "GET /economy": {
+          const config = economyService.getConfig(guild.id);
+          const shopItems = economyService.getShopItems(guild.id, false);
+          const leaderboard = economyService.getLeaderboard(guild.id, 20);
+          const transactions = isLoggedIn ? economyService.getTransactions(guild.id, 50) : [];
+          const userWallet = actorId ? economyService.getOrCreateWallet(guild.id, actorId) : null;
+          const userInventory = actorId ? economyService.getUserInventory(guild.id, actorId) : [];
+
+          const roles = guild.roles.cache
+            .filter((r) => r.id !== guild.id && !r.managed)
+            .sort((a, b) => b.position - a.position)
+            .map((r) => ({ id: r.id, name: r.name, color: r.hexColor }));
+
+          return send(res, 200, {
+            config,
+            shopItems,
+            leaderboard,
+            transactions,
+            userWallet,
+            userInventory,
+            roles,
+          });
+        }
+        case "POST /economy/config": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.Administrator) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Nur Administratoren dürfen die Währungseinstellungen bearbeiten." });
+          }
+          const body = await readBody(req);
+          const updated = economyService.updateConfig(guild.id, body);
+          return send(res, 200, { ok: true, config: updated });
+        }
+        case "POST /economy/shop/add": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageGuild) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Server verwalten“." });
+          }
+          const body = await readBody(req);
+          if (!body.name || typeof body.price !== "number") {
+            return send(res, 400, { error: "Artikelname und Preis erforderlich." });
+          }
+          const item = economyService.addShopItem(guild.id, {
+            name: String(body.name).trim(),
+            description: String(body.description || "").trim(),
+            price: Math.max(1, Math.floor(body.price)),
+            type: body.type || "custom",
+            roleId: body.roleId ? String(body.roleId) : undefined,
+            badgeIcon: body.badgeIcon ? String(body.badgeIcon) : undefined,
+            stock: body.stock !== undefined ? Number(body.stock) : -1,
+            requiredLevel: body.requiredLevel ? Number(body.requiredLevel) : 0,
+            enabled: body.enabled !== false,
+          });
+          return send(res, 200, { ok: true, item });
+        }
+        case "POST /economy/shop/update": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageGuild) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Server verwalten“." });
+          }
+          const body = await readBody(req);
+          if (!body.id) return send(res, 400, { error: "Artikel-ID erforderlich." });
+          const updated = economyService.updateShopItem(guild.id, String(body.id), body.patch || {});
+          if (!updated) return send(res, 404, { error: "Artikel nicht gefunden." });
+          return send(res, 200, { ok: true, item: updated });
+        }
+        case "POST /economy/shop/delete": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageGuild) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Server verwalten“." });
+          }
+          const body = await readBody(req);
+          if (!body.id) return send(res, 400, { error: "Artikel-ID erforderlich." });
+          const ok = economyService.deleteShopItem(guild.id, String(body.id));
+          return send(res, 200, { ok });
+        }
+        case "POST /economy/shop/buy": {
+          if (!isLoggedIn || !actorId) return send(res, 401, { error: "Bitte einloggen." });
+          const member = await guild.members.fetch(actorId).catch(() => null);
+          if (!member) return send(res, 404, { error: "Mitglied auf dem Server nicht gefunden." });
+          const body = await readBody(req);
+          if (!body.itemId) return send(res, 400, { error: "Keine itemId angegeben." });
+          const result = await economyService.buyShopItem(guild, member, String(body.itemId));
+          if (!result.success) return send(res, 400, { error: result.error });
+          return send(res, 200, { ok: true, item: result.item, newBalance: result.newBalance });
+        }
+        case "POST /economy/admin/balance": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.Administrator) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Nur Administratoren dürfen Kontostände manipulieren." });
+          }
+          const body = await readBody(req);
+          const { userId, amount, mode, reason } = body;
+          if (!userId || typeof amount !== "number") {
+            return send(res, 400, { error: "userId und amount erforderlich." });
+          }
+          const targetMember = await guild.members.fetch(userId).catch(() => null);
+          const targetTag = targetMember?.user.tag || "Nutzer";
+          let wallet;
+          if (mode === "set") {
+            wallet = economyService.setBalance(guild.id, userId, amount, reason || "Admin-Anpassung", targetTag);
+          } else if (mode === "deduct") {
+            wallet = economyService.removeCoins(guild.id, userId, amount, reason || "Admin-Abzug", "admin", actor.id, targetTag, actor.user.tag);
+          } else {
+            wallet = economyService.addCoins(guild.id, userId, amount, reason || "Admin-Gutschrift", "admin", actor.id, targetTag, actor.user.tag);
+          }
+          return send(res, 200, { ok: true, wallet });
         }
 
         // ---------------- Geplante Ankündigungen ----------------

@@ -25,7 +25,8 @@ export type BotModuleId =
   | "welcome"
   | "gameServers"
   | "clips"
-  | "releases";
+  | "releases"
+  | "economy";
 
 export interface BotModuleInfo {
   id: BotModuleId;
@@ -228,6 +229,14 @@ export const BOT_MODULES: BotModuleInfo[] = [
     emoji: "📅",
     category: "gaming",
     commands: ["releases"],
+  },
+  {
+    id: "economy",
+    name: "Wirtschaft & Belohnungs-Shop",
+    description: "Server-Währung (Coins) für Chat/Voice/Daily, Überweisungen (/pay), Kontostand (/balance) und Rollen-/Item-Shop (/shop)",
+    emoji: "🪙",
+    category: "community",
+    commands: ["balance", "pay", "shop", "economy"],
   },
 ];
 

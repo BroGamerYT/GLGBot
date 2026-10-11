@@ -2,7 +2,7 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.16.0 (siehe History ganz unten)
+**Aktueller Stand:** v2.17.0 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
@@ -193,12 +193,13 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-### 15. 🪙 Community-Wirtschaft & Belohnungs-Shop (Economy)
-* [ ] Server-Währung („GLG-Coins“) gesammelt durch Chat-Aktivität, Voice-Zeit, Streaks und Events.
-* [ ] Chat-Befehle `/balance`, `/pay <user> <amount>`, `/leaderboard coins` (`/daily` aus Punkt 5 wird um Coins erweitert).
-* [ ] **Belohnungs-Shop (`/shop` & im Web-Dashboard):**
-  * [ ] Kaufen von exklusiven Rollenfarben (z. B. Neon-Gelb, Cyber-Blau).
-  * [ ] Eigene permanente Voice-Channel-Namen oder individuelle Profil-Badges.
+### 15. 🪙 Community-Wirtschaft & Belohnungs-Shop (Economy) ✅ v2.17.0
+* [x] Server-Währung („Coins“ / frei konfigurierbar) gesammelt durch Chat-Aktivität, Voice-Zeit, Streaks und Events.
+* [x] Chat-Befehle `/balance`, `/pay <user> <amount>`, `/leaderboard coins` (`/daily` aus Punkt 5 wurde um Coins erweitert).
+* [x] **Belohnungs-Shop (`/shop` & im Web-Dashboard):**
+  * [x] Kaufen von Rollen (z. B. VIP, Farbrollen mit automatischer Zuweisung).
+  * [x] Eigene Voice-Channel Namensrechte, Profil-Badges und individuelle Vorteile.
+  * [x] Web-Dashboard `/economy` mit Store, Leaderboard, Inventar & Admin-Verwaltung.
 
 ---
 
@@ -322,7 +323,9 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.16.0 (Aktuell):**
+* [x] **v2.17.0 (Aktuell):**
+  * [x] Community-Wirtschaft & Belohnungs-Shop (Modul „Wirtschaft & Belohnungs-Shop“), Server-Währung (Coins 🪙), `/balance`, `/pay`, `/shop`, `/economy`, Dashboard `/economy`, Coins in `/daily` & `/rank`.
+* [x] **v2.16.0:**
   * [x] Game-Release-Kalender (Modul „Game-Release-Kalender“), Timeline & Monatsfilter, Vorbestell-Links, `/releases`, Montags-Scheduler.
 * [x] **v2.15.0:**
   * [x] Clip der Woche (Modul „Clip-Showcase“), Web-Konsole zum Mitlesen und Schreiben als Bot.

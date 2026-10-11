@@ -37,6 +37,7 @@ import {
   HandHeart,
   MonitorPlay,
   Calendar,
+  Coins,
 } from "lucide-react";
 
 interface NavItem {
@@ -76,6 +77,7 @@ const GROUPS: NavGroup[] = [
       { href: "/voice", label: "Voice-Manager", icon: Mic, color: "text-discord-green" },
       { href: "/live", label: "Live-Streamer", icon: Radio, color: "text-red-500" },
       { href: "/stats", label: "Level & Rangliste", icon: Trophy, color: "text-amber-400" },
+      { href: "/economy", label: "Wirtschaft & Shop", icon: Coins, color: "text-yellow-400" },
       { href: "/free-games", label: "Free-Games", icon: Gift, color: "text-discord-green" },
       { href: "/releases", label: "Release-Kalender", icon: Calendar, color: "text-purple-400" },
       { href: "/news", label: "Game-News", icon: Newspaper, color: "text-orange-400" },
