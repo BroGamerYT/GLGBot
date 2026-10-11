@@ -49,11 +49,19 @@ export async function middleware(req: NextRequest) {
       pathname.startsWith("/api/bot/economy")) &&
       (req.method === "GET" || req.method === "HEAD"));
 
+  if (isPublicApi) {
+    return NextResponse.next();
+  }
+
   const isMemberApi =
     pathname === "/api/bot/economy/shop/buy" ||
     pathname === "/api/bot/economy/exchange-xp";
 
   const session = await verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);
+
+  if (isPublicPage && !session) {
+    return NextResponse.next();
+  }
 
   if (isMemberApi) {
     if (!session) return NextResponse.json({ error: "Nicht eingeloggt." }, { status: 401 });
@@ -61,16 +69,16 @@ export async function middleware(req: NextRequest) {
   }
 
   if (session) {
+    if (isPublicPage) {
+      return NextResponse.next();
+    }
+
     // Wenn der Nutzer ein reguläres Community-Mitglied ist (kein Admin):
     if (session.isAdmin === false) {
-      // Zugriff nur auf öffentliche Seiten (Shop, Stats, Releases etc.)
-      if (!isPublicPage) {
-        const base = process.env.DASHBOARD_URL?.replace(/\/+$/, "") || req.nextUrl.origin;
-        return isApi
-          ? NextResponse.json({ error: "Dieser Bereich ist Administratoren vorbehalten." }, { status: 403 })
-          : NextResponse.redirect(new URL("/economy", base));
-      }
-      return NextResponse.next();
+      const base = process.env.DASHBOARD_URL?.replace(/\/+$/, "") || req.nextUrl.origin;
+      return isApi
+        ? NextResponse.json({ error: "Dieser Bereich ist Administratoren vorbehalten." }, { status: 403 })
+        : NextResponse.redirect(new URL("/economy", base));
     }
 
     const now = Math.floor(Date.now() / 1000);
