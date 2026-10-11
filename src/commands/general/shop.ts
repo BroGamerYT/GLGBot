@@ -10,6 +10,7 @@ import {
 import { Command } from "../../types";
 import { economyService } from "../../services/economyService";
 import { moduleService } from "../../services/moduleService";
+import { authCodeService } from "../../services/authCodeService";
 import { BRANDING } from "../../config/branding";
 
 const shopCommand: Command = {
@@ -52,6 +53,11 @@ const shopCommand: Command = {
             .setRequired(true)
             .setMinValue(10)
         )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("code")
+        .setDescription("Erhalte einen 30-Minuten Login-Code für das Web-Dashboard und den Shop.")
     ),
   execute: async (interaction: ChatInputCommandInteraction) => {
     if (!interaction.guild || !interaction.member) {
@@ -206,6 +212,51 @@ const shopCommand: Command = {
         .setFooter({ text: `${BRANDING.community} Community-Börse` })
         .setTimestamp();
       await interaction.reply({ embeds: [embed] });
+      return;
+    }
+
+    if (sub === "code") {
+      const member = interaction.member as GuildMember;
+      const { code, expiresAt, loginUrl } = authCodeService.generateCode(
+        interaction.guild,
+        interaction.user,
+        member
+      );
+      const expiresSec = Math.floor(expiresAt / 1000);
+
+      const embed = new EmbedBuilder()
+        .setColor(0x5865f2)
+        .setTitle("🔐 Dein persönlicher Shop- & Web-Login Code")
+        .setDescription(
+          `Mit diesem Code kannst du dich sofort im **Shop** und im **Web-Dashboard** anmelden:\n\n` +
+            `### Dein Einmal-Code:\n` +
+            `# \`\`\`${code}\`\`\`\n` +
+            `⏱️ **Gültig für:** <t:${expiresSec}:R> (30 Minuten)\n` +
+            `👤 **Konto:** <@${interaction.user.id}> (${interaction.user.tag})\n\n` +
+            `👉 Klicke unten auf den Button, um dich direkt im Browser anzumelden, oder gib den Code auf der Webseite ein.`
+        )
+        .setFooter({ text: `${BRANDING.community} Shop • Einmal-Code` })
+        .setTimestamp();
+
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setLabel("Im Browser öffnen & einloggen")
+          .setEmoji("🚀")
+          .setStyle(ButtonStyle.Link)
+          .setURL(loginUrl),
+        new ButtonBuilder()
+          .setLabel("Shop öffnen")
+          .setEmoji("🛒")
+          .setStyle(ButtonStyle.Link)
+          .setURL(`${(process.env.DASHBOARD_URL || "https://glgbot.brogameryt.de").replace(/\/+$/, "")}/economy`)
+      );
+
+      await interaction.reply({
+        embeds: [embed],
+        components: [row],
+        ephemeral: true,
+      });
+      return;
     }
   },
 };

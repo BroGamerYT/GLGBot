@@ -23,6 +23,7 @@ import {
   Tag,
   Flame,
   Palette,
+  KeyRound,
   TrendingUp,
   Info,
   HelpCircle,
@@ -451,10 +452,11 @@ export default function EconomyPage() {
         {!isLoggedIn && (
           <Link
             href="/login"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-discord-blurple hover:bg-indigo-600 text-white font-medium text-sm transition-all shadow-md shadow-discord-blurple/20 self-start md:self-auto"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-discord-blurple hover:bg-indigo-600 text-white font-medium text-sm transition-all shadow-md shadow-discord-blurple/20 self-start md:self-auto"
           >
-            <span>Mit Discord einloggen</span>
-            <ArrowRight className="w-4 h-4" />
+            <KeyRound className="w-4 h-4" />
+            <span>Einloggen (Code / Discord)</span>
+            <ArrowRight className="w-4 h-4 ml-0.5" />
           </Link>
         )}
       </div>

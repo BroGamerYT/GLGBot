@@ -108,6 +108,8 @@ const ALLOWED = new Set([
   "POST economy/shop/update",
   "POST economy/shop/delete",
   "POST economy/shop/buy",
+  "POST economy/exchange-xp",
+  "POST economy/setup-colors",
   "POST economy/admin/balance",
   "GET templates",
   "POST templates/apply",

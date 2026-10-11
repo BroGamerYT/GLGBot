@@ -4,14 +4,28 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Newspaper, Plus, Trash2, Send, RefreshCw, Search, Gamepad2, Cpu, MonitorSmartphone, Link2, CheckCircle2,
   Pickaxe, X, ExternalLink, Sparkles, Hash, AtSign, History, Minus, Play, Pause, Clock, Wrench, Download,
-  Filter, ChevronRight, SlidersHorizontal, BookOpen, Bell
+  Filter, ChevronRight, SlidersHorizontal, BookOpen, Bell, Server, HardDrive, Layers
 } from "lucide-react";
 
 interface HistoryEntry { at: string; action: "added" | "removed" | "enabled" | "disabled"; name: string; type: SourceType; channelId: string; by?: string }
 interface PreviewItem { title: string; url: string; date?: number; text?: string; isPatchnotes?: boolean; isSnapshot?: boolean }
 interface Detail { type: SourceType; appId?: string; name: string; image?: string; description?: string; beta?: boolean }
 
-type SourceType = "steam" | "minecraft" | "nvidia" | "amd-gpu" | "amd-chipset" | "intel-gpu";
+type SourceType =
+  | "steam"
+  | "minecraft"
+  | "nvidia"
+  | "amd-gpu"
+  | "amd-chipset"
+  | "intel-gpu"
+  | "nas-synology"
+  | "nas-qnap"
+  | "nas-truenas"
+  | "nas-unraid"
+  | "software-amp"
+  | "software-codecs"
+  | "software-obs"
+  | "software-handbrake";
 
 export interface PublicNewsArticle {
   id: string;
@@ -48,7 +62,7 @@ interface CatalogEntry {
   type: SourceType;
   appId?: string;
   name: string;
-  category: "game" | "gpu" | "cpu";
+  category: "game" | "gpu" | "cpu" | "nas" | "software";
   description?: string;
   beta?: boolean;
   image?: string;
@@ -61,6 +75,14 @@ const TYPE_BADGE: Record<SourceType, { label: string; className: string }> = {
   "amd-gpu": { label: "AMD", className: "bg-red-500/15 text-red-300 border-red-500/30" },
   "amd-chipset": { label: "AMD", className: "bg-red-500/15 text-red-300 border-red-500/30" },
   "intel-gpu": { label: "Intel", className: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
+  "nas-synology": { label: "Synology DSM", className: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
+  "nas-truenas": { label: "TrueNAS", className: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30" },
+  "nas-unraid": { label: "Unraid OS", className: "bg-orange-500/15 text-orange-300 border-orange-500/30" },
+  "nas-qnap": { label: "QNAP QTS", className: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" },
+  "software-amp": { label: "CubeCoders AMP", className: "bg-purple-500/15 text-purple-300 border-purple-500/30" },
+  "software-codecs": { label: "K-Lite / LAV", className: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
+  "software-obs": { label: "OBS Studio", className: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30" },
+  "software-handbrake": { label: "HandBrake", className: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30" },
 };
 
 const select =
@@ -74,6 +96,8 @@ function SourceIcon({ type, className = "w-6 h-6" }: { type: SourceType; classNa
   if (type === "minecraft") return <Pickaxe className={`${className} text-green-400`} />;
   if (type === "amd-chipset") return <Cpu className={`${className} text-red-400`} />;
   if (type === "steam") return <Gamepad2 className={`${className} text-slate-300`} />;
+  if (type.startsWith("nas-")) return <Server className={`${className} text-cyan-400`} />;
+  if (type.startsWith("software-")) return <Wrench className={`${className} text-purple-400`} />;
   return <MonitorSmartphone className={`${className} ${type === "nvidia" ? "text-lime-400" : type === "intel-gpu" ? "text-sky-400" : "text-red-400"}`} />;
 }
 
@@ -176,14 +200,14 @@ export default function NewsPage() {
 
   // Filter & Navigation
   const [selectedArticle, setSelectedArticle] = useState<PublicNewsArticle | null>(null);
-  const [activeFilter, setActiveFilter] = useState<"all" | "games" | "patchnotes" | "drivers">("all");
+  const [activeFilter, setActiveFilter] = useState<"all" | "games" | "patchnotes" | "drivers" | "nas">("all");
   const [selectedSource, setSelectedSource] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [adminTab, setAdminTab] = useState<"news" | "manage">("news");
   const [showSourcesList, setShowSourcesList] = useState<boolean>(false);
 
   // Admin Hinzufügen / Verwaltung
-  const [tab, setTab] = useState<"game" | "gpu" | "cpu" | "custom">("game");
+  const [tab, setTab] = useState<"game" | "gpu" | "cpu" | "nas" | "software" | "custom">("game");
   const [addChannel, setAddChannel] = useState("");
   const [addRole, setAddRole] = useState("");
   const [steamInput, setSteamInput] = useState("");
@@ -335,9 +359,9 @@ export default function NewsPage() {
       );
     });
 
-  function switchTab(next: "game" | "gpu" | "cpu" | "custom") {
+  function switchTab(next: "game" | "gpu" | "cpu" | "nas" | "software" | "custom") {
     setTab(next);
-    const driver = next === "gpu" || next === "cpu";
+    const driver = next === "gpu" || next === "cpu" || next === "nas" || next === "software";
     const ch = driver ? setup.driverChannelId : setup.channelId;
     const role = driver ? setup.driverRoleId : setup.roleId;
     if (ch) setAddChannel(ch);
@@ -384,13 +408,21 @@ export default function NewsPage() {
       setSteamResult(result);
     });
 
+  const isDriverOrSoftware = (t: SourceType) =>
+    ["nvidia", "amd-gpu", "amd-chipset", "intel-gpu", "software-amp", "software-codecs", "software-obs", "software-handbrake"].includes(t);
+  const isNasSource = (t: SourceType) =>
+    ["nas-synology", "nas-truenas", "nas-unraid", "nas-qnap"].includes(t);
+
   // Filter-Logik
   const filteredArticles = useMemo(() => {
     return articles.filter((a) => {
-      if (activeFilter === "games" && (a.sourceType === "nvidia" || a.sourceType === "amd-gpu" || a.sourceType === "amd-chipset" || a.sourceType === "intel-gpu")) {
+      if (activeFilter === "games" && (isDriverOrSoftware(a.sourceType) || isNasSource(a.sourceType))) {
         return false;
       }
-      if (activeFilter === "drivers" && !(a.sourceType === "nvidia" || a.sourceType === "amd-gpu" || a.sourceType === "amd-chipset" || a.sourceType === "intel-gpu")) {
+      if (activeFilter === "drivers" && !isDriverOrSoftware(a.sourceType)) {
+        return false;
+      }
+      if (activeFilter === "nas" && !isNasSource(a.sourceType)) {
         return false;
       }
       if (activeFilter === "patchnotes" && !a.isPatchnotes) {
@@ -417,8 +449,9 @@ export default function NewsPage() {
     const total = articles.length;
     const games = articles.filter((a) => a.sourceType === "steam" || a.sourceType === "minecraft").length;
     const patchnotes = articles.filter((a) => a.isPatchnotes).length;
-    const drivers = articles.filter((a) => ["nvidia", "amd-gpu", "amd-chipset", "intel-gpu"].includes(a.sourceType)).length;
-    return { total, games, patchnotes, drivers };
+    const drivers = articles.filter((a) => isDriverOrSoftware(a.sourceType)).length;
+    const nas = articles.filter((a) => isNasSource(a.sourceType)).length;
+    return { total, games, patchnotes, drivers, nas };
   }, [articles]);
 
   const sourceOptions = useMemo(() => {
@@ -583,7 +616,16 @@ export default function NewsPage() {
                 }`}
               >
                 <MonitorSmartphone className="w-3.5 h-3.5" />
-                Treiber & Hardware ({counts.drivers})
+                Treiber & Software ({counts.drivers})
+              </button>
+              <button
+                onClick={() => setActiveFilter("nas")}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                  activeFilter === "nas" ? "bg-orange-500 text-black shadow-md shadow-orange-500/20" : "bg-discord-dark text-gray-400 hover:text-white border border-discord-border"
+                }`}
+              >
+                <Server className="w-3.5 h-3.5" />
+                NAS-Systeme ({counts.nas})
               </button>
 
               <button
@@ -934,6 +976,8 @@ export default function NewsPage() {
                   ["game", "Spiele", Gamepad2],
                   ["gpu", "Grafikkarten-Treiber", MonitorSmartphone],
                   ["cpu", "CPU / Chipsatz", Cpu],
+                  ["nas", "NAS-Systeme", Server],
+                  ["software", "Software & Codecs", Wrench],
                   ["custom", "Eigenes Steam-Spiel", Link2],
                 ] as const
               ).map(([key, label, Icon]) => (

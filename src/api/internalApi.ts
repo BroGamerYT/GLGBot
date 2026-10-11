@@ -29,6 +29,7 @@ import { liveStreamService } from "../services/liveStreamService";
 import { releaseService } from "../services/releaseService";
 import { economyService } from "../services/economyService";
 import { templateService } from "../services/templateService";
+import { authCodeService } from "../services/authCodeService";
 
 /**
  * Interne Schnittstelle für das Web-Dashboard.
@@ -116,6 +117,15 @@ export function startInternalApi(client: Client) {
           main: guildAccessService.isMain(g.id),
         }));
       return send(res, 200, { guilds, mainGuildId: guildAccessService.mainGuildId || null });
+    }
+
+    if (route === "POST /auth/verify-code") {
+      const body = await readBody(req);
+      const code = String(body.code || "");
+      if (!code) return send(res, 400, { error: "Code fehlt." });
+      const result = await authCodeService.verifyCode(code, client);
+      if (!result.valid) return send(res, 400, { error: result.error || "Ungültiger Code." });
+      return send(res, 200, result);
     }
 
     // Aktiver Server: vom Dashboard per Header gewählt, sonst Haupt-Server (GUILD_ID)

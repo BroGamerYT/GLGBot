@@ -6,6 +6,22 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.21.0] - 2026-10-11
+
+### Hinzugefügt
+* **30-Minuten Schnell-Login per Discord-Code (`/web-login` & `/shop code`):**
+  * **Login-Code per Befehl:** Mitglieder können per `/web-login` oder `/shop code` einen temporären 30-Minuten Einmal-Code (z. B. `GLG-4819`) anfordern.
+  * **Code-Login auf Webseite:** Auf `/login` und `/economy` kann der Code direkt eingegeben werden – ganz ohne OAuth2-Bestätigung!
+  * **1-Klick Direktlink:** Der Discord-Bot sendet direkt einen Button mit vorkonfigurierter URL (`/login?code=...`), der den Nutzer im Browser sofort automatisch anmeldet.
+* **Shop- & Profil-Zugang für reguläre Community-Mitglieder:**
+  * **Keine Admin-Sperre mehr im Shop:** Normale Discord-Server-Mitglieder werden beim Login nicht mehr mit „Dir fehlen die Rechte“ abgewiesen, sondern erhalten vollen Zugriff auf den Belohnungs-Shop (`/economy`), ihr persönliches Guthaben und die Level-Börse.
+  * **Sicherer Admin-Schutz:** Sensible Administrationsseiten (`/setup`, `/moderation`, `/backups` etc.) bleiben weiterhin streng für Admins geschützt; normale Mitglieder werden automatisch zum Shop weitergeleitet.
+* **Treiber & Software News (NAS-Systeme, Tools, Codecs & CubeCoders AMP):**
+  * **Erweiterter News-Bereich:** Umbenennung und Erweiterung des Treiber-Bereichs zu **„Treiber & Software News“** (`#🖥️・treiber-software` bzw. `#treiber-news`).
+  * **NAS-Betriebssysteme:** Vorkonfigurierte Feeds für Synology DSM, TrueNAS SCALE/CORE, Unraid OS und QNAP QTS.
+  * **Server-Software, Tools & Codecs:** Neue Feeds für CubeCoders AMP (Application Management Panel für Game Server), K-Lite Codec Pack / LAV Filters, OBS Studio und HandBrake.
+  * **Schnellfilter im Magazin:** Neue Filter-Pills `[🖥️ Treiber & Software]` und `[💾 NAS-Systeme]` im News-Magazin.
+
 ## [2.20.0] - 2026-10-11
 
 ### Hinzugefügt

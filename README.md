@@ -240,11 +240,15 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 * Unterstützt das Discord-Regel-Screening: Wer das Regel-Pop-up beim Beitreten bestätigt, bekommt die Gast-Rolle automatisch.
 * Regeltexte im Dashboard bearbeitbar, Platzhalter `{server}`, `{@Name}`, `{permissions}`.
 
-### 9. 📰 Game-News & 🖥️ Treiber-News
-* **Getrennte Kanäle & Rollen:** `#📰・game-news` (Rolle `bn.gamenews`) für Spiel-Updates und `#🖥️・treiber-news` (Rolle `bn.treiber`) für Treiber - jeder sieht nur, was er abonniert hat.
-* **Quellen:** Steam-Ankündigungen & Patchnotes jedes Steam-Spiels (Vorschläge wie GTA V, CS2, Rust … oder eigenes Spiel per Link/App-ID), Minecraft-Versionen, NVIDIA GeForce, AMD Radeon, AMD Ryzen Chipsatz, Intel Arc (AMD/Intel als Beta).
-* **Interaktives Kachel-Magazin (`/news`):** Besucher ohne Login sehen ein visuelles Kachel-Magazin mit Titelbildern, Teaser-Texten, relativer Zeitanzeige, Live-Suche und Kategoriefiltern (*Alle*, *Spiele*, *Patchnotes*, *Treiber*).
-* **Volltext-Modal:** Klick auf eine Kachel öffnet formatierte Patchnotes mit Bildern, Listen und Direkt-Aktionen (*Im Web öffnen*, *In Steam öffnen*, *Treiber-Download*).
+### 9. 📰 Game-News & 🖥️ Treiber- & Software-News
+* **Getrennte Kanäle & Rollen:** `#📰・game-news` (Rolle `bn.gamenews`) für Spiel-Updates und `#🖥️・treiber-software` (Rolle `bn.treiber`) für Treiber & Software - jeder sieht nur, was er abonniert hat.
+* **Quellen:**
+  * **Spiele:** Steam-Ankündigungen & Patchnotes jedes Steam-Spiels, Minecraft-Versionen & Snapshots.
+  * **Treiber & Hardware:** NVIDIA GeForce (WHQL), AMD Radeon Adrenalin, AMD Ryzen Chipsatz (AM4/AM5), Intel Arc.
+  * **NAS-Systeme:** Synology DSM, TrueNAS SCALE/CORE, Unraid OS, QNAP QTS.
+  * **Software & Codecs:** CubeCoders AMP (Game Server Management), K-Lite Codec Pack / LAV Filters, OBS Studio, HandBrake.
+* **Interaktives Kachel-Magazin (`/news`):** Modernes visuelles Kachel-Magazin mit Titelbildern, Teaser-Texten, relativer Zeitanzeige, Live-Suche und Schnellfiltern (*Alle*, *Spiele*, *Patchnotes*, *Treiber & Software*, *NAS-Systeme*).
+* **Volltext-Modal:** Klick auf eine Kachel öffnet formatierte Patchnotes mit Bildern, Listen und Direkt-Aktionen (*Im Web öffnen*, *In Steam öffnen*, *Direkt-Download*).
 * Detailansicht im Dashboard mit „Was ist enthalten?“ und den letzten Beiträgen; Verlauf aller Änderungen; angepinnte Übersicht im Kanal.
 * Prüfung alle 15 Minuten, beim Hinzufügen wird nichts Altes gepostet.
 
@@ -259,6 +263,9 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 * **Öffentliche Dashboard-Seite (`/releases`):** Ohne Login erreichbar, mit Zeitraum-Ansicht, Plattform-Filter und Release-Countdown.
 
 ### 11. 💰 Community-Wirtschaft, XP-Börse & Belohnungs-Shop
+* **30-Minuten Schnell-Login per Code (`/web-login` & `/shop code`):**
+  * Schneller Login ohne Discord-OAuth: `/web-login` in Discord ausführen und den Code auf der Webseite eingeben oder direkt auf den Link klicken.
+  * Auch reguläre Server-Mitglieder können sich anmelden und im Shop einkaufen.
 * **Server-Währung (Coins):**
   * Konfigurierbarer Währungsname (z. B. *Coins*, *Credits*) und Symbol (`🪙`).
   * Einnahmequellen: Chat-Nachrichten, Voice-Aktivität und täglicher Bonus via `/daily` mit Streak-Bonus.

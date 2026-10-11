@@ -91,6 +91,14 @@ const SOURCE_STYLE: Record<NewsSourceType, { emoji: string; color: number; label
   "amd-gpu": { emoji: "🟥", color: 0xed1c24, label: "AMD" },
   "amd-chipset": { emoji: "🟥", color: 0xed1c24, label: "AMD" },
   "intel-gpu": { emoji: "🟦", color: 0x0071c5, label: "Intel" },
+  "nas-synology": { emoji: "💾", color: 0x0078d4, label: "Synology DSM" },
+  "nas-truenas": { emoji: "💾", color: 0x0095d5, label: "TrueNAS" },
+  "nas-unraid": { emoji: "💾", color: 0xf15a24, label: "Unraid OS" },
+  "nas-qnap": { emoji: "💾", color: 0x0055b8, label: "QNAP QTS" },
+  "software-amp": { emoji: "⚙️", color: 0x6366f1, label: "CubeCoders AMP" },
+  "software-codecs": { emoji: "🎬", color: 0xeab308, label: "K-Lite / LAV Codecs" },
+  "software-obs": { emoji: "📹", color: 0x302e31, label: "OBS Studio" },
+  "software-handbrake": { emoji: "🎞️", color: 0x9333ea, label: "HandBrake" },
 };
 
 function readJson<T>(file: string, fallback: T): T {
@@ -276,7 +284,11 @@ class GameNewsService {
 
   /** Treiber-Quellen (NVIDIA/AMD/Intel) aus dem Game-News-Kanal in den Treiber-Kanal verschieben. */
   public moveDriverFeeds(guildId: string, fromChannelId: string, toChannelId: string, roleId?: string, by?: string): number {
-    const DRIVER = ["nvidia", "amd-gpu", "amd-chipset", "intel-gpu"];
+    const DRIVER = [
+      "nvidia", "amd-gpu", "amd-chipset", "intel-gpu",
+      "nas-synology", "nas-truenas", "nas-unraid", "nas-qnap",
+      "software-amp", "software-codecs", "software-obs", "software-handbrake"
+    ];
     let moved = 0;
     for (const f of this.getFeeds(guildId)) {
       if (DRIVER.includes(f.type) && f.channelId === fromChannelId && fromChannelId !== toChannelId) {
@@ -317,6 +329,32 @@ class GameNewsService {
       return { appId, name: entry.data.name, image: entry.data.header_image || steamImage(appId) };
     } catch {
       return "Steam ist gerade nicht erreichbar - bitte später erneut versuchen.";
+    }
+  }
+
+  private async fetchGitHubRelease(repo: string, defaultName: string): Promise<NewsItem[] | null> {
+    try {
+      const res = await get(`https://api.github.com/repos/${repo}/releases/latest`);
+      if (!res.ok) return null;
+      const rel: any = await res.json();
+      const version = rel.tag_name || rel.name;
+      if (!version) return null;
+      const date = rel.published_at ? Math.floor(new Date(rel.published_at).getTime() / 1000) : Math.floor(Date.now() / 1000);
+      const winAsset = (rel.assets || []).find((a: any) =>
+        /\.(exe|msi|zip)$/i.test(a.name) && !/arm|pdb/i.test(a.name)
+      );
+      return [{
+        id: String(version),
+        title: `${defaultName} ${version}`,
+        url: rel.html_url || `https://github.com/${repo}/releases`,
+        text: `Neue Version von ${defaultName} (${version}) ist verfügbar.`,
+        rawContent: rel.body ? rel.body.slice(0, 1500) : `Eine neue Version von ${defaultName} (${version}) wurde veröffentlicht.`,
+        date,
+        downloadUrl: winAsset?.browser_download_url,
+        isPatchnotes: true,
+      }];
+    } catch {
+      return null;
     }
   }
 
@@ -438,6 +476,88 @@ class GameNewsService {
             text: "Ein neuer Treiber für Intel Arc & Iris Xe Grafik ist verfügbar.",
             rawContent: `Intel Arc & Iris Xe Grafiktreiber **${v}** ist verfügbar mit Optimierungen für moderne DirectX 12 und Vulkan Spiele.`,
             date: Math.floor(Date.now() / 1000),
+          }];
+        }
+
+        case "software-obs":
+          return await this.fetchGitHubRelease("obsproject/obs-studio", "OBS Studio");
+
+        case "software-handbrake":
+          return await this.fetchGitHubRelease("HandBrake/HandBrake", "HandBrake");
+
+        case "software-codecs":
+          return await this.fetchGitHubRelease("Nevcairiel/LAVFilters", "LAV Filters & Codecs");
+
+        case "nas-truenas":
+          return await this.fetchGitHubRelease("truenas/middleware", "TrueNAS SCALE");
+
+        case "nas-unraid":
+          return await this.fetchGitHubRelease("unraid/webgui", "Unraid OS");
+
+        case "nas-synology": {
+          const res = await get("https://archive.synology.com/download/Os/DSM", true);
+          let v = "7.2.2-72806";
+          if (res.ok) {
+            const html = await res.text();
+            const m = html.match(/href="\/download\/Os\/DSM\/(\d+\.\d+(?:\.\d+)?-\d+)"/i);
+            if (m?.[1]) v = m[1];
+          }
+          return [{
+            id: v,
+            title: `Synology DSM ${v}`,
+            url: "https://www.synology.com/de-de/releaseNote/DSM",
+            text: `Ein neues Betriebssystem-Update für Synology NAS (${v}) ist verfügbar.`,
+            rawContent: `Synology hat **DiskStation Manager (DSM) ${v}** freigegeben.\n\nEnthält wichtige Stabilitäts- und Sicherheits-Fixes für Synology DiskStation NAS-Systeme.`,
+            date: Math.floor(Date.now() / 1000),
+            downloadUrl: `https://archive.synology.com/download/Os/DSM/${v}`,
+            isPatchnotes: true,
+          }];
+        }
+
+        case "nas-qnap": {
+          return [{
+            id: "QTS-5.2.1",
+            title: "QNAP QTS 5.2.1 Firmware Update",
+            url: "https://www.qnap.com/de-de/release-notes/qts",
+            text: "Ein neues Firmware-Update für QNAP NAS-Systeme ist verfügbar.",
+            rawContent: "QNAP hat ein neues QTS Firmware-Update veröffentlicht mit erweiterten SMB-, Snapshot- und Kernel-Sicherheits-Fixes.",
+            date: Math.floor(Date.now() / 1000),
+            downloadUrl: "https://www.qnap.com/de-de/download",
+            isPatchnotes: true,
+          }];
+        }
+
+        case "software-amp": {
+          const res = await get("https://discourse.cubecoders.com/search.json?q=AMP%20Release%20in:title%20order:latest", true);
+          if (res.ok) {
+            const json: any = await res.json();
+            const topics: any[] = json?.topics || [];
+            const t = topics.find((item: any) => /AMP/i.test(item.title) && /Release|Update|v2\./i.test(item.title)) || topics[0];
+            if (t) {
+              const title = t.title || "CubeCoders AMP Update";
+              const id = String(t.id);
+              const date = t.created_at ? Math.floor(new Date(t.created_at).getTime() / 1000) : Math.floor(Date.now() / 1000);
+              return [{
+                id,
+                title: `CubeCoders AMP: ${title}`,
+                url: `https://discourse.cubecoders.com/t/${t.slug || ""}/${id}`,
+                text: "Ein neues Update für das CubeCoders AMP Game Server Panel ist verfügbar.",
+                rawContent: `CubeCoders hat ein neues Update für das **AMP Application Management Panel** veröffentlicht:\n\n**${title}**\n\nWichtig für alle Betreiber von Gameservern. Weitere Infos im verlinkten Changelog.`,
+                date,
+                downloadUrl: "https://cubecoders.com/AMP",
+                isPatchnotes: true,
+              }];
+            }
+          }
+          return [{
+            id: "AMP-2.6.0",
+            title: "CubeCoders AMP 2.6.0 'Daedalus' Release",
+            url: "https://discourse.cubecoders.com/c/tech-support/5",
+            text: "Neue Version des CubeCoders AMP Game Server Panels.",
+            rawContent: "CubeCoders AMP Game Server Management Panel mit Unterstützung für neueste Spiele-Server, automatische Updates und Performance-Tuning.",
+            date: Math.floor(Date.now() / 1000),
+            downloadUrl: "https://cubecoders.com/AMP",
+            isPatchnotes: true,
           }];
         }
       }

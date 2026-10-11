@@ -55,23 +55,49 @@ export async function GET(req: NextRequest) {
     if (!userRes.ok) return fail("token");
     const user = await userRes.json();
 
-    // 3. Darf der Nutzer ins Dashboard?
+    // 3. Darf der Nutzer ins Dashboard bzw. den Shop?
     const access = await checkDashboardAccess(user.id);
-    if (!access.allowed) {
-      console.warn(`[Auth] Zugriff verweigert für ${user.username} (${user.id}): ${access.reason}`);
-      return fail(access.reason);
+    let isAdmin = false;
+    let guilds = access.guilds;
+
+    if (access.allowed) {
+      isAdmin = true;
+      console.log(`[Auth] Admin-Login: ${user.username} (${user.id}) via ${access.reason}`);
+    } else {
+      // Prüfen, ob der Nutzer Mitglied auf dem Discord-Server ist (damit Mitglieder im Shop einkaufen können)
+      const mainGuildId = (process.env.GUILD_ID || "").trim();
+      const botToken = process.env.DISCORD_TOKEN;
+      let isMember = false;
+
+      if (mainGuildId && botToken) {
+        const memRes = await fetch(`https://discord.com/api/v10/guilds/${mainGuildId}/members/${user.id}`, {
+          headers: { Authorization: `Bot ${botToken}` },
+          cache: "no-store",
+        });
+        if (memRes.ok) isMember = true;
+      }
+
+      if (!isMember) {
+        console.warn(`[Auth] Zugriff verweigert für ${user.username} (${user.id}): ${access.reason}`);
+        return fail(access.reason);
+      }
+
+      isAdmin = false;
+      guilds = [];
+      console.log(`[Auth] Community-Mitglied Login: ${user.username} (${user.id}) für Shop/Profil`);
     }
-    console.log(`[Auth] Login: ${user.username} (${user.id}) via ${access.reason}`);
 
     // 4. Session-Cookie setzen
     const token = await createSessionToken({
       uid: user.id,
       name: user.global_name || user.username,
       avatar: user.avatar || null,
-      g: access.guilds,
+      g: guilds,
+      isAdmin,
     });
 
-    const res = NextResponse.redirect(`${baseUrl}/`);
+    const targetUrl = isAdmin ? `${baseUrl}/` : `${baseUrl}/economy`;
+    const res = NextResponse.redirect(targetUrl);
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
       secure: isSecureUrl(baseUrl),

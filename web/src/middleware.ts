@@ -49,12 +49,30 @@ export async function middleware(req: NextRequest) {
       pathname.startsWith("/api/bot/economy")) &&
       (req.method === "GET" || req.method === "HEAD"));
 
-  if (isPublicPage || isPublicApi) {
+  const isMemberApi =
+    pathname === "/api/bot/economy/shop/buy" ||
+    pathname === "/api/bot/economy/exchange-xp";
+
+  const session = await verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);
+
+  if (isMemberApi) {
+    if (!session) return NextResponse.json({ error: "Nicht eingeloggt." }, { status: 401 });
     return NextResponse.next();
   }
 
-  const session = await verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);
   if (session) {
+    // Wenn der Nutzer ein reguläres Community-Mitglied ist (kein Admin):
+    if (session.isAdmin === false) {
+      // Zugriff nur auf öffentliche Seiten (Shop, Stats, Releases etc.)
+      if (!isPublicPage) {
+        const base = process.env.DASHBOARD_URL?.replace(/\/+$/, "") || req.nextUrl.origin;
+        return isApi
+          ? NextResponse.json({ error: "Dieser Bereich ist Administratoren vorbehalten." }, { status: 403 })
+          : NextResponse.redirect(new URL("/economy", base));
+      }
+      return NextResponse.next();
+    }
+
     const now = Math.floor(Date.now() / 1000);
     if (session.chk && now - session.chk < ACCESS_RECHECK_SECONDS) return NextResponse.next();
 
@@ -74,7 +92,7 @@ export async function middleware(req: NextRequest) {
     // Bei Discord-Störungen (config_error) nicht aussperren - in einer Minute erneut prüfen
     // Server-Liste aktualisieren (Multi-Guild); bei Discord-Störung die alte Liste behalten
     const guilds = access.allowed ? access.guilds : session.g;
-    const token = await createSessionToken({ uid: session.uid, name: session.name, avatar: session.avatar, exp: session.exp, g: guilds });
+    const token = await createSessionToken({ uid: session.uid, name: session.name, avatar: session.avatar, exp: session.exp, g: guilds, isAdmin: true });
     const base = process.env.DASHBOARD_URL || req.nextUrl.origin;
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
