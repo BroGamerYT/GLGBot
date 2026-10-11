@@ -20,7 +20,9 @@ interface AccessData {
   isOwner: boolean;
   max?: number;
   entries?: Entry[];
-  removed?: { id: string; name?: string; removedAt: number }[];
+  removed?: { id: string; name?: string; removedAt: number; purgeNow?: boolean }[];
+  purged?: { id: string; name?: string; purgedAt: number; entries: number }[];
+  purgeAfterDays?: number;
 }
 
 export default function ServersPage() {
@@ -251,11 +253,39 @@ export default function ServersPage() {
               <h2 className="text-sm font-bold text-gray-300 mb-3 flex items-center gap-2">
                 <Clock className="w-4 h-4" /> Entfernte Server (Daten noch gespeichert)
               </h2>
-              <ul className="space-y-1">
+              <p className="text-[11px] text-gray-500 mb-3">
+                Die Daten (Level, Einstellungen, Fälle …) werden {data.purgeAfterDays || 30} Tage nach dem Entfernen beim nächsten Bot-Neustart
+                automatisch gelöscht. Wird der Server vorher wieder freigegeben, bleibt alles erhalten.
+              </p>
+              <ul className="space-y-2">
                 {data.removed!.map((r) => (
-                  <li key={r.id} className="text-xs text-gray-400">
-                    {r.name || r.id} <span className="font-mono text-gray-600">({r.id})</span> · entfernt am{" "}
-                    {new Date(r.removedAt).toLocaleDateString("de-DE")}
+                  <li key={r.id} className="text-xs text-gray-400 flex items-center gap-2 flex-wrap">
+                    <span>
+                      {r.name || r.id} <span className="font-mono text-gray-600">({r.id})</span> · entfernt am{" "}
+                      {new Date(r.removedAt).toLocaleDateString("de-DE")}
+                    </span>
+                    {r.purgeNow ? (
+                      <span className="text-amber-300">wird beim nächsten Neustart gelöscht</span>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Alle Daten von „${r.name || r.id}“ endgültig löschen?\n\nDas passiert beim nächsten Neustart des Bots und kann nicht rückgängig gemacht werden.`)) return;
+                          setBusy(r.id);
+                          const res = await fetch("/api/bot/guild-access/purge", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ guildId: r.id }),
+                          }).catch(() => null);
+                          setBusy(null);
+                          setMessage(res?.ok ? { text: "🗑️ Wird beim nächsten Neustart des Bots gelöscht.", type: "success" } : { text: "❌ Fehlgeschlagen.", type: "error" });
+                          load();
+                        }}
+                        disabled={busy !== null}
+                        className="px-2 py-1 rounded-md border border-red-500/30 text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+                      >
+                        Daten jetzt löschen
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>

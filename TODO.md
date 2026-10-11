@@ -2,7 +2,7 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.13.0 (siehe History ganz unten)
+**Aktueller Stand:** v2.14.0 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
@@ -222,7 +222,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
   * [x] Beim Bot-Start alle Server prüfen und nicht freigegebene verlassen.
   * [x] Dashboard-Seite **„Server-Freigabe“** (`/servers`, nur Bot-Besitzer): Liste, Belegung „x / 5“, freigeben, entfernen, Einladungs-Link.
   * [x] Freigabe entfernen → Bot verlässt den Server, Daten bleiben gespeichert („Entfernte Server“-Liste).
-  * [ ] Daten entfernter Server nach 30 Tagen automatisch löschen (bzw. sofort auf Knopfdruck).
+  * [x] Daten entfernter Server nach 30 Tagen automatisch löschen bzw. sofort auf Knopfdruck *(v2.14.0)*.
 * [x] **Slash-Befehle pro Server:** werden für jeden freigegebenen Server automatisch registriert (beim Beitritt, beim Start und in `deploy-commands`) – sofort verfügbar, kein globales Warten.
 * [x] **Daten- & Konfigurations-Trennung pro Server:**
   * [x] Alle Dienste speichern pro `guildId` (eine Datei je Dienst, Einträge nach Server getrennt) – kein Umbau auf `data/guilds/<guildId>/` nötig.
@@ -286,27 +286,27 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-### 21. 📦 1-Klick Installer & Deployment-Pakete (Docker, Windows .bat & Linux)
+### 21. 📦 1-Klick Installer & Deployment-Pakete (Docker, Windows .bat & Linux) ✅ v2.14.0
 
 > **Ziel:** Jeder Nutzer kann den Bot & das Web-Dashboard in unter 3 Minuten auf seinem System installieren – ohne technische Vorkenntnisse.
 
 > **Empfehlung:** Mit **Docker** anfangen – ein Befehl startet Bot + Dashboard auf Linux, NAS und Windows. Wichtig: Bot und Dashboard sprechen über `127.0.0.1:3101` miteinander → im Compose-Setup entweder ein gemeinsamer Container oder `BOT_API_HOST` konfigurierbar machen.
 
-* [ ] **🐳 Docker & Docker-Compose (`docker-compose.yml` & `Dockerfile`):**
-  * [ ] Sauberes Multi-Container-Setup für Bot und Next.js Web-Dashboard.
-  * [ ] Unterstützt Linux, Proxmox, Unraid, Synology/QNAP NAS, TrueNAS und Windows Docker Desktop.
-  * [ ] 1-Befehl-Start: `docker compose up -d`.
-  * [ ] Persistente Volumes für `data/`, `config/` und `.env`.
-  * [ ] Schnelle Updates mit `docker compose pull && docker compose up -d`.
-* [ ] **🪟 Windows 1-Klick Installer (`install_windows.bat` & Setup-Assistent):**
-  * [ ] System-Prüfung: Prüft, ob Node.js & Git vorhanden sind (mit automatischem Download-Hinweis).
-  * [ ] Interaktiver Setup-Dialog im Terminal: Fragt Bot-Token, Client-ID etc. ab und erstellt automatisch die `.env`.
-  * [ ] Automatischer Build (`npm install` und `npm run build` für Bot & Web).
+* [x] **🐳 Docker & Docker-Compose (`docker-compose.yml` & `Dockerfile`):**
+  * [x] Bot und Dashboard in **einem** Container (PM2 im Container) - so funktioniert die interne Verbindung über 127.0.0.1 ohne Umbau.
+  * [x] Unterstützt Linux, Proxmox, Unraid, Synology/QNAP NAS, TrueNAS und Windows Docker Desktop.
+  * [x] 1-Befehl-Start: `docker compose up -d --build`.
+  * [x] Persistente Volumes für `data/`, `config/` und `.env`.
+  * [x] Updates mit `git pull && docker compose up -d --build`.
+* [x] **🪟 Windows 1-Klick Installer (`install_windows.bat` & Setup-Assistent):**
+  * [x] System-Prüfung: Prüft, ob Node.js & Git vorhanden sind (mit automatischem Download-Hinweis).
+  * [x] Legt die `.env` an und öffnet sie im Editor zum Ausfüllen.
+  * [x] Automatischer Build (`npm install` und `npm run build` für Bot & Web).
   * [ ] Optionale Autostart-Einrichtung (Start beim Windows-Boot).
-  * [ ] Erstellt eine bequeme Desktop-Verknüpfung `GLGBot_Starten.bat`.
-* [ ] **🐧 Linux 1-Klick Setup-Skript (`install_linux.sh`):**
-  * [ ] Automatisches Setup-Skript für Debian/Ubuntu/Proxmox-Container.
-  * [ ] Richtet Node.js 22 LTS, PM2 Prozess-Manager und Caddy Reverse Proxy vollautomatisch mit `systemd` ein.
+  * [ ] Desktop-Verknüpfung (vorerst: `start.bat` im Projektordner).
+* [x] **🐧 Linux 1-Klick Setup-Skript (`install_linux.sh`):**
+  * [x] Automatisches Setup-Skript für Debian/Ubuntu/Proxmox-Container.
+  * [x] Richtet Node.js 22 LTS und PM2 mit Autostart ein (Caddy weiterhin von Hand, siehe README).
 
 ---
 
@@ -324,7 +324,9 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.13.0 (Aktuell):**
+* [x] **v2.14.0 (Aktuell):**
+  * [x] Docker, Installations-Skripte für Linux & Windows, PM2-Konfiguration, Daten entfernter Server löschen.
+* [x] **v2.13.0:**
   * [x] Game-Server-Status (Minecraft, Source/Steam, Port-Check), `/serverstatus`, Statistik-Kanal „Game-Server“.
 * [x] **v2.12.0:**
   * [x] Grafische Rangkarte bei `/rank`, Willkommens-Karte mit Dashboard-Seite, automatische Rolle (nur ohne Regel-Sperre).

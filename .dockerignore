@@ -1,0 +1,15 @@
+node_modules
+web/node_modules
+web/.next
+dist
+data
+data_from_server
+config
+_backups
+.env
+.env.*
+!.env.example
+.git
+*.log
+*.bat
+server_config.ini

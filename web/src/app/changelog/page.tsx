@@ -46,10 +46,35 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.13.0",
+    version: "v2.14.0",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Einfache Installation: Docker & Skripte",
+    description: "Den Bot gibt es jetzt als Docker-Container und mit Installations-Skripten für Linux und Windows. Dazu werden Daten entfernter Server automatisch aufgeräumt.",
+    highlights: [
+      {
+        icon: Archive,
+        title: "Docker",
+        description: "docker compose up -d --build - Bot und Dashboard laufen zusammen, eure Daten bleiben in eigenen Ordnern.",
+      },
+      {
+        icon: Sparkles,
+        title: "Installations-Skripte",
+        description: "install_linux.sh richtet Node.js, PM2 und Autostart ein; install_windows.bat baut alles per Doppelklick.",
+      },
+      {
+        icon: Shield,
+        title: "Datenschutz bei entfernten Servern",
+        description: "30 Tage nach dem Entfernen einer Freigabe werden die Daten des Servers gelöscht - oder sofort per Knopf.",
+      },
+    ],
+  },
+  {
+    version: "v2.13.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Game-Server-Status",
     description: "Minecraft-, CS2-/Source- und TeamSpeak-Server live im Blick - im Dashboard, mit /serverstatus und als Statistik-Kanal.",
     highlights: [

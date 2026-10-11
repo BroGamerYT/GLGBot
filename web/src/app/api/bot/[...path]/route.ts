@@ -69,6 +69,7 @@ const ALLOWED = new Set([
   "GET guild-access",
   "POST guild-access/add",
   "POST guild-access/remove",
+  "POST guild-access/purge",
   "GET stats-channels",
   "POST stats-channels",
   "GET birthdays",

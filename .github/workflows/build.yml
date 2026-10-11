@@ -26,3 +26,10 @@ jobs:
       - name: Dashboard - Build
         run: npm run build
         working-directory: web
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker-Image bauen
+        run: docker build -t glgbot-test --build-arg COMMUNITY_NAME="CI Test" .

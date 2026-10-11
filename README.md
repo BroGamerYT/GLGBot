@@ -39,6 +39,19 @@ cp .env.example .env        # Windows: copy .env.example .env
 `DISCORD_CLIENT_SECRET`, `DASHBOARD_URL`, `SESSION_SECRET` und `COMMUNITY_NAME`.
 
 ### 3. Bauen & starten
+
+**Am schnellsten – eine der drei Varianten:**
+
+| Variante | Befehl | Für |
+| :--- | :--- | :--- |
+| 🐳 **Docker** | `docker compose up -d --build` | Linux, NAS (Synology, Unraid …), Windows mit Docker Desktop |
+| 🐧 **Linux-Skript** | `bash install_linux.sh` | Debian/Ubuntu/Proxmox-LXC – installiert Node.js 22 & PM2, baut alles, startet mit Autostart |
+| 🪟 **Windows-Skript** | `install_windows.bat` (Doppelklick) | Windows – prüft Node.js, öffnet die `.env`, baut Bot & Dashboard |
+
+Bei Docker laufen Bot und Dashboard zusammen in einem Container; `data/` und `config/` liegen als Ordner neben der
+`docker-compose.yml` und bleiben bei Updates erhalten (`git pull && docker compose up -d --build`).
+
+**Oder von Hand:**
 ```bash
 # Bot
 npm install
@@ -58,8 +71,7 @@ Das Dashboard liest die `.env` aus dem Hauptordner mit. Bot und Dashboard müsse
 ### 4. Dauerhaft betreiben (Linux, PM2)
 ```bash
 npm install -g pm2
-pm2 start dist/index.js --name discord-bot
-cd web && pm2 start npm --name discord-web -- start
+pm2 start ecosystem.config.js   # startet discord-bot und discord-web
 pm2 save && pm2 startup
 ```
 
@@ -135,7 +147,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | **Server-Backups** | `/backups` | 🔒 Admin | 1-Klick JSON-Snapshots aller Rollen, Kanäle und Einstellungen mit Wiederherstellung. |
 | **Server-Regeln** | `/rules` | 🔒 Admin | Regel-Editor mit Vorschau, 1-Klick-Veröffentlichung und Regel-Sperre (Server erst nach Bestätigung sichtbar). |
 | **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 41 Slash-Befehle mit Beschreibungen. |
-| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.13.0. |
+| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.14.0. |
 
 ---
 
@@ -311,7 +323,7 @@ Ein Bot kann bis zu **5 Discord-Server** gleichzeitig betreuen - aber nur Server
 * Slash-Befehle werden für jeden freigegebenen Server automatisch registriert.
 * Alle Einstellungen, Level, Fälle und Logs sind **pro Server getrennt**. Auf neuen Servern sind zuerst nur die Grundmodule an (Regeln, Rollen, Moderation, Voice) - der Rest wird unter **Module** eingeschaltet.
 * Im Dashboard wechselt man oben links unter dem Bot-Namen zwischen den Servern. Man sieht nur Server, auf denen man Owner, Administrator oder „Server verwalten“ hat.
-* Wird eine Freigabe entfernt, verlässt der Bot den Server; die Daten bleiben gespeichert.
+* Wird eine Freigabe entfernt, verlässt der Bot den Server; die Daten bleiben 30 Tage gespeichert (`PURGE_REMOVED_GUILDS_DAYS`) und werden danach beim nächsten Neustart gelöscht – oder sofort per Knopf in der Server-Freigabe.
 
 ---
 

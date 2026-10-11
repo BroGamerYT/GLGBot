@@ -6,6 +6,15 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.14.0] - 2026-10-11
+
+### Hinzugefügt
+* **Docker:** `Dockerfile` + `docker-compose.yml` - Bot und Dashboard in einem Container, `data/` und `config/` als Ordner daneben. Start mit `docker compose up -d --build`. Name/Bot-Name/Domain werden aus der `.env` ins Dashboard eingebaut.
+* **Installations-Skripte:** `install_linux.sh` (Debian/Ubuntu/Proxmox: Node.js 22, PM2, Build, Autostart) und `install_windows.bat` (prüft Node.js, öffnet die `.env`, baut alles).
+* **`ecosystem.config.js`:** PM2 startet Bot und Dashboard mit einem Befehl (`pm2 start ecosystem.config.js`).
+* **Daten entfernter Server löschen:** 30 Tage nach dem Entfernen einer Freigabe werden die Daten des Servers beim nächsten Bot-Start gelöscht (`PURGE_REMOVED_GUILDS_DAYS`), oder sofort per „Daten jetzt löschen“ in der Server-Freigabe.
+* Der GitHub-Build-Check baut jetzt zusätzlich das Docker-Image.
+
 ## [2.13.0] - 2026-10-11
 
 ### Hinzugefügt

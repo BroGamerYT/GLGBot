@@ -169,6 +169,8 @@ export function startInternalApi(client: Client) {
               };
             }),
             removed: guildAccessService.getRemoved(),
+            purged: guildAccessService.getPurged().slice(-10),
+            purgeAfterDays: Number(process.env.PURGE_REMOVED_GUILDS_DAYS || 30),
           });
         }
         case "POST /guild-access/add": {
@@ -181,6 +183,15 @@ export function startInternalApi(client: Client) {
           const error = guildAccessService.add(id, name, by);
           if (error) return send(res, 400, { error });
           console.log(`[GuildAccess] ${by || actorId} hat Server ${id} freigegeben.`);
+          return send(res, 200, { ok: true });
+        }
+        case "POST /guild-access/purge": {
+          if (!actorId || actorId !== guildAccessService.getBotOwnerId(client)) {
+            return send(res, 403, { error: "Nur der Bot-Besitzer darf Daten löschen." });
+          }
+          const body = await readBody(req);
+          const error = guildAccessService.markPurge(String(body?.guildId || ""));
+          if (error) return send(res, 400, { error });
           return send(res, 200, { ok: true });
         }
         case "POST /guild-access/remove": {

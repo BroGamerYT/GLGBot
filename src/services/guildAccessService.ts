@@ -21,7 +21,8 @@ interface AccessData {
   /** Im Dashboard freigegebene Server */
   allowed: { id: string; name?: string; addedBy?: string; addedAt: number }[];
   /** Entfernte Server (Daten bleiben erhalten, Zeitpunkt der Entfernung) */
-  removed: { id: string; name?: string; removedAt: number }[];
+  removed: { id: string; name?: string; removedAt: number; purgeNow?: boolean }[];
+  purged?: { id: string; name?: string; purgedAt: number; entries: number }[];
 }
 
 function splitIds(value: string | undefined): string[] {
@@ -117,6 +118,19 @@ class GuildAccessService {
     this.data.removed = [...this.data.removed.filter((r) => r.id !== guildId), { id: guildId, name, removedAt: Date.now() }];
     this.save();
     return null;
+  }
+
+  /** Daten eines entfernten Servers beim nächsten Bot-Neustart löschen. */
+  public markPurge(guildId: string): string | null {
+    const entry = this.data.removed.find((r) => r.id === guildId);
+    if (!entry) return "Dieser Server steht nicht in der Liste der entfernten Server.";
+    entry.purgeNow = true;
+    this.save();
+    return null;
+  }
+
+  public getPurged() {
+    return this.data.purged || [];
   }
 
   public setName(guildId: string, name: string) {
