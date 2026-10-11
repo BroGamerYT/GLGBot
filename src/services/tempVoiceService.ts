@@ -115,6 +115,11 @@ class TempVoiceService {
     this.tempTextChannels.set(voiceChannelId, textChannelId);
   }
 
+  /** Kanal aus der Liste der temporären Kanäle entfernen (z. B. wenn er von außen gelöscht wird). */
+  public forgetChannel(channelId: string) {
+    if (this.activeTempChannels.delete(channelId)) this.saveTempChannels();
+  }
+
   public setChannelOwner(channelId: string, newOwnerId: string) {
     this.activeTempChannels.set(channelId, newOwnerId);
     this.saveTempChannels();

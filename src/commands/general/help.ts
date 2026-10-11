@@ -61,6 +61,7 @@ const helpCommand: Command = {
             "`/suggest neu|status` • Reiche Vorschläge mit Upvote/Downvote-Buttons ein\n" +
             "`/giveaway start|end|reroll` • Verlosungen mit Teilnahme-Button\n" +
             "`/birthday set|remove|list` • Geburtstag eintragen, der Bot gratuliert\n" +
+            "`/lfg` • Mitspieler suchen - volle Gruppe bekommt eine eigene Lobby\n" +
             "`/sticky set|remove` • Fixiert wichtige Hinweise als letzte Nachricht im Kanal",
           inline: false,
         },

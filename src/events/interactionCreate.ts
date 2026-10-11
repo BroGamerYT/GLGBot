@@ -15,6 +15,8 @@ import { ticketService } from "../services/ticketService";
 import { transcriptService } from "../services/transcriptService";
 import { suggestionService } from "../services/suggestionService";
 import { moduleService } from "../services/moduleService";
+import { customCommandService } from "../services/customCommandService";
+import { lfgService } from "../services/lfgService";
 import { giveawayService } from "../services/giveawayService";
 
 const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
@@ -25,6 +27,8 @@ const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
       const command = client.commands.get(interaction.commandName);
 
       if (!command) {
+        // Eigene Befehle des Servers (Dashboard "Eigene Befehle")
+        if (await customCommandService.handleInteraction(interaction).catch(() => false)) return;
         console.warn(`[Command] Unbekannter Befehl aufgerufen: ${interaction.commandName}`);
         return;
       }
@@ -185,6 +189,12 @@ const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
       if (interaction.customId.startsWith("btn_sugg_down_")) {
         const id = parseInt(interaction.customId.replace("btn_sugg_down_", ""), 10);
         await suggestionService.handleVote(interaction, id, "DOWN");
+        return;
+      }
+
+      // LFG / Mitspieler-Suche
+      if (interaction.customId.startsWith("lfg_")) {
+        await lfgService.handleButton(interaction);
         return;
       }
 

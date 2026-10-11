@@ -78,6 +78,9 @@ const ALLOWED = new Set([
   "POST announcements",
   "POST announcements/delete",
   "POST announcements/send-now",
+  "GET custom-commands",
+  "POST custom-commands",
+  "POST custom-commands/delete",
 ]);
 
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {

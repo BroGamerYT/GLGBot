@@ -5,6 +5,7 @@ import { stickyService } from "../services/stickyService";
 import { statsService } from "../services/statsService";
 import { blacklistService } from "../services/blacklistService";
 import { moduleService } from "../services/moduleService";
+import { customCommandService } from "../services/customCommandService";
 
 const messageCreateEvent: BotEvent<Events.MessageCreate> = {
   name: Events.MessageCreate,
@@ -38,6 +39,9 @@ const messageCreateEvent: BotEvent<Events.MessageCreate> = {
     if (content.startsWith("@silent")) {
       content = content.replace(/^@silent\s*/, "").trim();
     }
+
+    // Eigene Text-Befehle (!name)
+    if (content.startsWith("!") && content !== "!ping" && (await customCommandService.handleMessage(message).catch(() => false))) return;
 
     // Reagiere auf !ping (auch wenn @silent davor stand) - ein einfaches "ping" im Chat löst nichts mehr aus
     if (content === "!ping") {

@@ -6,6 +6,16 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.11.0] - 2026-10-11
+
+### Hinzugefügt
+* **Mitspieler-Suche (`/lfg`):** Gruppe für ein Spiel mit Größe, optional Rang und Beschreibung. Beitreten/Verlassen per Button, der Leiter kann schließen. Ist die Gruppe voll, pingt der Bot alle, erstellt eine eigene Lobby (nur für die Gruppe) und verschiebt alle, die gerade im Voice sind. Die Lobby verschwindet, sobald sie leer ist; offene Gruppen schließen nach 3 Stunden.
+* **Eigene Befehle (Dashboard „Eigene Befehle“):** Bis zu 25 eigene `/befehle` pro Server mit Text- und/oder Embed-Antwort, Platzhaltern (`{user}`, `{name}`, `{server}`), optional nur für den Nutzer sichtbar und auch als `!befehl` im Chat. Erscheinen sofort im Discord; eingebaute Befehle können nicht überschrieben werden.
+* Beide sind eigene Module (auf neuen Servern zunächst aus).
+
+### Geändert
+* Beim Start werden die Befehle für alle freigegebenen Server registriert (inkl. eigener Befehle), auch für den Haupt-Server.
+
 ## [2.10.0] - 2026-10-11
 
 ### Hinzugefügt

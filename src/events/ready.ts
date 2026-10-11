@@ -14,6 +14,8 @@ import { dataSnapshotService } from "../services/dataSnapshotService";
 import { statsChannelsService } from "../services/statsChannelsService";
 import { birthdayService } from "../services/birthdayService";
 import { announcementService } from "../services/announcementService";
+import { customCommandService } from "../services/customCommandService";
+import { lfgService } from "../services/lfgService";
 
 const readyEvent: BotEvent<Events.ClientReady> = {
   name: Events.ClientReady,
@@ -30,6 +32,14 @@ const readyEvent: BotEvent<Events.ClientReady> = {
       activities: [{ name: "Community & Security | /help", type: ActivityType.Custom }],
       status: "online",
     });
+
+    // Eingebaute Befehlsnamen (inkl. deutscher Namen) dürfen eigene Befehle nicht überschreiben
+    customCommandService.setReserved(
+      [...client.commands.values()].flatMap((c: any) => {
+        const json = c.data.toJSON();
+        return [json.name, ...Object.values(json.name_localizations || {})] as string[];
+      })
+    );
 
     // Server-Freigabe (max. 5): nicht freigegebene Server verlassen, Befehle für weitere Server registrieren
     guildAccessService
@@ -72,6 +82,7 @@ const readyEvent: BotEvent<Events.ClientReady> = {
     statsChannelsService.start(client);
     birthdayService.start(client);
     announcementService.start(client);
+    lfgService.start(client);
 
     // Giveaway Scheduler starten
     giveawayService.startScheduler(client);

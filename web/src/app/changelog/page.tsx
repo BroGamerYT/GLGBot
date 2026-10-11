@@ -46,10 +46,32 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.10.0",
+    version: "v2.11.0",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Mitspieler-Suche & eigene Befehle",
+    description: "Mit /lfg findet ihr Mitspieler samt eigener Lobby, und im Dashboard lassen sich eigene /befehle anlegen.",
+    highlights: [
+      {
+        icon: UserCheck,
+        title: "👥 /lfg Mitspieler-Suche",
+        description:
+          "Gruppe erstellen, andere treten per Button bei. Ist sie voll, gibt es einen Ping, eine eigene Lobby und alle im Voice werden verschoben.",
+      },
+      {
+        icon: Sparkles,
+        title: "⚡ Eigene Befehle",
+        description:
+          "Eigene /befehle wie /ts oder /lan mit Text- oder Embed-Antwort - sofort im Discord verfügbar, optional auch als !befehl.",
+      },
+    ],
+  },
+  {
+    version: "v2.10.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Geburtstage, geplante Ankündigungen & Statistik-Kanäle",
     description:
       "Drei neue Module: Der Bot gratuliert zum Geburtstag, sendet Ankündigungen pünktlich zum geplanten Zeitpunkt und zeigt Live-Zähler ganz oben in der Kanalliste.",

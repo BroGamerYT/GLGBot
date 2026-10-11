@@ -19,7 +19,9 @@ export type BotModuleId =
   | "daily"
   | "statsChannels"
   | "birthdays"
-  | "announcements";
+  | "announcements"
+  | "lfg"
+  | "customCommands";
 
 export interface BotModuleInfo {
   id: BotModuleId;
@@ -175,6 +177,22 @@ export const BOT_MODULES: BotModuleInfo[] = [
     category: "management",
     commands: [],
   },
+  {
+    id: "lfg",
+    name: "Mitspieler-Suche (LFG)",
+    description: "Gruppen mit freien Plätzen - ist die Gruppe voll, gibt es eine eigene Lobby und alle werden verschoben",
+    emoji: "👥",
+    category: "gaming",
+    commands: ["lfg"],
+  },
+  {
+    id: "customCommands",
+    name: "Eigene Befehle",
+    description: "Eigene /Befehle mit Text- oder Embed-Antwort, im Dashboard angelegt - optional auch als !Befehl",
+    emoji: "⚡",
+    category: "management",
+    commands: [],
+  },
 ];
 
 /** Grundmodule, die auf neu freigegebenen Servern sofort an sind */
@@ -285,6 +303,7 @@ class ModuleService {
     if (id === "btn_ticket_create") return "tickets";
     if (id.startsWith("btn_sugg_")) return "suggestions";
     if (id.startsWith("giveaway_")) return "giveaways";
+    if (id.startsWith("lfg_")) return "lfg";
     return null;
   }
 

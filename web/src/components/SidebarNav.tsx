@@ -31,6 +31,7 @@ import {
   Cake,
   BarChart3,
   AlarmClock,
+  Zap,
 } from "lucide-react";
 
 interface NavItem {
@@ -84,6 +85,7 @@ const GROUPS: NavGroup[] = [
       { href: "/rules", label: "Regeln", icon: ScrollText, color: "text-amber-300" },
       { href: "/embeds", label: "Embed-Builder", icon: Palette, color: "text-fuchsia-400" },
       { href: "/announcements", label: "Ankündigungen", icon: AlarmClock, color: "text-amber-400" },
+      { href: "/custom-commands", label: "Eigene Befehle", icon: Zap, color: "text-yellow-300" },
       { href: "/server-stats", label: "Statistik-Kanäle", icon: BarChart3, color: "text-cyan-400" },
       { href: "/backups", label: "Backups", icon: Archive, color: "text-emerald-400" },
     ],

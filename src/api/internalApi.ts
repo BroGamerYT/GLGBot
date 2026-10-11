@@ -20,6 +20,7 @@ import { dailyService } from "../services/dailyService";
 import { statsChannelsService, COUNTERS } from "../services/statsChannelsService";
 import { birthdayService, DEFAULT_BIRTHDAY_MESSAGE } from "../services/birthdayService";
 import { announcementService } from "../services/announcementService";
+import { customCommandService, MAX_CUSTOM_COMMANDS } from "../services/customCommandService";
 import { moduleService } from "../services/moduleService";
 import { liveStreamService } from "../services/liveStreamService";
 
@@ -333,6 +334,36 @@ export function startInternalApi(client: Client) {
           }
         }
 
+        // ---------------- Eigene Befehle ----------------
+        case "GET /custom-commands": {
+          if (!isLoggedIn) return send(res, 401, { error: "Bitte einloggen." });
+          return send(res, 200, { commands: customCommandService.list(guild.id), max: MAX_CUSTOM_COMMANDS });
+        }
+        case "POST /custom-commands": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageGuild) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Server verwalten“." });
+          }
+          const result = customCommandService.save(guild.id, await readBody(req), by);
+          if ("error" in result) return send(res, 400, { error: result.error });
+          try {
+            await customCommandService.syncGuild(client, guild.id);
+          } catch (e: any) {
+            return send(res, 200, { ok: true, item: result.item, warning: `Gespeichert, aber Discord hat die Registrierung abgelehnt: ${e?.message || e}` });
+          }
+          return send(res, 200, { ok: true, item: result.item });
+        }
+        case "POST /custom-commands/delete": {
+          const actor = await getActor();
+          if (!actor?.permissions.has(PermissionFlagsBits.ManageGuild) && actor?.id !== guild.ownerId) {
+            return send(res, 403, { error: "Dafür brauchst du „Server verwalten“." });
+          }
+          const body = await readBody(req);
+          const ok = customCommandService.remove(guild.id, String(body?.id || ""));
+          if (ok) await customCommandService.syncGuild(client, guild.id).catch(() => null);
+          return send(res, 200, { ok });
+        }
+
         // ---------------- Komplett-Einrichtung ----------------
         case "GET /setup": {
           if (!isLoggedIn) return send(res, 401, { error: "Bitte einloggen." });
@@ -385,6 +416,8 @@ export function startInternalApi(client: Client) {
             : moduleService.toggleModule(guild.id, mod.id);
 
           console.log(`[Modules] ${by || actor.user.tag} hat Modul '${mod.name}' ${newState ? "aktiviert" : "deaktiviert"}.`);
+          // Eigene Befehle an/aus -> Slash-Befehle des Servers neu registrieren
+          if (mod.id === "customCommands") customCommandService.syncGuild(client, guild.id).catch((e) => console.error("[CustomCommands]", e));
           return send(res, 200, { ok: true, moduleId: mod.id, enabled: newState, modules: moduleService.getModules(guild.id) });
         }
 

@@ -3,6 +3,7 @@ import path from "path";
 import { Client, EmbedBuilder, Guild } from "discord.js";
 import { readJsonFile, writeJsonAtomic } from "../utils/jsonFile";
 import { BRANDING } from "../config/branding";
+import { customCommandService } from "./customCommandService";
 
 /**
  * Server-Freigabe (Multi-Guild, max. 5 Server):
@@ -128,10 +129,8 @@ class GuildAccessService {
 
   /** Registriert alle Slash-Befehle direkt für einen Server (sofort verfügbar). */
   public async registerCommands(client: Client, guildId: string) {
-    const commands = (client as any).commands as Map<string, any> | undefined;
-    if (!commands || !client.application) return;
-    const body = [...commands.values()].map((c) => c.data.toJSON());
-    await client.application.commands.set(body, guildId);
+    // eingebaute + eigene Befehle dieses Servers
+    await customCommandService.syncGuild(client, guildId);
   }
 
   /** Teilt dem Owner mit, warum der Bot geht, und verlässt den Server. */
@@ -181,9 +180,8 @@ class GuildAccessService {
         continue;
       }
       this.setName(guild.id, guild.name);
-      if (!this.isMain(guild.id)) {
-        await this.registerCommands(client, guild.id).catch((e) => console.error(`[GuildAccess] Befehle für ${guild.name}:`, e));
-      }
+      // auch für den Haupt-Server: deploy-commands kennt die eigenen Befehle nicht
+      await this.registerCommands(client, guild.id).catch((e) => console.error(`[GuildAccess] Befehle für ${guild.name}:`, e));
     }
   }
 }
