@@ -246,45 +246,42 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 * Detailansicht im Dashboard mit „Was ist enthalten?“ und den letzten Beiträgen; Verlauf aller Änderungen; angepinnte Übersicht im Kanal.
 * Prüfung alle 15 Minuten, beim Hinzufügen wird nichts Altes gepostet.
 
-### 10. 📅 Game-Release-Kalender & Blockbuster-Radar
-* **Live-Radar für Neuerscheinungen:** Übersicht der wichtigsten kommenden Spiele mit Veröffentlichungsdatum, Genres, Entwicklern/Publishern, hochauflösenden Covern und Plattform-Tags (`PC`, `PS5`, `Xbox`, `Switch`).
+### 10. 📅 Game-Release-Kalender
+* **Kommende Spiele im Überblick:** Titel, Release-Datum, Plattformen (PC, PS5, Xbox Series, Switch, Game Pass), Genre, Cover sowie Store- und Trailer-Links. Admins können im Dashboard eigene Einträge ergänzen.
 * **Slash-Befehl `/releases`:**
-  * `/releases uebersicht`: Filterbar nach Zeitraum (*Diese Woche*, *Nächste Woche*, *Dieser Monat*, *Dieses Quartal*, *2026/2027*) und Plattform.
-  * `/releases post-woche`: Postet ein optisch ansprechendes Release-Embed der Woche direkt in den News-Kanal.
-* **Öffentliches Dashboard (`/releases`):** Frei ohne Login zugänglich mit Monatsnavigation, Plattform-Filtern und Suchfunktion.
+  * `/releases uebersicht [zeitraum] [plattform]`: Zeitraum *Diese Woche*, *Dieser Monat*, *Nächster Monat* oder *Alle kommenden*; Plattform *Alle*, *PC*, *PS5*, *Xbox Series*, *Switch* oder *Game Pass*.
+  * `/releases post-woche`: Postet die Releases der laufenden Woche in den Ankündigungskanal.
+* **Wochen-Post:** Montags um 10:00 Uhr automatisch im Game-News-Kanal.
+* **Öffentliche Dashboard-Seite (`/releases`):** Ohne Login erreichbar, mit Zeitraum-Ansicht, Plattform-Filter und Release-Countdown.
 
 ### 11. 💰 Community-Wirtschaft & Belohnungs-Shop
 * **Server-Währung (Coins):**
   * Konfigurierbarer Währungsname (z. B. *Coins*, *Credits*) und Symbol (`🪙`).
-  * Einnahmequellen: Chat-Nachrichten, Voice-Aktivität und täglicher Bonus via `/daily` mit Serien-Multiplikator.
+  * Einnahmequellen: Chat-Nachrichten, Voice-Aktivität und täglicher Bonus via `/daily` mit Streak-Bonus.
 * **Belohnungs-Shop (`/shop`):**
-  * Rollen- und Badge-Belohnungen direkt im Web oder via Slash-Command erwerben.
-  * Bestätigungs-Dialoge und Prüfung auf bereits besessene Rollen/Badges oder Rollen-Hierarchien.
+  * Rollen, Profil-Badges und Voice-Features im Web oder per Slash-Befehl kaufen – Discord-Rollen vergibt der Bot automatisch.
 * **Transaktionen & Guthaben:**
-  * `/balance`: Zeigt das persönliche Guthaben, den Wohlstands-Rang und die letzten Transaktionen an.
-  * `/pay <mitglied> <betrag>`: Sichere Geldüberweisung zwischen Mitgliedern.
+  * `/balance`: Zeigt das persönliche Guthaben, den Vermögens-Rang und die letzten Transaktionen an.
+  * `/pay <mitglied> <betrag>`: Sichere Überweisung zwischen Mitgliedern (mit Saldenprüfung).
 * **Admin-Finanzverwaltung:**
-  * `/economy geben | abziehen | setzen | reset`: Manuelle Anpassung beliebiger Konten mit Notizen im Revisions-Log.
-  * Volle Verwaltung im Dashboard unter `/economy` mit Suchfunktion und Transaktions-Historie.
+  * `/economy geben | abziehen | setzen | reset`: Konten manuell anpassen, mit Grund im Log.
+  * Volle Verwaltung im Dashboard unter `/economy`.
 
 ### 12. ⚡ 1-Klick Server-Templates & Auto-Setup Wizard
-* **Vorkonfigurierte Community-Vorlagen:**
-  * **Gaming & Esports:** Spiele-Lobbys, Turniere, Team-Kanäle, VoiceMaster und Patchnotes.
-  * **Streamer & Creator:** Live-Alerts, Community-Clips, Fan-Art und VIP-Lounge.
-  * **Developer & Tech:** Git-Feeds, Release-Notes, Tech-Support und Code-Diskussionen.
-  * **Anime & Chill:** Rollenspiel, Medien-Galerien, Musik und gemütliche Talk-Ecken.
-* **Design-Stile wählbar:** *Clean* (schlicht ohne Icons), *Modern* (dezente System-Icons), *Aesthetic* (Gaming & Pastell), *Cyberpunk/Sci-Fi*.
-* **Automatisches Sicherheits-Backup:** Erstellt vor jeder Template-Anwendung automatisch einen vollständigen Snapshot (`data/backups/`), der jederzeit mit einem Klick wiederhergestellt werden kann.
-* **Einrichtungs-Modus:** Wahlweise Ergänzen fehlender Kanäle (*Non-destructive*) oder vollständiges Zurücksetzen (*Wipe & Rebuild*).
+* **5 Vorlagen:** 🎮 *Gaming Clan & E-Sport*, 🌐 *Multi-Gaming Community*, 💻 *Coding / Dev / Tech*, 🌸 *Anime, Manga & Hangout*, 🔴 *Content Creator & Streamer*.
+* **4 Stile für Kanalnamen:** *Modern mit Emojis* (`💬・hauptchat`), *Clean & Minimalistisch* (`hauptchat`), *Aesthetic mit Trennzeichen* (`〢・hauptchat`), *Box & Bold* (`「💬」hauptchat`).
+* **Rollen & Rechte:** Legt `@Inhaber`, `@Admin`, `@Mod`, `@Member`, `@Gast` mit sicheren Berechtigungen, schreibgeschützten Info-Kanälen und abgeschottetem Team-Bereich an.
+* **Automatisches Sicherheits-Backup:** Vor jedem Ausrollen wird ein Backup erstellt – jederzeit per `/backup restore` wiederherstellbar.
+* **Optionaler Wipe-Modus:** Vorhandene Kanäle werden auf Wunsch vorher bereinigt; ohne Wipe werden nur fehlende Kanäle ergänzt.
 * **Verfügbar über:** Dashboard-Seite `/templates` und Slash-Befehl `/server-setup`.
 
-### 13. 🖼️ Canvas-Rangkarte mit Badges & Custom Willkommens-Hintergrund
-* **Canvas-Rangkarte (`/rank`):**
-  * Generiert ein hochauflösendes Bild mit Avatar, Farbverlauf, Level, XP-Fortschrittsbalken, Chat-/Voice-Statistik und Daily-Streak.
-  * **Dynamische Badges:** Bis zu 5 Abzeichen (VIP, Booster, Supporter, Streamer, Staff) werden direkt auf der Rangkarte gerendert.
+### 13. 🖼️ Rangkarte mit Badges & Willkommens-Hintergrund
+* **Grafische Rangkarte (`/rank`):**
+  * Bild mit Avatar, Level, XP-Fortschrittsbalken, Chat-/Voice-Statistik und Daily-Serie.
+  * **Automatische Badges:** `👑 Inhaber`, `🛡️ Admin`, `⚔️ Mod`, Level-Meilensteine (`⭐ Level 5+/10+`, `💎 Level 20+`, `👑 Max-Level`), Daily-Serien (`🔥 7d`/`30d`), Chat (`💬 250+`/`1k+ Club`), Voice (`🎙️ 10h`/`50h`) und – wenn das Wirtschafts-Modul an ist – Coins (`🪙 1k Coins`/`Tycoon`).
 * **Willkommens-Karte (`/welcome`):**
-  * Hochauflösende Begrüßungsgrafik beim Beitritt eines neuen Mitglieds mit Server-Avatar, Nutzer-Name und Mitgliederzähler.
-  * Individuelles Hintergrundbild konfigurierbar (URL oder Upload), anpassbare Farbpaletten und Textfarben im Dashboard mit Live-Canvas-Vorschau und Test-Button.
+  * Grafische Begrüßung neuer Mitglieder mit Avatar, Name und Mitgliederzahl.
+  * Eigenes Hintergrundbild per Bild-URL; ein dunkler Filter hält Text und Avatar lesbar. Live-Vorschau und Test-Button im Dashboard.
 
 ---
 
@@ -311,7 +308,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | `/giveaway start \| end \| reroll` | Verlosungen mit Teilnahme-Button und automatischer Ziehung. | Server verwalten |
 | `/free-games list \| post \| einstellungen` | Aktuell kostenlose Spiele anzeigen (nur für dich), sofort posten oder Stores an/aus. | Alle / Server verwalten |
 | `/twitch-live start \| stop` | Sich selbst als live melden bzw. beenden. | Alle |
-| `/voice lock \| unlock \| hide \| unhide \| name \| limit \| bitrate \| permit \| reject \| transfer \| claim` | Eigene Lobby steuern. | Lobby-Besitzer |
+| `/voice lock \| unlock \| hide \| unhide \| name \| limit \| bitrate \| permit \| reject \| transfer \| claim \| password` | Eigene Lobby steuern (inkl. Passwort). | Lobby-Besitzer |
 | `/warn <mitglied> <grund>` | Verwarnung mit XP-Abzug. | Mitglieder moderieren |
 | `/timeout <mitglied> <dauer> <grund>` | Timeout mit XP-Abzug. | Mitglieder moderieren |
 | `/knast einsperren \| freilassen \| liste` | Gefängnis-System (englisches Discord: `/prison lock \| release \| list`). | Mitglieder moderieren |
@@ -336,7 +333,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | `/server-stats einrichten \| entfernen \| status` | Statistik-Kanäle mit Live-Zählern ganz oben. | Kanäle verwalten |
 | `/setup-rules post \| lock \| unlock` | Regeln posten, Regel-Sperre an/aus. | Administrator |
 | `/setup-tickets` | Ticket-Panel posten. | Administrator |
-| `/setup-logs set \| toggle` | Audit-Log-Kanal einrichten und Kategorien an/aus. | Administrator |
+| `/setup-logs auto \| set \| status \| toggle` | Audit-Log-Kanal einrichten, Status anzeigen und Kategorien an/aus. | Administrator |
 | `/logs list \| search` | Audit-Log durchsuchen. | Audit-Log anzeigen |
 | `/backup create \| list \| restore \| export \| delete` | Server-Backups verwalten. | Administrator |
 
