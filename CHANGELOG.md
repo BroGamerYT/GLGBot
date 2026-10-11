@@ -23,6 +23,7 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
   * Ausgeschaltete Module pausieren auch ihre Hintergrund-Aufgaben (Free-Games- & News-Check, Twitch-/YouTube-Abfrage, Voice-XP) und ihre Buttons/Panels (Ticket-Button, Rollen-Panel, Voice- & Streamer-Panel, Vorschläge, Giveaways). Offene Tickets lassen sich weiterhin schließen.
   * „Server einrichten“ bietet nur Bereiche eingeschalteter Module an.
   * Ausschalten löscht keine Daten - beim Wieder-Einschalten ist alles wie vorher.
+* **Neues Dashboard-Menü:** Die Seitenleiste ist in Bereiche gegliedert (Start, Community, Server, Moderation, Hilfe), Einträge in Button-Optik mit Hervorhebung der aktuellen Seite. Bereiche lassen sich auf- und zuklappen, der Zustand wird im Browser gemerkt.
 * **Öffentlicher Gast-Zugang für Free Games & Game News:**
   * Kostenlose Spiele (`/free-games`) und Game-News (`/news`) sind jetzt im Web-Dashboard für alle Gäste ohne Discord-Login lesbar.
   * Admin-Steuerelemente (Discord-Repost, Feed-Konfiguration, Hinzufügen-Formulare) bleiben geschützt und werden nur eingeloggten Administratoren angezeigt.

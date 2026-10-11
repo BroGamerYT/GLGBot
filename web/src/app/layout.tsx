@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { Mic, Radio, LayoutDashboard, Shield, LogOut, Gift, ScrollText, LifeBuoy, FileText, Archive, Newspaper, Palette, Ticket, Trophy, Sparkles, LogIn, Gavel, Wand2, Blocks } from "lucide-react";
+import { LogOut, Gift, LifeBuoy, Newspaper, Trophy, Sparkles, LogIn } from "lucide-react";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
+import SidebarNav from "@/components/SidebarNav";
 import { BRANDING, BOT_INITIALS, DASHBOARD_HOST } from "@/lib/branding";
 
 export const metadata: Metadata = {
@@ -110,128 +111,7 @@ export default async function RootLayout({
             </div>
 
             {/* Navigation */}
-            <nav className="space-y-1 overflow-y-auto flex-1 min-h-0 pr-1 pb-2">
-              <Link
-                href="/"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <LayoutDashboard className="w-4 h-4 text-discord-blurple" />
-                Übersicht
-              </Link>
-              <Link
-                href="/setup"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <Wand2 className="w-4 h-4 text-indigo-300" />
-                Server einrichten
-              </Link>
-              <Link
-                href="/modules"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <Blocks className="w-4 h-4 text-indigo-300" />
-                Module
-              </Link>
-              <Link
-                href="/voice"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <Mic className="w-4 h-4 text-discord-green" />
-                Voice-Manager
-              </Link>
-              <Link
-                href="/live"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <Radio className="w-4 h-4 text-red-500" />
-                Live-Streamer
-              </Link>
-              <Link
-                href="/roles"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <Shield className="w-4 h-4 text-discord-yellow" />
-                Rollen & Rechte
-              </Link>
-              <Link
-                href="/rules"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <ScrollText className="w-4 h-4 text-amber-300" />
-                Regeln
-              </Link>
-              <Link
-                href="/free-games"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <Gift className="w-4 h-4 text-discord-green" />
-                Free-Games
-              </Link>
-              <Link
-                href="/news"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <Newspaper className="w-4 h-4 text-orange-400" />
-                Game-News
-              </Link>
-              <Link
-                href="/logs"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <FileText className="w-4 h-4 text-cyan-400" />
-                Audit-Logs
-              </Link>
-              <Link
-                href="/backups"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <Archive className="w-4 h-4 text-emerald-400" />
-                Backups
-              </Link>
-              <Link
-                href="/embeds"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <Palette className="w-4 h-4 text-fuchsia-400" />
-                Embed-Builder
-              </Link>
-              <Link
-                href="/moderation"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <Gavel className="w-4 h-4 text-rose-400" />
-                Benutzerverwaltung
-              </Link>
-              <Link
-                href="/tickets"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <Ticket className="w-4 h-4 text-indigo-400" />
-                Support-Tickets
-              </Link>
-              <Link
-                href="/stats"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <Trophy className="w-4 h-4 text-amber-400" />
-                Level & Rangliste
-              </Link>
-              <div className="my-2 border-t border-discord-border" />
-              <Link
-                href="/hilfe"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <LifeBuoy className="w-4 h-4 text-sky-400" />
-                Hilfe & Befehle
-              </Link>
-              <Link
-                href="/changelog"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-discord-card transition-all"
-              >
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                Changelog
-              </Link>
-            </nav>
+            <SidebarNav />
           </div>
 
           {/* Footer Info */}
