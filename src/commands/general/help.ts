@@ -46,7 +46,10 @@ const helpCommand: Command = {
           value:
             "`/balance [user]` • Prüfe dein Kontoguthaben, Vermögens-Rang und Transaktionen\n" +
             "`/pay <user> <betrag>` • Überweise Coins an ein anderes Mitglied\n" +
-            "`/shop uebersicht|kaufen` • Belohnungs-Shop für Rollen, Badges & exklusive Vorteile",
+            "`/shop uebersicht|kaufen|code` • Belohnungs-Shop für Rollen, Badges, Namensfarben & Web-Login\n" +
+            "`/web-login` • 30-Minuten Einmal-Code & 1-Klick-Link für den Web-Shop\n" +
+            "📈 **XP-Börse** • Level-XP im Web-Dashboard zu dynamischen Marktkursen in Coins tauschen\n" +
+            "🎨 **Namensfarben** • Bunte Chat-Farben im Shop erwerben und direkt aktivieren",
           inline: false,
         },
         {
@@ -57,7 +60,7 @@ const helpCommand: Command = {
             "`/kick` • Kickt ein Mitglied vom Server\n" +
             "`/ban` • Bannt einen Nutzer inklusive Nachrichtenbereinigung\n" +
             "`/unban` • Hebt einen Bann per Nutzer-ID auf\n" +
-            "`/knast einsperren|freilassen|liste` • Gefängnis: isoliert ein Mitglied (-1.000 XP)\n" +
+            "`/knast einsperren|freilassen|liste` • Gefängnis: Text & Voice-Isolierung, Timer (z.B. 60m), -1.000 XP & Auto-AFK\n" +
             "`/case view|user|delete` • Durchsucht Moderations-Fälle\n" +
             "`/clear` • Löscht bis zu 100 Nachrichten (optional nach Nutzer)",
           inline: false,
@@ -75,11 +78,12 @@ const helpCommand: Command = {
           inline: false,
         },
         {
-          name: "🎮 Gaming & Benachrichtigungen",
+          name: "🎮 Gaming, Software & Benachrichtigungen",
           value:
             "`/free-games list|post` • Kostenlose Spiele von Epic, Steam & GOG\n" +
-            "`/releases uebersicht|post-woche` • Game-Release-Kalender (Blockbuster & Termine)\n" +
+            "`/releases uebersicht|post-woche` • Release-Kalender für Games, Triple-A Blockbuster & große Updates\n" +
             "`/serverstatus` • Live-Status unserer Game-Server\n" +
+            "🖥️ **Treiber & Software** • NVIDIA, AMD, Intel, NAS (Synology, TrueNAS, Unraid, QNAP) & Tools (AMP, OBS)\n" +
             "`/twitch-live start|stop` • Verwaltet persönliche Live-Stream Kanäle\n" +
             "`/setup-live` • Richtet Live-Rolle & Live-Kanäle ein\n" +
             "`/stream-panel` • Steuer-Panel für deinen Live-Kanal (Passwort, Limit, Name)\n" +

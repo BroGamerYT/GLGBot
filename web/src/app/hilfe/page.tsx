@@ -20,6 +20,7 @@ import {
   Sparkles,
   ShieldAlert,
   Server,
+  Coins,
 } from "lucide-react";
 
 export const metadata = { title: "Hilfe & Befehle | GLGBot Panel" };
@@ -27,6 +28,7 @@ export const metadata = { title: "Hilfe & Befehle | GLGBot Panel" };
 const SECTIONS = [
   { id: "schnellstart", title: "Schnellstart", icon: Rocket },
   { id: "dashboard", title: "Dashboard & Login", icon: KeyRound },
+  { id: "economy", title: "Wirtschaft & Shop", icon: Coins },
   { id: "server", title: "Mehrere Server", icon: Server },
   { id: "level", title: "Level & Talk-Partner", icon: Trophy },
   { id: "tickets", title: "Support-Tickets", icon: Ticket },
@@ -35,8 +37,8 @@ const SECTIONS = [
   { id: "voice", title: "Voice-Manager", icon: Mic },
   { id: "live", title: "Live-System", icon: Radio },
   { id: "alerts", title: "Stream-Alerts", icon: Bell },
-  { id: "freegames", title: "Free-Games", icon: Gift },
-  { id: "news", title: "Game-News", icon: Newspaper },
+  { id: "freegames", title: "Free-Games & Releases", icon: Gift },
+  { id: "news", title: "News & Treiber", icon: Newspaper },
   { id: "audit", title: "Silent Audit-Logs", icon: FileText },
   { id: "moderation", title: "Moderations-Suite", icon: ShieldAlert },
   { id: "befehle", title: "Alle Befehle", icon: Terminal },
@@ -94,23 +96,24 @@ const COMMANDS: { group: string; items: [string, string, string][] }[] = [
     group: "Community & Ranglisten (Für alle)",
     items: [
       ["/help", "Zeigt die strukturierte Hilfe-Übersicht und Links zum Webinterface & Support.", "Alle"],
+      ["/web-login", "Generiert einen 30 Minuten gültigen Einmal-Code und 1-Klick-Link zum Anmelden im Webinterface / Shop.", "Alle"],
       ["/rank [mitglied]", "Grafische Rangkarte mit Level, Server-Rang, Fortschrittsbalken, Nachrichten, Voice-Zeit und Daily-Serie.", "Alle"],
       ["/level status", "Dein Level-Status: Fortschritt und wie viele Nachrichten / Voice-Minuten bis zum nächsten Level fehlen (nur für dich sichtbar).", "Alle"],
       ["/level sync-roles [mitglied]", "Vergibt nachträglich alle verdienten Level-Belohnungsrollen.", "Alle"],
+      ["/balance [mitglied]", "Zeigt dein aktuelles Guthaben (Coins), deinen Vermögens-Rang und die letzten Transaktionen an.", "Alle"],
+      ["/pay [mitglied] [betrag]", "Überweist Coins von deinem Konto an ein anderes Mitglied.", "Alle"],
+      ["/shop uebersicht | kaufen [artikel] | code", "Belohnungs-Shop: Durchstöbere exklusive Rollen, Badges & Namensfarben oder generiere deinen 30-Minuten Web-Login-Code.", "Alle"],
+      ["/daily", "Tägliche Belohnung: 50 Coins + 50 XP + Streak-Bonus (bis zu +150 Coins/XP). Streak hält bis 36 Std. nach dem letzten Abholen.", "Alle"],
+      ["/leaderboard [kategorie]", "Zeigt die Top 10 Rangliste (Gesamt-XP, Voice-Minuten, Chat-Nachrichten, Vermögen/Coins).", "Alle"],
       ["/serverstatus", "Zeigt den Live-Status der eingetragenen Game-Server (Spieler, Map, Version, Adresse zum Kopieren).", "Alle"],
       ["/lfg [spiel] [spieler] [rang] [beschreibung]", "Mitspieler suchen: Gruppe mit Beitreten-Button. Ist sie voll, pingt der Bot alle, erstellt eine eigene Lobby und verschiebt alle, die im Voice sind.", "Alle"],
       ["/birthday set | remove | list", "Geburtstag eintragen (nur Tag & Monat), entfernen oder die nächsten Geburtstage anzeigen. Der Bot gratuliert am Tag selbst.", "Alle"],
-      ["/daily", "Tägliche XP-Belohnung: 50 XP + 15 XP pro Streak-Tag (max. +150). Streak hält bis 36 Std. nach dem letzten Abholen.", "Alle"],
-      ["/leaderboard [kategorie]", "Zeigt die Top 10 Rangliste (Gesamt-XP, Voice-Minuten, Chat-Nachrichten).", "Alle"],
       ["/voice-stats [mitglied]", "Zeigt deine Voice-Aktivität, Online-Dauer und Top Talk-Partner.", "Alle"],
       ["/top-voice", "Rangliste der aktivsten Gesprächs-Duos und Voice-Nutzer auf dem Server.", "Alle"],
       ["/suggest [vorschlag]", "Reicht einen Server-Vorschlag mit Abstimmungs-Buttons im Feedback-Kanal ein.", "Alle"],
       ["/giveaway start | end | reroll", "Verlosung mit Teilnahme-Button starten (Dauer, Gewinner, Preis, optional Rolle), vorzeitig beenden oder neu auslosen.", "Server verwalten"],
       ["/free-games list", "Zeigt alle aktuell kostenlosen Spiele (ephemeral, nur für dich sichtbar).", "Alle"],
-      ["/releases uebersicht | post-woche", "Game-Release-Kalender: Übersicht aller kommenden Blockbuster nach Zeitraum & Plattform filtern oder die Wochen-Releases im Kanal posten.", "Alle"],
-      ["/balance [mitglied]", "Zeigt dein aktuelles Guthaben (Coins), deinen Vermögens-Rang und die letzten Transaktionen an.", "Alle"],
-      ["/pay [mitglied] [betrag]", "Überweist Coins von deinem Konto an ein anderes Mitglied.", "Alle"],
-      ["/shop uebersicht | kaufen [artikel]", "Belohnungs-Shop: Durchstöbere exklusive Rollen und Badges oder kaufe einen Artikel mit Coins.", "Alle"],
+      ["/releases uebersicht | post-woche", "Game-Release-Kalender: Übersicht aller kommenden Blockbuster, Triple-A Titel und großen Spiele-Updates nach Zeitraum & Plattform filtern oder die Wochen-Releases im Kanal posten.", "Alle"],
       ["/ping", "Prüft die Latenz und Erreichbarkeit des Bots.", "Alle"],
       ["/twitch-live start | stop", "Sich selbst als live melden bzw. Live-Status vorzeitig beenden.", "Alle"],
     ],
@@ -135,7 +138,7 @@ const COMMANDS: { group: string; items: [string, string, string][] }[] = [
       ["/warn [user] [grund]", "Verwarnt ein Mitglied mit automatischer DM und speichert Fall-ID.", "Mitglieder kicken"],
       ["/timeout [user] [dauer] [grund]", "Schaltet ein Mitglied für 1m bis 1w stumm (Discord Timeout).", "Stummschalten"],
       ["/kick [user] [grund]", "Kickt ein Mitglied vom Discord-Server.", "Mitglieder kicken"],
-      ["/knast einsperren [mitglied] [grund] [dauer] | freilassen | liste", "Gefängnis: entzieht Rollen, sperrt Kanäle, isoliert in #gefängnis & #gefängnis-voice, Timer (z. B. 60m), -1.000 XP. Automatische oder manuelle Entlassung stellt Rollen wieder her. (Englisches Discord: /prison)", "Mitglieder moderieren"],
+      ["/knast einsperren [mitglied] [grund] [dauer] | freilassen | liste", "Gefängnis: Entzieht Rollen, sperrt Kanäle, isoliert in #gefängnis & #gefängnis-voice, Timer (z. B. 60m), -1.000 XP. Bei Haftende automatisches Wiederherstellen der Rollen und Verschieben in den AFK-Kanal. (Englisches Discord: /prison)", "Mitglieder moderieren"],
       ["/ban [user] [grund] [delete_days]", "Bannt ein Mitglied dauerhaft und löscht optional Nachrichten (0-7 Tage).", "Bannen"],
       ["/unban [user_id] [grund]", "Hebt den Bann eines Nutzers anhand der Discord-ID auf.", "Bannen"],
       ["/cases view [id]", "Zeigt Details zu einem gespeicherten Moderationsfall an.", "Nachrichten verwalten"],
@@ -266,7 +269,7 @@ export default function HelpPage() {
           </Section>
 
           {/* Dashboard */}
-          <Section id="dashboard" title="Dashboard & Öffentliche Seiten" icon={KeyRound}>
+          <Section id="dashboard" title="Dashboard & Login (Code & Discord)" icon={KeyRound}>
             <p>
               Das Dashboard bietet getrennte Bereiche für Admins und für die allgemeine Community:
             </p>
@@ -274,13 +277,19 @@ export default function HelpPage() {
               <li>
                 <strong className="text-white">Öffentlich erreichbar (ohne Login):</strong> Alle Mitglieder können{" "}
                 <Link href="/hilfe" className="text-discord-blurple hover:underline">/hilfe</Link>,{" "}
-                <Link href="/changelog" className="text-discord-blurple hover:underline">/changelog</Link> und die{" "}
+                <Link href="/changelog" className="text-discord-blurple hover:underline">/changelog</Link>,{" "}
                 <Link href="/stats" className="text-discord-blurple hover:underline">/stats</Link> (Ranglisten),{" "}
-                <Link href="/news" className="text-discord-blurple hover:underline">/news</Link> (Game-News),{" "}
-                <Link href="/free-games" className="text-discord-blurple hover:underline">/free-games</Link>,{" "}
-                <Link href="/releases" className="text-discord-blurple hover:underline">/releases</Link> (Release-Kalender) und{" "}
-                <Link href="/economy" className="text-discord-blurple hover:underline">/economy</Link> (Shop) frei im Browser
+                <Link href="/news" className="text-discord-blurple hover:underline">/news</Link> (Game- & Software-News),{" "}
+                <Link href="/free-games" className="text-discord-blurple hover:underline">/free-games</Link> und{" "}
+                <Link href="/releases" className="text-discord-blurple hover:underline">/releases</Link> (Release-Kalender) frei im Browser
                 aufrufen.
+              </li>
+              <li>
+                <strong className="text-white">Shop- & Community-Login:</strong> Normale Server-Mitglieder können sich ganz
+                einfach per Discord OAuth oder mit einem <strong>30-Minuten-Code</strong> (<Cmd>/web-login</Cmd> oder <Cmd>/shop code</Cmd>)
+                auf der <Link href="/login" className="text-discord-blurple hover:underline">Login-Seite</Link> anmelden, um im{" "}
+                <Link href="/economy" className="text-discord-blurple hover:underline">Shop</Link> Rollen, Badges und Namensfarben zu kaufen
+                oder Level-XP umzutauschen.
               </li>
               <li>
                 <strong className="text-white">Admin-Bereich (mit Login):</strong> Der Zugriff auf Ticket-Chats,
@@ -299,6 +308,55 @@ export default function HelpPage() {
                 <Link href="/clips" className="text-discord-blurple hover:underline">Clip der Woche</Link>.
               </li>
             </ul>
+          </Section>
+
+          {/* Wirtschaft, Coins, Börse & Shop */}
+          <Section id="economy" title="Wirtschaft, Coins, XP-Börse & Shop" icon={Coins}>
+            <p>
+              GLGBot verfügt über ein vollständiges virtuelles Wirtschaftssystem mit eigenem Belohnungs-Shop,
+              dynamischer XP-Börse und Discord-Namensfarben:
+            </p>
+            <ul className="list-disc list-inside space-y-1.5 pl-1">
+              <li>
+                <strong className="text-white">Coins verdienen:</strong>
+                <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-400">
+                  <li><Cmd>/daily</Cmd> – Täglich 50 Coins + bis zu 150 Streak-Bonus abholen.</li>
+                  <li>Text- & Voice-Aktivität (XP sammeln und an der Börse eintauschen).</li>
+                  <li>Überweisungen von Freunden mit <Cmd>/pay @User [Betrag]</Cmd>.</li>
+                  <li>Events, Verlosungen (<Cmd>/giveaway</Cmd>) und Server-Aktionen.</li>
+                </ul>
+              </li>
+              <li>
+                <strong className="text-white">📈 Dynamische XP-Börse (Marktwirtschaft):</strong> Im Web-Dashboard unter{" "}
+                <Link href="/economy" className="text-discord-blurple hover:underline">Wirtschaft & Shop</Link> können verdiente
+                Level-Punkte (XP) in Coins umgetauscht werden. Der Wechselkurs schwankt wie an der echten Börse je nach
+                serverweiten Transaktionen dynamisch!
+              </li>
+              <li>
+                <strong className="text-white">🎨 Namensfarben & Farb-Rollen:</strong> Mitglieder können sich im Shop knallige
+                Farben für ihren Namen aussuchen. Sobald eine Farbe gekauft oder ausgewählt wird, schaltet der Bot die
+                zugehörige Farb-Rolle auf Discord live und passt die Chat-Farbe an.
+              </li>
+              <li>
+                <strong className="text-white">🛒 Belohnungs-Shop:</strong> Kaufe Rollen, Profil-Badges und Perks entweder direkt
+                über Discord mit <Cmd>/shop kaufen [Artikel]</Cmd> oder mit visueller Vorschau im Web-Shop unter{" "}
+                <Link href="/economy" className="text-discord-blurple hover:underline">/economy</Link>.
+              </li>
+              <li>
+                <strong className="text-white">🔑 30-Minuten Code-Login:</strong> Keine Lust auf Discord-OAuth? Gib einfach{" "}
+                <Cmd>/web-login</Cmd> oder <Cmd>/shop code</Cmd> in Discord ein, erhalte einen 30 Minuten gültigen Code und
+                einen 1-Klick-Link, der dich sofort im Shop anmeldet!
+              </li>
+            </ul>
+            <div className="flex gap-2 pt-1">
+              <Link
+                href="/economy"
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 font-medium transition-colors"
+              >
+                <Coins className="w-3.5 h-3.5" />
+                Zum Web-Shop & zur XP-Börse
+              </Link>
+            </div>
           </Section>
 
           {/* Mehrere Server */}
@@ -452,20 +510,50 @@ export default function HelpPage() {
             </p>
           </Section>
 
-          {/* Free-Games */}
-          <Section id="freegames" title="Free-Games" icon={Gift}>
+          {/* Free-Games & Releases */}
+          <Section id="freegames" title="Free-Games & Game-Release-Kalender" icon={Gift}>
             <p>
-              Der Bot prüft <strong className="text-white">alle 30 Minuten</strong>, ob es Spiele komplett kostenlos gibt,
-              und postet neue in den Free-Games-Kanal - mit Bild, altem Preis, Enddatum und Buttons für Steam / Epic Launcher.
+              Alles rund um Spiele-Schnäppchen und anstehende Veröffentlichungen:
             </p>
+            <ul className="list-disc list-inside space-y-1.5 pl-1">
+              <li>
+                <strong className="text-white">Kostenlose Spiele:</strong> Der Bot prüft <strong className="text-white">alle 30 Minuten</strong>,
+                ob es Spiele komplett kostenlos gibt (Epic Games Store, Steam, GOG, Prime) und postet neue Schnäppchen in <Cmd>#free-games</Cmd>{" "}
+                mit Enddatum, Store-Links und Launcher-Buttons.
+              </li>
+              <li>
+                <strong className="text-white">Game-Release-Kalender:</strong> Unter <Link href="/releases" className="text-discord-blurple hover:underline">/releases</Link>{" "}
+                oder mit <Cmd>/releases uebersicht</Cmd> siehst du alle kommenden Blockbuster, Triple-A Titel und großen
+                Spiele-Updates/DLCs nach Monat und Plattform (PC, PS5, Xbox, Switch). Mit <Cmd>/releases post-woche</Cmd> kann
+                das Team die Wochen-Releases im Chat ankündigen!
+              </li>
+            </ul>
           </Section>
 
-          {/* Game-News */}
-          <Section id="news" title="Game-News (Updates & Treiber)" icon={Newspaper}>
+          {/* Game-, Software- & Treiber-News */}
+          <Section id="news" title="Game-, Software- & Treiber-News" icon={Newspaper}>
             <p>
-              Unter <Link href="/news" className="text-discord-blurple hover:underline">Game-News</Link> wählst du Spiele und
-              Treiber aus. Der Bot postet neue Patchnotes und Treiberversionen (NVIDIA, AMD, Intel) automatisch.
+              Unter <Link href="/news" className="text-discord-blurple hover:underline">News-Magazin</Link> wählst du
+              Spiele, Software und Treiberquellen aus. Der Bot postet Neuigkeiten vollautomatisch in die passenden Kanäle:
             </p>
+            <ul className="list-disc list-inside space-y-1.5 pl-1">
+              <li>
+                <strong className="text-white">🎮 Game-Updates & Patchnotes:</strong> Offizielle Patchnotes für beliebte Spiele
+                (z. B. Palworld, Enshrouded, Satisfactory, Minecraft, CS2, Fortnite, Rust, GTA) in <Cmd>#game-news</Cmd> mit Rolle <Cmd>@bn.gamenews</Cmd>.
+              </li>
+              <li>
+                <strong className="text-white">🖥️ Grafikkarten-Treiber:</strong> NVIDIA GeForce Game Ready, AMD Radeon Adrenalin und
+                Intel Arc Grafiktreiber in <Cmd>#🖥️・treiber-software</Cmd> mit Rolle <Cmd>@bn.treiber</Cmd>.
+              </li>
+              <li>
+                <strong className="text-white">💾 NAS-Betriebssysteme:</strong> Wichtige Updates für Synology DSM, TrueNAS SCALE,
+                Unraid OS und QNAP QTS.
+              </li>
+              <li>
+                <strong className="text-white">⚙️ Tools, Codecs & Server-Software:</strong> CubeCoders AMP Game Server Manager,
+                K-Lite Codec Pack / LAV Filters, OBS Studio und HandBrake.
+              </li>
+            </ul>
           </Section>
 
           {/* Silent Audit-Logs */}
@@ -501,6 +589,13 @@ export default function HelpPage() {
                 <strong className="text-white">Strafen aussprechen:</strong> <Cmd>/warn</Cmd>, <Cmd>/timeout</Cmd>,{" "}
                 <Cmd>/kick</Cmd> und <Cmd>/ban</Cmd> benachrichtigen das betroffene Mitglied automatisch per DM über den Grund
                 und die Laufzeit.
+              </li>
+              <li>
+                <strong className="text-white">Gefängnis-System (/knast):</strong> Mit <Cmd>/knast einsperren [User] [Grund] [Dauer]</Cmd>{" "}
+                wird ein auffälliges Mitglied temporär isoliert: Sämtliche Server-Rollen werden entzogen und gesichert, der
+                Nutzer wird in <Cmd>#gefängnis</Cmd> und <Cmd>#gefängnis-voice</Cmd> isoliert und verliert 1.000 XP. Nach
+                Ablauf der Strafe (z. B. 60 Minuten) werden alle Rollen automatisch wiederhergestellt und der Nutzer wird zum
+                Schutz der Community direkt in den AFK-Sprachkanal verschoben!
               </li>
               <li>
                 <strong className="text-white">Fall-Verwaltung:</strong> Mit <Cmd>/cases user [user]</Cmd> sieht das Team
