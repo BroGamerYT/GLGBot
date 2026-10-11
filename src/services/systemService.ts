@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { exec } from "child_process";
 import { promisify } from "util";
 
@@ -42,6 +43,11 @@ class SystemService {
   private memoryLogs: SystemLogEntry[] = [];
   private readonly maxMemoryLogs = 500;
 
+  // Cache für feste Basis-Zeitstempel von Dateien ohne eigene Timestamps (verhindert das 'Mitlaufen' der Uhrzeit)
+  private fileBaselineTimes: Map<string, string> = new Map();
+  // Cache für Zeilen-Zeitstempel: Zeilen-Inhalt -> Zeitstempel
+  private lineTimestamps: Map<string, string> = new Map();
+
   constructor() {
     this.hookConsole();
   }
@@ -72,9 +78,15 @@ class SystemService {
 
   private addMemoryLog(service: "bot" | "web", level: "info" | "warn" | "error", message: string) {
     if (!message || !message.trim()) return;
+    const now = new Date().toISOString();
+    const hash = crypto
+      .createHash("md5")
+      .update(`${service}:${message}:${now}`)
+      .digest("hex")
+      .slice(0, 10);
     const entry: SystemLogEntry = {
-      id: `mem-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      timestamp: new Date().toISOString(),
+      id: `mem-${hash}`,
+      timestamp: now,
       service,
       level,
       message: message.trim(),
@@ -146,61 +158,146 @@ class SystemService {
   }
 
   /**
-   * Liest die letzten Zeilen einer Datei.
+   * Liest und parst eine PM2-Logdatei mit deterministischen, stabilen Zeitstempeln und IDs.
+   * Zeilen ohne eigenen Zeitstempel behalten einen festen, gecachten Zeitstempel
+   * und laufen bei Auto-Refresh nicht mit der aktuellen Uhrzeit mit.
    */
-  private readLastLines(filePath: string, maxLines: number): string[] {
+  private readAndParseLogFile(
+    filePath: string,
+    service: "bot" | "web",
+    defaultLevel: "info" | "error",
+    maxLines: number
+  ): SystemLogEntry[] {
     if (!fs.existsSync(filePath)) return [];
+
     try {
       const stats = fs.statSync(filePath);
-      // Maximal die letzten 512 KB lesen
-      const readSize = Math.min(stats.size, 512 * 1024);
+      if (stats.size === 0) return [];
+
+      // Bis zu 1 MB vom Dateiende lesen
+      const readSize = Math.min(stats.size, 1024 * 1024);
       const buffer = Buffer.alloc(readSize);
       const fd = fs.openSync(filePath, "r");
       fs.readSync(fd, buffer, 0, readSize, stats.size - readSize);
       fs.closeSync(fd);
 
-      const content = buffer.toString("utf-8");
-      const lines = content.split("\n").filter((l) => l.trim().length > 0);
-      return lines.slice(-maxLines);
+      let content = buffer.toString("utf-8");
+      // Falls wir mitten in der Datei begonnen haben, die erste (möglicherweise unvollständige) Zeile verwerfen
+      if (stats.size > readSize) {
+        const firstNewline = content.indexOf("\n");
+        if (firstNewline !== -1) {
+          content = content.slice(firstNewline + 1);
+        }
+      }
+
+      const rawLines = content
+        .split(/\r?\n/)
+        .map((l) => l.trimEnd())
+        .filter((l) => l.trim().length > 0);
+
+      if (rawLines.length === 0) return [];
+
+      // Regex für PM2-Timestamps:
+      // z. B. "2026-10-11T19:00:08: ...", "2026-10-11 19:00:08: ...", "[2026-10-11 19:00:08] ...", "[2026-10-11T19:00:08.123Z] ..."
+      const timestampRegex = /^\[?(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)\]?:?\s*(.*)$/;
+
+      // Baseline ermitteln: Der erste gefundene Zeitstempel im Puffer
+      let firstDetectedTimestamp: string | null = null;
+      for (const line of rawLines) {
+        const m = line.match(timestampRegex);
+        if (m) {
+          const dt = new Date(m[1].replace(" ", "T"));
+          if (!isNaN(dt.getTime())) {
+            firstDetectedTimestamp = dt.toISOString();
+            break;
+          }
+        }
+      }
+
+      // Falls die Datei gar keine Zeitstempel enthält, nutzen wir das statische mtime der Datei (gecacht)
+      if (!this.fileBaselineTimes.has(filePath)) {
+        this.fileBaselineTimes.set(
+          filePath,
+          firstDetectedTimestamp || stats.mtime.toISOString()
+        );
+      }
+      const baseline =
+        firstDetectedTimestamp ||
+        this.fileBaselineTimes.get(filePath) ||
+        stats.mtime.toISOString();
+
+      let currentTimestamp = baseline;
+      const seenHashes = new Map<string, number>();
+      const parsedEntries: SystemLogEntry[] = [];
+
+      for (const line of rawLines) {
+        let message = line;
+        const match = line.match(timestampRegex);
+        if (match) {
+          const parsed = new Date(match[1].replace(" ", "T"));
+          if (!isNaN(parsed.getTime())) {
+            currentTimestamp = parsed.toISOString();
+            message = match[2];
+          }
+        }
+
+        // Falls Message leer ist (z. B. Zeile war nur Zeitstempel), weitergehen
+        if (!message || !message.trim()) continue;
+
+        // Zeilen-Cache: Zeilen ohne Zeitstempel bekommen einen fest zugeordneten Zeitstempel
+        const lineKey = `${filePath}:${message.trim()}`;
+        if (!match) {
+          if (!this.lineTimestamps.has(lineKey)) {
+            this.lineTimestamps.set(lineKey, currentTimestamp);
+          }
+          currentTimestamp = this.lineTimestamps.get(lineKey) || currentTimestamp;
+        }
+
+        // Level-Erkennung
+        const lower = message.toLowerCase();
+        let level: "info" | "warn" | "error" = defaultLevel;
+        if (
+          defaultLevel === "error" ||
+          lower.includes("error") ||
+          lower.includes("fehler") ||
+          lower.includes("fatal") ||
+          lower.includes("exception") ||
+          lower.includes("uncaught")
+        ) {
+          level = "error";
+        } else if (
+          lower.includes("warn") ||
+          lower.includes("achtung") ||
+          lower.includes("warning")
+        ) {
+          level = "warn";
+        }
+
+        // Deterministische ID generieren (stabil über Refreshes)
+        const hash = crypto
+          .createHash("md5")
+          .update(`${service}:${message}:${currentTimestamp}`)
+          .digest("hex")
+          .slice(0, 12);
+
+        const count = (seenHashes.get(hash) || 0) + 1;
+        seenHashes.set(hash, count);
+        const id = `log-${service}-${hash}-${count}`;
+
+        parsedEntries.push({
+          id,
+          timestamp: currentTimestamp,
+          service,
+          level,
+          message,
+        });
+      }
+
+      return parsedEntries.slice(-maxLines);
     } catch (e) {
       console.error(`[SystemService] Fehler beim Lesen von ${filePath}:`, e);
       return [];
     }
-  }
-
-  /**
-   * Parst eine Zeile aus PM2 Logdateien in ein strukturiertes Objekt.
-   */
-  private parseLine(
-    line: string,
-    service: "bot" | "web",
-    defaultLevel: "info" | "warn" | "error"
-  ): SystemLogEntry {
-    let timestamp = new Date().toISOString();
-    let message = line;
-    let level = defaultLevel;
-
-    // Erkennung typischer PM2 Timestamps z. B. "2026-10-11T18:35:34: ..." oder "[2026-10-11 18:35:34]"
-    const isoMatch = line.match(/^(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?):?\s*(.*)$/);
-    if (isoMatch) {
-      timestamp = new Date(isoMatch[1].replace(" ", "T")).toISOString();
-      message = isoMatch[2];
-    }
-
-    const lower = message.toLowerCase();
-    if (defaultLevel === "error" || lower.includes("error") || lower.includes("fehler") || lower.includes("fatal") || lower.includes("exception")) {
-      level = "error";
-    } else if (lower.includes("warn") || lower.includes("achtung") || lower.includes("warning")) {
-      level = "warn";
-    }
-
-    return {
-      id: `log-${service}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      timestamp,
-      service,
-      level,
-      message,
-    };
   }
 
   /**
@@ -226,15 +323,8 @@ class SystemService {
         const botOut = path.join(logDir, "discord-bot-out.log");
         const botErr = path.join(logDir, "discord-bot-error.log");
 
-        const outLines = this.readLastLines(botOut, limit);
-        for (const line of outLines) {
-          allEntries.push(this.parseLine(line, "bot", "info"));
-        }
-
-        const errLines = this.readLastLines(botErr, limit);
-        for (const line of errLines) {
-          allEntries.push(this.parseLine(line, "bot", "error"));
-        }
+        allEntries.push(...this.readAndParseLogFile(botOut, "bot", "info", limit));
+        allEntries.push(...this.readAndParseLogFile(botErr, "bot", "error", limit));
       }
 
       // Web Logs
@@ -242,15 +332,8 @@ class SystemService {
         const webOut = path.join(logDir, "discord-web-out.log");
         const webErr = path.join(logDir, "discord-web-error.log");
 
-        const outLines = this.readLastLines(webOut, limit);
-        for (const line of outLines) {
-          allEntries.push(this.parseLine(line, "web", "info"));
-        }
-
-        const errLines = this.readLastLines(webErr, limit);
-        for (const line of errLines) {
-          allEntries.push(this.parseLine(line, "web", "error"));
-        }
+        allEntries.push(...this.readAndParseLogFile(webOut, "web", "info", limit));
+        allEntries.push(...this.readAndParseLogFile(webErr, "web", "error", limit));
       }
     }
 
@@ -299,6 +382,8 @@ class SystemService {
    */
   public async clearLogs(): Promise<{ success: boolean; message: string }> {
     this.memoryLogs = [];
+    this.fileBaselineTimes.clear();
+    this.lineTimestamps.clear();
     try {
       await execAsync("pm2 flush");
       return { success: true, message: "PM2 Logs wurden erfolgreich geleert." };

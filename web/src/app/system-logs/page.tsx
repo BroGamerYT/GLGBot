@@ -110,7 +110,14 @@ export default function SystemLogsPage() {
         throw new Error(json.error || `HTTP ${res.status}`);
       }
       const data = await res.json();
-      setLogs(data.logs || []);
+      setLogs((prev) => {
+        const next: SystemLogEntry[] = data.logs || [];
+        if (prev.length === next.length) {
+          const isSame = prev.every((item, idx) => item.id === next[idx]?.id);
+          if (isSame) return prev;
+        }
+        return next;
+      });
       setProcesses(data.processes || []);
       setError(null);
     } catch (e: any) {
@@ -582,7 +589,10 @@ export default function SystemLogsPage() {
                   }`}
                 >
                   {/* Zeitstempel */}
-                  <span className="text-gray-500 shrink-0 select-none text-[11px]">
+                  <span
+                    className="text-gray-500 shrink-0 select-none text-[11px] font-mono"
+                    title={new Date(entry.timestamp).toLocaleString("de-DE")}
+                  >
                     {new Date(entry.timestamp).toLocaleTimeString("de-DE", {
                       hour: "2-digit",
                       minute: "2-digit",
