@@ -50,8 +50,27 @@ export interface NewsItem {
   title: string;
   url: string;
   text?: string;
+  rawContent?: string;
   imageUrl?: string;
   date?: number; // Unix-Sekunden
+  isPatchnotes?: boolean;
+  isSnapshot?: boolean;
+  downloadUrl?: string;
+}
+
+export interface PublicNewsArticle {
+  id: string;
+  sourceId: string;
+  sourceName: string;
+  sourceType: NewsSourceType;
+  appId?: string;
+  headerImage?: string;
+  title: string;
+  summary: string;
+  content: string;
+  url: string;
+  imageUrl?: string;
+  date: number; // Unix-Sekunden
   isPatchnotes?: boolean;
   isSnapshot?: boolean;
   downloadUrl?: string;
@@ -60,6 +79,7 @@ export interface NewsItem {
 const DATA_DIR = path.join(process.cwd(), "data");
 const FEEDS_FILE = path.join(DATA_DIR, "game_news.json");
 const STATE_FILE = path.join(DATA_DIR, "game_news_state.json");
+const ARTICLES_CACHE_FILE = path.join(DATA_DIR, "game_news_articles.json");
 const CHECK_INTERVAL_MS = 15 * 60 * 1000;
 const MAX_POSTS_PER_FEED_AND_RUN = 3;
 const BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36";
@@ -120,6 +140,43 @@ function steamImageFromContents(raw: string): string | undefined {
   if (clan) return `https://clan.akamai.steamstatic.com/images/${clan[1]}`;
   const img = raw.match(/(?:\[img\]|<img[^>]+src=["'])(https?:\/\/[^\s\[\]"']+\.(?:png|jpe?g|gif|webp))/i);
   return img ? img[1] : undefined;
+}
+
+/** Steam-BBCode/HTML in formatierten Text / Markdown mit Bildern und Listen umwandeln. */
+export function cleanSteamFullContent(raw: string): string {
+  if (!raw) return "";
+  let text = raw
+    .replace(/\{STEAM_CLAN_IMAGE\}\//g, "https://clan.akamai.steamstatic.com/images/")
+    .replace(/\[img\]\s*([^\s\]]+)\s*\[\/img\]/gi, "\n\n![]($1)\n\n")
+    .replace(/\[url=([^\s\]]+)\]([\s\S]*?)\[\/url\]/gi, "[$2]($1)")
+    .replace(/\[h1\]([\s\S]*?)\[\/h1\]/gi, "\n\n### $1\n\n")
+    .replace(/\[h2\]([\s\S]*?)\[\/h2\]/gi, "\n\n#### $1\n\n")
+    .replace(/\[h3\]([\s\S]*?)\[\/h3\]/gi, "\n\n##### $1\n\n")
+    .replace(/\[b\]([\s\S]*?)\[\/b\]/gi, "**$1**")
+    .replace(/\[i\]([\s\S]*?)\[\/i\]/gi, "*$1*")
+    .replace(/\[u\]([\s\S]*?)\[\/u\]/gi, "$1")
+    .replace(/\[strike\]([\s\S]*?)\[\/strike\]/gi, "~~$1~~")
+    .replace(/\[code\]([\s\S]*?)\[\/code\]/gi, "\n```\n$1\n```\n")
+    .replace(/\[quote\]([\s\S]*?)\[\/quote\]/gi, "\n> $1\n")
+    .replace(/\[\*\]/g, "\n• ")
+    .replace(/\[\/?list\]/gi, "\n")
+    .replace(/\[\/?(table|tr|th|td)\]/gi, " ")
+    .replace(/\[\/?[a-z0-9]+(=[^\]]*)?\]/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|h\d)>/gi, "\n\n")
+    .replace(/<a\s+[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, "[$2]($1)")
+    .replace(/<img\s+[^>]*src=["']([^"']+)["'][^>]*>/gi, "\n\n![]($1)\n\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  return text;
 }
 
 class GameNewsService {
@@ -281,6 +338,7 @@ class GameNewsService {
             title: String(n.title || "Neuigkeiten"),
             url: n.url || `https://store.steampowered.com/news/app/${feed.appId}`,
             text: cleanSteamText(String(n.contents || "")),
+            rawContent: String(n.contents || ""),
             imageUrl: steamImageFromContents(String(n.contents || "")) || steamImage(feed.appId!),
             date: n.date,
             isPatchnotes: (Array.isArray(n.tags) && n.tags.includes("patchnotes")) || /patch|update|hotfix/i.test(n.title || ""),
@@ -299,6 +357,9 @@ class GameNewsService {
               title: v.type === "release" ? `Minecraft ${v.id} ist da!` : `Neuer Snapshot: ${v.id}`,
               url: `https://minecraft.wiki/w/Java_Edition_${encodeURIComponent(v.id)}`,
               text: v.type === "release" ? "Eine neue Version der Minecraft Java Edition ist erschienen." : "Ein neuer Test-Snapshot der Minecraft Java Edition ist erschienen.",
+              rawContent: v.type === "release"
+                ? `Eine neue offizielle Version der Minecraft Java Edition (${v.id}) ist erschienen!\n\nAlle vollständigen Patchnotes, Änderungen, neue Blöcke und Fehlerbehebungen findest du direkt im Minecraft Wiki oder im Minecraft Launcher.`
+                : `Ein neuer Entwicklungs-Snapshot (${v.id}) für die Minecraft Java Edition steht bereit zum Testen.`,
               date: Math.floor(new Date(v.releaseTime).getTime() / 1000),
               isSnapshot: v.type === "snapshot",
             }));
@@ -316,11 +377,13 @@ class GameNewsService {
             .map((d: any) => {
               const name = decodeURIComponent(String(d.Name || "GeForce Game Ready Driver")).replace(/\+/g, " ");
               const date = Date.parse(String(d.ReleaseDateTime || "").replace(/^\w{3}\s/, ""));
+              const dateFormatted = Number.isFinite(date) ? new Date(date).toLocaleDateString("de-DE") : "";
               return {
                 id: String(d.Version),
                 title: `${name} ${d.Version}`,
                 url: d.DetailsURL || "https://www.nvidia.com/de-de/geforce/drivers/",
                 text: "Ein neuer GeForce-Treiber ist verfügbar.",
+                rawContent: `NVIDIA hat einen neuen GeForce Game Ready Treiber veröffentlicht.\n\n• Treiber-Version: **${d.Version}**\n• Veröffentlichungsdatum: **${dateFormatted}**\n• Empfohlen für neueste Spiele-Releases, DLSS-Support und Fehlerbehebungen.\n\nKlicke unten auf Download oder Details, um den Treiber direkt herunterzuladen.`,
                 date: Number.isFinite(date) ? Math.floor(date / 1000) : undefined,
                 downloadUrl: d.DownloadURL,
               };
@@ -338,7 +401,9 @@ class GameNewsService {
             title: `AMD Software: Adrenalin Edition ${v}`,
             url: `https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-WIN-${v.replace(/\./g, "-")}.html`,
             text: "Ein neuer Radeon-Grafiktreiber ist verfügbar.",
+            rawContent: `AMD hat die neue Adrenalin Edition **${v}** bereitgestellt.\n\nOptimiert für moderne Radeon RX Grafikkarten mit neuen Spieleprofilen, HYPR-RX Verbesserungen und Stabilitätsupdates.`,
             downloadUrl: "https://www.amd.com/en/support/download/drivers.html",
+            date: Math.floor(Date.now() / 1000),
           }];
         }
 
@@ -353,7 +418,9 @@ class GameNewsService {
             title: `AMD Ryzen Chipsatz-Treiber ${v}`,
             url: `https://www.amd.com/en/resources/support-articles/release-notes/RN-RYZEN-CHIPSET-${v.replace(/\./g, "-")}.html`,
             text: "Ein neuer Chipsatz-Treiber für AMD Ryzen (AM4 & AM5) ist verfügbar.",
+            rawContent: `AMD Ryzen Chipsatz-Treiber **${v}** ist erschienen für Socket AM4- und AM5-Mainboards.\n\nVerbessert die Systemstabilität, Energieverwaltung und Kompatibilität mit Windows 10 & 11.`,
             downloadUrl: `https://drivers.amd.com/drivers/AMD_Chipset_Software_${v}.exe`,
+            date: Math.floor(Date.now() / 1000),
           }];
         }
 
@@ -369,6 +436,8 @@ class GameNewsService {
             title: `Intel Arc Grafiktreiber ${v}`,
             url: page,
             text: "Ein neuer Treiber für Intel Arc & Iris Xe Grafik ist verfügbar.",
+            rawContent: `Intel Arc & Iris Xe Grafiktreiber **${v}** ist verfügbar mit Optimierungen für moderne DirectX 12 und Vulkan Spiele.`,
+            date: Math.floor(Date.now() / 1000),
           }];
         }
       }
@@ -545,6 +614,71 @@ class GameNewsService {
       isPatchnotes: i.isPatchnotes,
       isSnapshot: i.isSnapshot,
     }));
+  }
+
+  private articlesCache: Record<string, { data: PublicNewsArticle[]; timestamp: number }> = readJson(ARTICLES_CACHE_FILE, {});
+
+  /**
+   * Lädt alle aggregierten Gaming-News & Treiber-Artikel der aktiven Quellen für das Dashboard.
+   * Caching verhindert unnötige API-Aufrufe bei häufigen Seitenaufrufen.
+   */
+  public async getAggregatedArticles(guildId: string, forceRefresh = false): Promise<PublicNewsArticle[]> {
+    const cached = this.articlesCache[guildId];
+    const now = Date.now();
+    // 5 Minuten In-Memory/Disk-Cache
+    if (!forceRefresh && cached && now - cached.timestamp < 5 * 60 * 1000 && Array.isArray(cached.data) && cached.data.length > 0) {
+      return cached.data;
+    }
+
+    const feeds = this.getFeeds(guildId).filter((f) => f.enabled);
+    if (feeds.length === 0) return [];
+
+    const articles: PublicNewsArticle[] = [];
+    const results = await Promise.allSettled(
+      feeds.map(async (feed) => {
+        const items = await this.fetchItems(feed);
+        if (!items) return [];
+        return items.map((item) => {
+          const headerImg = feed.type === "steam" && feed.appId ? steamImage(feed.appId) : undefined;
+          return {
+            id: `${feed.id}-${item.id}`,
+            sourceId: feed.id,
+            sourceName: feed.name,
+            sourceType: feed.type,
+            appId: feed.appId,
+            headerImage: headerImg,
+            title: item.title,
+            summary: item.text || item.title,
+            content: item.rawContent ? cleanSteamFullContent(item.rawContent) : (item.text || item.title),
+            url: item.url,
+            imageUrl: item.imageUrl || headerImg,
+            date: item.date || Math.floor(Date.now() / 1000),
+            isPatchnotes: item.isPatchnotes,
+            isSnapshot: item.isSnapshot,
+            downloadUrl: item.downloadUrl,
+          } as PublicNewsArticle;
+        });
+      })
+    );
+
+    for (const res of results) {
+      if (res.status === "fulfilled" && Array.isArray(res.value)) {
+        articles.push(...res.value);
+      }
+    }
+
+    // Nach Veröffentlichungsdatum absteigend sortieren
+    articles.sort((a, b) => (b.date || 0) - (a.date || 0));
+
+    this.articlesCache[guildId] = {
+      data: articles,
+      timestamp: now,
+    };
+    try {
+      writeJson(ARTICLES_CACHE_FILE, this.articlesCache);
+    } catch {}
+
+    return articles;
   }
 }
 

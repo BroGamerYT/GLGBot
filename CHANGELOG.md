@@ -6,6 +6,15 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.18.2] - 2026-10-11
+
+### Hinzugefügt
+* **Interaktives Gaming-News Magazin mit Kacheln & Vollansicht (`/news`):**
+  * **Öffentliche Kachel-Ansicht:** Spiel-Updates und Treiber-Neuigkeiten werden nun als visuelle Kachelkarten mit hochauflösenden Spiel-Covern, Header-Bannern, Spiel-/Quellen-Badges, Veröffentlichungs-Zeitstempeln und Teaser-Beschreibungen präsentiert.
+  * **Interaktives Artikel-Modal:** Beim Klick auf eine Kachel öffnet sich der vollständige Artikel mit allen Patchnotes, eingebetteten Screenshots, formatierten Listen, Überschriften und Direktlinks (Original-Webseite, „In Steam öffnen“ & Treiber-Direktdownload).
+  * **Live-Suche & Filterleiste:** Instant-Suche nach Spielen oder Themen sowie Filter-Pills für „Alle“, „🎮 Nur Spiele“, „🛠️ Nur Patchnotes“, „🖥️ Treiber & Hardware“ und Quellen-Filter.
+  * **Getrennter Admin-Bereich:** Administratoren können bequem zwischen dem News-Magazin und der Quellen-/Setup-Verwaltung umschalten; für Gäste ohne Login ist die Seite ein sauberes, aufgeräumtes Gaming-Portal.
+
 ## [2.18.1] - 2026-10-11
 
 ### Hinzugefügt

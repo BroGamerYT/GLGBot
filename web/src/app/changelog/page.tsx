@@ -54,10 +54,30 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.18.1",
+    version: "v2.18.2",
     date: "11. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Gaming-News Kacheln & Interaktive Vollansicht",
+    description: "Öffentliches News-Magazin mit ansprechenden Kachel-Karten, Cover-Bildern, Teasern und interaktivem Artikel-Modal für vollständige Patchnotes und Treiberdetails.",
+    highlights: [
+      {
+        icon: Newspaper,
+        title: "News-Magazin mit Bild-Kacheln",
+        description: "Alle Spiele-Updates und Treiber-Neuigkeiten übersichtlich als visuelle Kacheln mit Live-Suche, Kategorien-Filtern und Spiel-Selektor.",
+      },
+      {
+        icon: Sparkles,
+        title: "Vollständige Artikel-Ansicht per Klick",
+        description: "Klick auf eine Kachel öffnet das Artikel-Modal mit komplett formatierten Patchnotes, Screenshots, Listen und Direktlinks zu Steam und Downloads.",
+      },
+    ],
+  },
+  {
+    version: "v2.18.1",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Community-Badges & Willkommens-Hintergrund",
     description: "Visuelle Meilenstein-Badges auf der Rangkarte (/rank), individuelles Hintergrundbild für Willkommenskarten mit Glassmorphismus-Filter und Windows-Installer Autostart-Option.",
     highlights: [

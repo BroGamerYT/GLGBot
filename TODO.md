@@ -2,7 +2,7 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.18.1 (siehe History ganz unten)
+**Aktueller Stand:** v2.18.2 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
@@ -323,7 +323,9 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.18.1 (Aktuell):**
+* [x] **v2.18.2 (Aktuell):**
+  * [x] Interaktives Gaming-News Magazin mit Bild-Kacheln, Live-Suche, Kategorien-Filtern und vollständiger Artikel-Vollansicht im Modal mit Patchnotes & Screenshots (`/news`).
+* [x] **v2.18.1:**
   * [x] Community-Badges & Aktivitäts-Meilensteine auf der Rangkarte (`/rank`), eigenes Hintergrundbild für Willkommens-Karten mit Glassmorphismus-Filter (Dashboard `/welcome`), Windows-Installer Autostart & Desktop-Verknüpfung.
 * [x] **v2.18.0:**
   * [x] 1-Klick Server-Templates & Auto-Setup Wizard (Modul „Server-Templates“), 5 Template-Profile (Gaming, Multi-Gaming, Coding, Anime, Creator), 4 Design-Stile (Modern, Clean, Aesthetic, Box), Rollen- & Berechtigungs-Hardening, Auto-Snapshot vor Ausführung, Slash-Befehl `/server-setup` & Web-Dashboard `/templates`.

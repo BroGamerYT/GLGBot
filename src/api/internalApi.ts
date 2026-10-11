@@ -922,7 +922,9 @@ export function startInternalApi(client: Client) {
         // ---------------- Game-News ----------------
         case "GET /news": {
           const cfg = rolePanelService.getConfig(guild.id) || {};
+          const articles = await gameNewsService.getAggregatedArticles(guild.id);
           return send(res, 200, {
+            articles,
             feeds: gameNewsService.getFeeds(guild.id),
             history: gameNewsService.getHistory(guild.id).slice(0, 30),
             catalog: gameNewsService.catalog(),
