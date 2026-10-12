@@ -26,11 +26,11 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
 
 * **Bot-Core:** TypeScript (`discord.js` v14)
 * **Web-Frontend:** Next.js, React, Tailwind CSS, Shadcn UI (Dark Theme)
-* **Web-Auth:** Discord OAuth2 (Session-Prüfung auf Server-Administratorrechte)
+* **Web-Auth:** Discord OAuth2 (Session-Prüfung auf Server-Administratorrechte) + 30-Minuten Schnell-Login via Code
 * **Hosting / 24/7 Server:** Proxmox VE LXC Container 109 (`discordbot`), Debian 12, Node.js 22 LTS, PM2 Service
 * **Reverse Proxy:** Caddy für automatische SSL-Zertifikate & Routing
-* **Datenbank:** PostgreSQL (via Prisma ORM) + Redis (Cache / Live-Events)
-* **Audio-Worker:** Lavalink Node (entkoppelte Musik-Wiedergabe)
+* **Datenspeicher & Persistenz:** Atomare JSON-Dateisystem-Speicher (`writeJsonAtomic` mit Process-Locking) + automatische 7-Tage Snapshots (optional SQLite/Prisma für spätere Skalierung)
+* **Audio-Worker:** Embedded Web-Radio & Soundboard / optionale Lavalink Node
 
 ---
 
@@ -42,10 +42,10 @@ Dieses Dokument dient als zentrale Entwicklungsübersicht und To-Do-Liste für d
   - [x] Gateway Intents aktivieren (`Server Members`, `Message Content`, `Presence`).
   - [x] OAuth2 Redirect URL für das Web-Dashboard eintragen.
   - [x] Bot-Token und Client Secret sicher als Umgebungsvariablen (`.env`) konfigurieren.
-- [ ] **Entwicklungsumgebung:**
+- [x] **Entwicklungsumgebung & Persistenz:**
   - [x] Git-Repository initialisieren und Branch-Strategie definieren.
   - [x] Modulare Ordnerstruktur für Commands, Events, Services und Web aufsetzen (TypeScript / discord.js).
-  - [ ] Datenbank anbinden (PostgreSQL Schema & ORM wie Prisma).
+  - [x] Datenspeicher eingerichtet: Ausfallsichere atomare JSON-Storage-Engine mit rollierenden 7-Tage Snapshots und IDOR-Schutz.
 
 ---
 
@@ -210,7 +210,7 @@ CREATE TABLE server_backups (
 
 ---
 
-## 4. Meilensteine & Roadmap-Status
+### 4. Meilensteine & Roadmap-Status
 
 * [x] **Sprint 1:** Bot-Basis aufsetzen + Auto-Move Voice + Free-Games Cronjob.
 * [x] **Sprint 2:** Stream-Alerts (Twitch/YouTube) + Rollen-Vergabe bei Live-Start & Konfigurierbare Benachrichtigungen (`@silent`, Pings).
@@ -218,27 +218,47 @@ CREATE TABLE server_backups (
 * [x] **Sprint 4:** Next.js Dashboard mit Discord OAuth2 + Embed-Builder.
 * [x] **Sprint 5:** Anti-Nuke-Schutz + Ticketsystem mit Web-Transkripten.
 * [x] **Sprint 6:** XP- & Levelsystem v2.3.0 (25 Level, quadratische XP-Kurve, Aktivitätsaufschlüsselung Chat vs. Voice).
-* [ ] **Sprint 7 (Aktuell in Arbeit – siehe [TODO.md](file:///c:/Users/domin/Desktop/DiscordBot/TODO.md)):**
-  * [ ] Öffentliches Free Games & Game News Showcase ohne Login (Read-Only für Gäste, Admin-Controls geschützt).
-  * [ ] Game Release Kalender (`/releases` im Chat & Web mit Timeline, Countdowns und Plattform-Badges).
-  * [ ] Automatische Level-Rollen-Belohnungen (Zuweisung von Meilenstein-Rollen im Dashboard & Level-Up).
-  * [ ] Live-Streamer Widget auf der Dashboard-Startseite (`glgbot.brogameryt.de`).
-  * [ ] Tägliches Belohnungssystem (`/daily`), Giveaways (`/giveaway`) und TeamSpeak/Game-Server Status.
-* [ ] **Sprint 8: Hybrides Musik- & Audio-System (Sub-Bot vs. All-in-One):**
-  * [ ] Konfigurierbarer Modus: Sub-Bot Worker (`discord-music`) oder Embedded im Haupt-Bot.
-  * [ ] Lokale MP3-Dateien & Web-Upload, Spotify-Auflösung, YouTube-Streaming, 24/7 Web-Radio.
-  * [ ] Web-Player im Dashboard (`/music`) mit Live-Queue & Controls.
-* [ ] **Sprint 9: Gaming & Community-Wachstum:**
-  * [ ] LFG-System (`/lfg`) mit automatischem Move in neue temporäre VoiceMaster-Lobby.
-  * [ ] Clip-Showcase (`#clips` mit Upvotes & wöchentlicher Clip der Woche).
-  * [ ] Dynamische Willkommens-Karten (Canvas), Auto-Role und Live-Kanalzähler (Mitglieder/Voice).
-  * [ ] Geburtstagssystem (`/birthday`) und Server-Währung mit Shop (`/shop`).
-* [ ] **Sprint 10: Multi-Guild & Public Release (1 Bot in 1 CT für N Server):**
-  * [ ] 1 zentraler Bot-Prozess auf Proxmox CT 109 bedient unbegrenzt viele Discord-Server parallel.
-  * [ ] Globale Discord Slash-Commands (`applicationCommands`) für automatische Verfügbarkeit auf allen Servern.
-  * [ ] Strikte Mandantentrennung aller Konfigurationsdateien, Cases und Stats (`data/guilds/<guildId>/*`).
-  * [ ] Multi-Guild Server-Switcher im Web-Dashboard („Bot einladen“ + Guild-Wechsel per Dropdown).
-  * [ ] **1-Klick Server-Templates & Auto-Setup Wizard:** Vollständige Einrichtung (Gaming Clan, Multi-Gaming, Coding, Anime, Creator) mit Emoji-Stilen & Berechtigungs-Hardening via `backupService.ts`.
-  * [ ] **1-Klick Installer-Pakete:** Docker & Docker-Compose (`docker-compose.yml`), Windows 1-Klick Setup (`install_windows.bat` mit Auto-Env) und Linux One-Liner (`install_linux.sh`).
-  * [ ] Eigene Custom Commands & Text-Reaktionen im Web konfigurierbar.
-  * [ ] Live-Web-Chat / Admin-Konsole und geplante Ankündigungen (`/announcements`).
+* [x] **Sprint 7 (Abgeschlossen v2.7.0 - v2.16.0):**
+  * [x] Öffentliches Free Games & Game News Showcase ohne Login (Read-Only für Gäste, Admin-Controls geschützt).
+  * [x] Game Release Kalender (`/releases` im Chat & Web mit Timeline, Countdowns und Plattform-Badges).
+  * [x] Automatische Level-Rollen-Belohnungen (Zuweisung von Meilenstein-Rollen im Dashboard & Level-Up).
+  * [x] Live-Streamer Widget auf der Dashboard-Startseite (`glgbot.brogameryt.de`).
+  * [x] Tägliches Belohnungssystem (`/daily`), Giveaways (`/giveaway`) und TeamSpeak/Game-Server Status.
+* [x] **Sprint 9 (Gaming, Community & Wirtschaft – v2.11.0 - v2.20.0):**
+  * [x] LFG-System (`/lfg`) mit automatischem Move in neue temporäre VoiceMaster-Lobby.
+  * [x] Clip-Showcase (`#clips` mit Upvotes & wöchentlicher Clip der Woche).
+  * [x] Dynamische Willkommens-Karten (Canvas), Auto-Role und Live-Kanalzähler (Mitglieder/Voice).
+  * [x] Geburtstagssystem (`/birthday`), Server-Währung mit Belohnungs-Shop (`/shop`, `/economy`) & XP-Börse.
+  * [x] Discord-Namensfarben & Farbrollen-Shop mit automatischem Rollentausch.
+* [x] **Sprint 10 (Multi-Guild, Deployment & Hardening – v2.8.0 - v2.23.0):**
+  * [x] 1 zentraler Bot-Prozess auf Proxmox CT 109 bedient bis zu 5 Discord-Server auf Freigabeliste.
+  * [x] Strikte Mandantentrennung mit `guildId`-Speichern, IDOR-Prävention und Cookie-Routing im Dashboard.
+  * [x] Multi-Guild Server-Switcher im Web-Dashboard („Bot einladen“ + Guild-Wechsel per Dropdown).
+  * [x] **1-Klick Server-Templates & Auto-Setup Wizard:** Vollständige Einrichtung (Gaming, Coding, Anime, Creator, Mega-Community) mit Unicode-Designer & Berechtigungs-Hardening.
+  * [x] **1-Klick Installer-Pakete:** Docker & Docker-Compose, Windows 1-Klick Setup (`install_windows.bat`) und Linux (`install_linux.sh`).
+  * [x] System-Manager & Live-Prozess-Logkonsole (`/system-logs`) mit 1-Klick Neustart und PM2-Überwachung.
+  * [x] 30-Minuten Schnell-Login via Code (`/web-login`) und Shop-Freigabe für normale Mitglieder.
+* [ ] **Sprint 8: Audio-System (Fokus auf Web-Radio & Soundboard):**
+  * [ ] Konfigurierbarer Modus: Vorrangig Embedded im Haupt-Bot via `@discordjs/voice`.
+  * [ ] 24/7 Web-Radio (Lofi, Gaming, TechnoBase etc. via stabile Shoutcast/Icecast Streams).
+  * [ ] Lokales Soundboard & MP3-Upload im Dashboard (`data/music/`, `/soundboard <sound>`).
+  * [ ] Optional: Lavalink-Verbindung mit Cookie-Support für externe YouTube-Streaming-Nodes.
+* [ ] **Sprint 11: 📦 Ultra-Backup v3 (Chat-Inhalte, Voice-Logs & 1:1 Bot-Konfigurations-Spiegelung):**
+  * [ ] **Chat-Inhalte & Nachrichtenverlauf:** Sicherung der letzten *N* Nachrichten pro Textkanal (inkl. Autoren, Zeitstempel, Embeds, Dateianhängen und Reaktionen). Export als interaktives HTML-Transkript und JSON.
+  * [ ] **Voice-Channel Historie:** Sicherung von VoiceMaster-Lobbys, Kanal-Limits, Bitraten und Sprachaktivitäts-Logs.
+  * [ ] **1:1 Server- & Bot-Einstellungen im Snapshot:** Vollständige Sicherung aller Bot-Dateien (Modul-Zustände, Rollen-IDs, XP-Multiplikatoren, Economy-Shop, Knast-Zeiten, Willkommens-Banner, Streamer-Alerts).
+  * [ ] **Intelligenter Cross-Server ID-Remapper:** Automatische 1:1 Übersetzung alter Discord-IDs auf neu generierte IDs bei Wiederherstellung auf fremden Servern.
+  * [ ] **Notfall-Tresor (Cloud/Discord-Export):** Regelmäßiger automatischer Export verschlüsselter Snapshots in den geschützten Admin-Kanal `#🔒・bot-backups` plus DM-Benachrichtigung.
+* [ ] **Sprint 12: 🧩 Modularer 1-Klick Setup Wizard ("Alles einrichten nach Wunsch-Modulen"):**
+  * [ ] **Modul-Matrix im Web (`/setup`, `/templates`) & Chat (`/setup-all`):** Checkboxen für alle gewünschten Module (VoiceMaster, Tickets, Streamer, Gefängnis, Level-Belohnungen, Economy-Shop, Farbrollen, Willkommen, LFG, Free Games, Regel-Sperre).
+  * [ ] **Ein einziger Knopfdruck ("🚀 Gewählte Module & Kanäle einrichten"):**
+    1. Legt alle erforderlichen Rollen mit optimaler Hierarchie und Berechtigungen an.
+    2. Erstellt Kategorien und Kanäle im gewünschten Design-Stil (Modern, Clean, Aesthetic, Box, Cyber).
+    3. Speichert die erzeugten IDs direkt in alle Bot-Konfigurationsdateien (kein manuelles Zuordnen mehr nötig!).
+    4. Postet direkt die interaktiven Start-Panels (Regel-Button, Ticket-Button, VoiceMaster-Panel).
+    5. Aktiviert automatisch die ausgewählten Module in `moduleService.ts`.
+* [ ] **Sprint 13: 🛠️ Performance, Community-Tools & Wartung:**
+  * [ ] **Dashboard Health & Server-Statistiken:** Live-Latenz (Gateway-Ping in ms), REST-Antwortzeiten und Interaktions-Historie.
+  * [ ] **Mitglieder-Benachrichtigungs-Präferenzen:** Self-Service Profil im Webinterface zur Auswahl eigener Benachrichtigungen (Free Games, Game-News, individuelle Streamer-Pings).
+  * [ ] **Chat-Hygiene Auto-Cleaner:** Automatisches Löschen von Bot-Befehlen und Antworten in Bot-Kanälen nach einstellbarem Timeout (z. B. 3 Minuten).
+  * [ ] **Offizielle Twitch-API & Secret-Sanitizer:** Einbindung von `TWITCH_CLIENT_SECRET` für Token-Auto-Refresh und Pre-Push Scan vor Updates im öffentlichen GitHub-Repo.

@@ -2,7 +2,7 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.19.0 (siehe History ganz unten)
+**Aktueller Stand:** v2.23.0 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
@@ -113,40 +113,109 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 🎧 Großes Feature: Hybrides Musik- & Audio-System (Sub-Bot & All-in-One wählbar)
 
-> **Architektur-Ziel:** Für eine spätere Veröffentlichung konfigurierbar machen:
-> * **Modus A (Sub-Bot Worker):** Dedizierter Bot-Account („GLG Music“) mit eigenem Token – maximale Performance ohne Last für den Haupt-Bot.
-> * **Modus B (Embedded / All-in-One):** Direkt im Haupt-Bot integriert – kein 2. Bot nötig, perfekt für einfache Server oder Ein-Klick-Setup.
->
-> **Empfohlene Reihenfolge:** Zuerst nur **Modus B** und nur stabile Quellen (**Web-Radio** und **eigene MP3s**). Zwei Modi von Anfang an verdoppeln den Aufwand.
-> **YouTube** zuletzt und als „kann ausfallen“ kennzeichnen: YouTube sperrt Bots regelmäßig, und das Abspielen über `yt-dlp` verstößt gegen die YouTube-Nutzungsbedingungen.
-> **Spotify** lässt sich nicht direkt abspielen – es wird nur der Titel ausgelesen und der Song anderswo (YouTube/SoundCloud) gesucht.
-> Technisch nötig: `@discordjs/voice`, `ffmpeg` und eine Opus-Bibliothek auf dem Server.
+> **Architektur-Ziel & Strategie-Update:**
+> * **Empfohlene Reihenfolge:** Fokus auf **Modus B (Embedded)** und extrem stabile Audio-Quellen:
+>   1. **📻 24/7 Web-Radio:** Direkte Icecast/Shoutcast/MP3-Livestreams (Lofi, Gaming-Radio, TechnoBase etc.) ohne anfällige Scraping-Verbindungen.
+>   2. **📁 Lokales Soundboard & MP3-Upload:** Eigene MP3s über das Web-Dashboard hochladen oder kurze Sounds im Voice abspielen (`/soundboard`).
+>   3. **YouTube/Spotify:** Nur optional über externe Lavalink-Instanz mit Cookie-Support, da YouTube Standalone-Bots und Server-IPs blockiert.
 
 * [ ] **Konfiguration & Modus-Auswahl (`config/music.json` / `.env`):**
   * [ ] Schalter `MUSIC_MODE: "subbot" | "embedded" | "disabled"`.
-  * [ ] Im Sub-Bot-Modus: Eigener Token (`MUSIC_BOT_TOKEN`), eigener PM2-Prozess `discord-music`, Befehle werden durchgereicht oder direkt vom Sub-Bot registriert.
-  * [ ] Im Embedded-Modus: Haupt-Bot verbindet sich selbst in den Voice-Kanal.
+  * [ ] Im Embedded-Modus: Haupt-Bot verbindet sich direkt in den Voice-Kanal via `@discordjs/voice`.
 * [ ] **Audio-Engine & Quellen:**
+  * [ ] **📻 24/7 Web-Radio:** Direktes Streaming von Web-Radiosendern (`/radio <sender>`, Dropdown im Chat).
   * [ ] **📁 Lokale Dateien & Soundboard:**
     * [ ] Musik-Verzeichnis auf dem Server (`data/music/`).
-    * [ ] Wiedergabe lokaler MP3/WAV/FLAC-Dateien (`/play local:<dateiname>`).
-    * [ ] Soundboard-Modus für kurze Sounds & Memes (`/soundboard <sound>`).
-  * [ ] **🎵 Spotify-Unterstützung:**
-    * [ ] Erkennung von Tracks, Alben und Playlists (`spotify.com/track/...`, `.../playlist/...`).
-    * [ ] Metadaten-Auflösung via Spotify Web API (Titel + Artist).
-    * [ ] Automatische Hintergrund-Suche des passenden Audio-Streams via YouTube / SoundCloud.
-  * [ ] **🎥 YouTube & Web-Streams:**
-    * [ ] Audio-Streaming via `yt-dlp` / Play-DL (mit Cookie/Proxy-Option gegen Bot-Sperren) oder Lavalink-Node.
-  * [ ] **📻 24/7 Web-Radio:**
-    * [ ] Direkte MP3/AAC-Livestreams (z. B. I Love Radio, BigFM, Lofi Girl 24/7) ohne Rate-Limits (`/radio <sender>`).
+    * [ ] Wiedergabe lokaler MP3/WAV-Dateien (`/play local:<dateiname>`).
+    * [ ] Soundboard-Modus für kurze Community-Sounds (`/soundboard <sound>`).
+  * [ ] **🎵 Spotify-Metadaten:** Metadaten-Auflösung via Spotify Web API.
+  * [ ] **🎥 YouTube / Lavalink:** Optionale externe Lavalink-Verbindung mit Cookie-Fallback.
 * [ ] **Discord Slash-Commands:**
-  * [ ] `/play <query_oder_link>` (sucht Song oder spielt Link ab).
-  * [ ] `/skip`, `/stop`, `/pause`, `/resume`, `/queue`, `/nowplaying`, `/volume <1-100>`, `/loop`.
+  * [ ] `/play <link_oder_titel>`, `/radio <sender>`, `/soundboard <sound>`, `/skip`, `/stop`, `/pause`, `/resume`, `/queue`, `/nowplaying`, `/volume <1-100>`, `/loop`.
   * [ ] Interaktives Embed mit Steuerungs-Buttons (`⏮️`, `⏯️`, `⏭️`, `⏹️`, `🔀`, `🔁`).
 * [ ] **Web-Dashboard Musik-Zentrale (`/music`):**
   * [ ] Live-Anzeige des aktuellen Tracks mit Cover, Fortschrittsbalken und Queue-Liste.
   * [ ] Web-Controls (Play/Pause, Skip, Lautstärke per Slider).
   * [ ] Datei-Uploader: Eigene MP3s direkt im Browser hochladen und der Server-Bibliothek hinzufügen.
+
+---
+
+## 🚀 Priorität 5: Erweiterte Automationen, Backup v3 & Intelligentes Setup
+
+### 22. 📦 Ultra-Backup v3: Chat-Inhalte, Voice-Logs & 1:1 Bot-Konfigurations-Spiegelung
+* [ ] **Textkanal-Nachrichtenverlauf & Chat-Inhalte:**
+  * [ ] Konfigurierbare Sicherung der letzten *N* Nachrichten (z. B. 100 bis 1.000) pro Textkanal beim Erstellen eines Snapshots.
+  * [ ] Speicherung von Autoren-Tag, Zeitstempel, Inhalt, Embeds, Reaktionen, Anhängen und gepinnten Nachrichten.
+  * [ ] Export als formatierte HTML-Transkripte (analog zum Ticket-System) und maschinenlesbares JSON.
+  * [ ] Optionale Chat-Wiederherstellung: Bot kann auf Wunsch Archiv-Transkripte in neu erstellte Kanäle posten oder als Datei anheften.
+* [ ] **Voice-Channel Historie & Konfiguration:**
+  * [ ] Sicherung der VoiceMaster-Einstellungen, Kanal-Bitraten, Nutzer-Limits und Video-/Streaming-Berechtigungen.
+  * [ ] Sicherung der Voice-Aktivitätsstatistiken und Rollen-Zuweisungen.
+* [ ] **1:1 Server- & Bot-Einstellungen im Backup:**
+  * [ ] Nicht nur Discord-Rollen und Kanäle, sondern die **vollständigen Server-Einstellungen des Bots** sichern:
+    * [ ] Alle Modul-Schalter (`moduleService` Status für alle 26 Module).
+    * [ ] Rollen-IDs & Verknüpfungen (Gast, Team, Streamer, Farbrollen, Level-Belohnungs-Rollen).
+    * [ ] Level- & XP-Konfigurationen (Multiplikatoren, Cooldowns, Berechnungsart).
+    * [ ] Economy-Werte (Shop-Items, Farbrollen-Katalog, Börsen-Wechselkurs `xpPerCoin`, Daily-Streak-Regeln).
+    * [ ] Gefängnis-Einstellungen (Voice-Knast-ID, Haftstrafen-Presets).
+    * [ ] Willkommens-Karten-Settings (Banner-URL, Text, Glassmorphismus-Filter).
+    * [ ] Streamer-Listen, Alert-Kanäle und Benachrichtigungs-Pings.
+    * [ ] Ticket-Kategorien & Reaktions-Panels.
+    * [ ] Release-Kalender & News-Quellen-Zuweisung.
+    * [ ] Auto-Roles, Blacklist & Anti-Raid Filter.
+* [ ] **Intelligenter Cross-Server ID-Remapper (1:1 Übertragung auf neue Server):**
+  * [ ] Beim Wiederherstellen auf einem fremden Server werden neue Discord-IDs für Rollen und Kanäle erzeugt.
+  * [ ] Der Bot übersetzt alle gespeicherten Rollen- und Kanal-Referenzen in den Bot-Konfigurationen automatisch auf die neu erzeugten IDs (z. B. altes `#support` -> neues `#support`).
+  * [ ] Der neue Server läuft nach 1 Klick mit exakt denselben Bot-Einstellungen, Menüs und Panels wie das Original!
+* [ ] **Automatischer Cloud- & Discord-Backup-Export (Notfall-Tresor):**
+  * [ ] Wöchentlicher oder täglicher automatischer Scheduler sichert den vollständigen Server-Snapshot.
+  * [ ] Automatischer Datei-Upload des verschlüsselten Snapshots in einen geschützten Discord-Admin-Kanal (`#🔒・bot-backups`).
+  * [ ] Server-Inhaber erhält eine DM-Bestätigung mit Backup-ID und Datei.
+
+---
+
+### 23. 🧩 Modularer 1-Klick Setup Wizard ("Alles einrichten nach Wunsch-Modulen")
+> **Ziel:** Ein einziger Knopfdruck richtet auf Discord und im Bot genau die Module ein, die der Server-Inhaber haben möchte – inklusive aller Rollen, Kategorien, Kanäle, Berechtigungen und interaktiver Start-Panels.
+
+* [ ] **Modulare Auswahl-Matrix im Dashboard (`/setup` & `/templates`) und via `/setup-all`:**
+  * [ ] Übersichtliche Checkboxen für alle Kern- und Zusatzmodule:
+    * [ ] 🔊 **Temporäre Voice-Lobbys** (Kategorie + „➕ Lobby erstellen“ + VoiceMaster-Steuerungs-Panel)
+    * [ ] 🔴 **Live-Streamer Suite** (Kategorie + `#stream-alerts` + Rollen `@bn.live`, `@Live`)
+    * [ ] 🎫 **Support-Tickets** (Kategorie + `#support` mit interaktivem Ticket-Erstellen-Button)
+    * [ ] 🔒 **Gefängnis & Voice-Knast** (Rolle `@Gefängnis` + `#gefängnis` + `🔒・gefängnis-voice`)
+    * [ ] 🏆 **Level- & Rangsystem** (Rollen-Belohnungen Level 5, 10, 20, 25 + `#level-ups`)
+    * [ ] 🪙 **Economy & Belohnungs-Shop** (6 Discord-Namensfarben + Shop-Panel + Börsen-Kanal)
+    * [ ] 🎁 **Free Games, Game-News & Software** (`#free-games`, `#game-news`, `#treiber-software` + Rollen)
+    * [ ] 👥 **LFG / Mitspieler-Suche** (`#mitspieler-suche` mit LFG-Panel)
+    * [ ] 🖼️ **Willkommens-System** (`#willkommen` mit Canvas-Banner & Auto-Rolle)
+    * [ ] 🔒 **Regel-Sperre & Verifikation** (`#regeln` mit „Regeln akzeptieren“-Button + `@Gast`)
+* [ ] **1-Klick Ausführung („🚀 Gewählte Module & Kanäle einrichten“):**
+  * [ ] Der Bot durchläuft alle angekreuzten Module in einem einzigen Durchlauf.
+  * [ ] Intelligente Dubletten-Erkennung: Existierende Rollen oder Kanäle werden erkannt und verknüpft, anstatt sie doppelt anzulegen.
+  * [ ] Automatisches Schreiben der neuen IDs direkt in alle zugehörigen JSON-Konfigurationen (`rolesConfig`, `rulesConfig`, `ticketConfig`, `voiceConfig`, `economyConfig` etc.).
+  * [ ] Automatisches Versenden der interaktiven Discord-Embeds mit Buttons (Regel-Button, Ticket-Button, VoiceMaster-Panel).
+  * [ ] Aktivierung aller gewählten Module in `moduleService.ts`.
+
+---
+
+### 24. 📊 Dashboard Health & Server-Statistiken (`/system-logs` & Dashboard-Home)
+* [ ] Live-Anzeige von Discord-Gateway-Ping (Latenz in ms) und REST-API Antwortzeiten mit 24h-Historie.
+* [ ] Mitglieder-Wachstums-Graph (Joins, Leaves, aktive Chatter).
+* [ ] Übersicht der aktiven Interaktionen (ausgeführte Slash-Commands und Button-Klicks pro Stunde).
+
+---
+
+### 25. 🔔 Web-Benachrichtigungs-Präferenzen für Mitglieder
+* [ ] Persönliches Einstellungs-Menü für angemeldete Mitglieder im Webinterface:
+  * [ ] Toggles für Free Games (`@bn.free`), Game News (`@bn.gamenews`), Treiber & Software (`@bn.treiber`).
+  * [ ] Granulare Streamer-Benachrichtigungen (nur für ausgewählte Lieblings-Streamer der Community).
+* [ ] Der Bot synchronisiert die entsprechenden Discord-Rollen automatisch im Hintergrund.
+
+---
+
+### 26. 🧹 Temporäre Chat-Hygiene (Auto-Cleaner für Bot-Spam)
+* [ ] Konfigurierbare Auto-Bereinigung für Bot-Kanäle (z. B. `#bot-spam`, `#musik`, `#befehle`).
+* [ ] Automatisches Löschen von Bot-Befehlen und Bot-Antworten nach einer einstellbaren Frist (z. B. 2 bis 5 Minuten).
 
 ---
 
@@ -323,7 +392,22 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.19.0 (Aktuell):**
+* [x] **v2.23.0 (Aktuell):**
+  * [x] System-Manager & Live-Prozess-Logkonsole (`/system-logs`) mit Volltextsuche, Auto-Scroll, Log-Level-Filtern und 1-Klick Neustart-Steuerung (Bot, Web, All mit Countdown).
+  * [x] Großes Sicherheits- & Stabilitäts-Audit: Command-Injection Schutz via `spawn` mit Argument-Whitelist, API-Token Mindestlängen-Schutz (32 Zeichen), Multi-Guild IDOR-Prävention, Wirtschafts-Obergrenze `MAX_BALANCE` (1 Mrd.) & atomare JSON-Dateisystem-Schreiboperationen (`writeJsonAtomic`).
+* [x] **v2.22.0:**
+  * [x] Unicode-Kanal-Designer & 10 Schriftstile (`/channel-style`, `/font`) mit Live-Vorschau im Dashboard und 1-Klick Styling.
+  * [x] Neue Template-Vorlagen von Minimal Starter bis Mega-Community (8 Kategorien, 32 Kanäle).
+  * [x] Backup JSON Download & Upload mit Cross-Server Snapshot Transfer.
+* [x] **v2.21.0:**
+  * [x] 30-Minuten Schnell-Login per Discord-Code (`/web-login` & `/shop code`) mit 1-Klick Login-Button ohne OAuth2-Zwang.
+  * [x] Shop- & Profil-Zugang für normale Server-Mitglieder im Web-Dashboard (`/economy`).
+  * [x] Erweiterte Treiber- & Software-News (NAS-Systeme Synology/TrueNAS/Unraid, CubeCoders AMP, Codecs, Tools).
+* [x] **v2.20.0:**
+  * [x] Level-XP Börse (`/shop tauschen` & Dashboard) mit konfigurierbarem Wechselkurs `xpPerCoin`.
+  * [x] Discord-Namensfarben & Farbrollen-Shop mit 1-Klick Rollen-Generator im Dashboard und automatischem Farbrollen-Tausch.
+  * [x] Voice-Knast AFK-Verschiebung nach Haftende und erweiterter Game-Release-Kalender mit Triple-A & Update-Filtern.
+* [x] **v2.19.0:**
   * [x] Voice-Knast mit isoliertem Sprachkanal `🔒・gefängnis-voice`, automatischer Verschiebung beim Inhaftieren, Rückhol-Enforcement bei Kanalwechsel und Trennung bei Entlassung.
   * [x] Flexibler Haftdauer-Timer in `/knast einsperren [mitglied] [grund] [dauer]` und im Web-Dashboard (`/moderation`), 30s-Scheduler zur automatischen Entlassung und Restzeit-Countdown in `/knast liste`.
 * [x] **v2.18.2:**
