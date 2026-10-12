@@ -6,6 +6,41 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.23.0] - 2026-10-12
+
+### Hinzugefügt
+* **System-Manager & Live-Logkonsole (`/system-logs`):**
+  * **Interaktives Terminal-Webinterface:** Live-Streaming der PM2-Prozesslogs für Discord-Bot (`discord-bot`) und Webinterface (`discord-web`) mit Volltextsuche, Auto-Scroll, Service- und Log-Level-Filtern (Info, Warnung, Fehler).
+  * **Prozess-Überwachung:** Anzeige von CPU-Auslastung, RAM-Verbrauch, Uptime, Node.js-Version und Restart-Countern beider Prozesse in Echtzeit.
+  * **1-Klick Neustart-Steuerung:** Sicherer Neustart des Bots, des Webinterfaces oder beider Instanzen direkt aus dem Browser mit 4-Sekunden Countdown.
+  * **Log-Verwaltung:** 1-Klick Leeren (`pm2 flush`) und Exportieren der Logs als `.txt`-Datei.
+
+### Sicherheit & Härtung (Security Audit)
+* **Command-Injection Schutz:** Refaktorisierung von `systemService.ts` auf `spawn("pm2", ...)` mit `{ shell: false }` und strikter Parameter-Whitelist (`bot`, `web`, `all`). Keine Ausführung über System-Shells mehr möglich.
+* **API-Token Schutz:** `safeEqual` erzwingt serverseitig eine Mindestlänge von 32 Zeichen für `x-bot-token`. Leere Strings oder unvollständige Tokens werden sofort mit 401/500 abgewiesen.
+* **Multi-Guild IDOR-Prävention:** Im Bot-Backend wird bei eingeloggten Dashboard-Nutzern serverseitig geprüft, ob der Nutzer tatsächlich Mitglied des übergebenen Servers (`x-guild-id`) ist (`guild.members.fetch()`).
+* **Wirtschafts-Obergrenze & Inflationsschutz:** Maximale Obergrenze `MAX_BALANCE = 1.000.000.000` (1 Milliarde Coins) eingeführt. Alle Transaktionen (`addCoins`, `removeCoins`, `setBalance`, `transferCoins`) validieren auf finite Zahlen und clampen Werte sicher.
+* **Twitch-API Entkopplung:** Feste Twitch-Client-ID durch Umgebungsvariable `TWITCH_CLIENT_ID` ersetzt (Fallback auf Web-ID) und in `.env.example` dokumentiert.
+
+### Behoben
+* **Log-Zeitstempel Drift:** Statische und deterministische Zeitstempel-Zuordnung im Backend verhindert das ständige Vorlaufen der Uhrzeit bei automatischen UI-Aktualisierungen.
+* **Flackerfreies Rendering:** Identitätsprüfung im Webinterface verhindert unnötige React Re-Renders, wenn keine neuen Zeilen vorliegen.
+* **Willkommens-TypeError:** Nullish-Coalescing bei `member.guild.memberCount` verhindert Abstürze beim Serverbeitritt, falls der Member-Cache noch nicht synchronisiert war.
+* **Runtime Non-Null-Assertions:** Sicheres Auflösen potentiell unvollständiger Bot-Instanzen (`guild.members.me` / `client.user`) in `ticketService`, `statsChannelsService`, `setupService`, `lfgService` und `rulesService`.
+* **LFG Unhandled Rejections:** Interaktions-Antworten werden ordnungsgemäß `await`ed.
+* **Atomare Dateisystem-Operationen (Race Conditions):** `writeJsonAtomic` verwendet nun isolierte temporäre Dateinamen (`${file}.${pid}.${now}.${rand}.tmp`) inklusive Windows-Lock-Fallback (`EPERM`/`EBUSY`). Alle Services mit JSON-Speichern (`liveStreamService`, `tempVoiceService`, `channelPasswordService`, `blacklistService`, `stickyService`, `suggestionService`, `rolePanelService`, `securityService`, `auditLogService`) wurden auf atomare Schreibvorgänge migriert.
+
+## [2.22.0] - 2026-10-11
+
+### Hinzugefügt
+* **Unicode-Kanal-Designer & 10 Schriftarten (`/channel-style` & `/font`):**
+  * **Interaktives Designer-Tool:** Live-Vorschau und Direktumwandlung in 10 Unicode-Schriftstile (Small Caps, Bold Sans, Gothic, Aesthetic, Boxed, Cyber).
+  * **1-Klick Kanal-Styling:** Kanäle können direkt im Dashboard oder über `/channel-style` umgestylt werden.
+  * **Templates von Klein bis Groß:** Neue Vorlagen „🌱 Minimal Starter“, „🏆 E-Sport Pro“ sowie die „🏰 Mega-Community“ mit 8 Kategorien und 32 Kanälen.
+* **Backup JSON Download & Upload mit Cross-Server Transfer:**
+  * Snapshots können als JSON-Datei heruntergeladen, hochgeladen und auf fremden Servern eingespielt werden.
+  * Schutzoptionen: Server-Owner als höchste Rolle sichern und Bereinigung alter Mitglieder-Berechtigungen.
+
 ## [2.21.0] - 2026-10-11
 
 ### Hinzugefügt

@@ -31,6 +31,9 @@ import {
   LayoutTemplate,
   Award,
   Image as ImageIcon,
+  Cpu,
+  RotateCcw,
+  HardDrive,
 } from "lucide-react";
 
 export const metadata = {
@@ -54,10 +57,40 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.22.0",
-    date: "11. Oktober 2026",
+    version: "v2.23.0",
+    date: "12. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "System-Manager, Live-Logkonsole & Umfassendes Sicherheits-Audit",
+    description: "Neue Live-Logkonsole mit Terminal-Ansicht (/system-logs), PM2-Prozessüberwachung und 1-Klick Neustart-Steuerung. Vollständige Behebung von Sicherheitsrisiken (Command-Injection, API-Tokens, IDOR), Inflationsschutz und atomare Dateisystem-Härtung.",
+    highlights: [
+      {
+        icon: Terminal,
+        title: "Live System-Logs & Terminal (/system-logs)",
+        description: "Echtzeit-Webkonsole für Discord-Bot und Next.js Webinterface mit Auto-Scroll, Service- & Level-Filtern, Volltextsuche und statischen, flackerfreien Zeitstempeln.",
+      },
+      {
+        icon: RotateCcw,
+        title: "Prozess-Manager & 1-Klick Neustart",
+        description: "Live-Metriken für CPU, RAM, Uptime und Neustartzähler beider PM2-Prozesse sowie sichere Neustart-Ausführung (Bot, Web oder Alle) mit 4s Reconnect-Countdown.",
+      },
+      {
+        icon: Shield,
+        title: "Kritisches Sicherheits-Audit & Hardening",
+        description: "Schutz vor Command-Injection durch spawn ohne Shell, 32-Zeichen Mindestlänge für API-Tokens, Multi-Guild IDOR-Serverprüfung und konfigurierbare Twitch-Client-ID.",
+      },
+      {
+        icon: HardDrive,
+        title: "Atomare Dateizugriffe & Crash-Schutz",
+        description: "Isolierte temporäre Dateien und automatischer Lock-Schutz für alle JSON-Speicher verhindern Datenverlust bei gleichzeitigen Schreibvorgängen oder Serverabstürzen.",
+      },
+    ],
+  },
+  {
+    version: "v2.22.0",
+    date: "11. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Unicode-Kanal-Designer, 10 Schriftarten & Mega-Server Templates",
     description: "Umfassender Kanal-Designer mit Unicode-Schriftarten (Small Caps, Bold Sans, Gothic, Aesthetic, Boxed, Cyber), neuen Vorlagen von Kompakt bis Mega sowie Slash-Befehlen /channel-style und /font.",
     highlights: [
