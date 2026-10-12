@@ -32,11 +32,12 @@ export const WELCOME_DEFAULTS: WelcomeConfig = {
 const store = new GuildStore<WelcomeConfig>("welcome.json", () => ({ ...WELCOME_DEFAULTS }));
 
 function fill(text: string, member: GuildMember) {
+  const count = member.guild.memberCount ?? 0;
   return text
     .replace(/{user}/g, `<@${member.id}>`)
     .replace(/{name}/g, member.displayName)
     .replace(/{server}/g, member.guild.name)
-    .replace(/{count}/g, member.guild.memberCount.toLocaleString("de-DE"));
+    .replace(/{count}/g, count.toLocaleString("de-DE"));
 }
 
 function fillPlain(text: string, member: GuildMember) {

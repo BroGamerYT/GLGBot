@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { writeJsonAtomic } from "../utils/jsonFile";
 import { Guild, GuildMember, Message, Client, EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import { auditLogService } from "./auditLogService";
 
@@ -100,7 +101,7 @@ class SecurityService {
     this.config = { ...this.config, ...patch };
     try {
       this.ensureDataDir();
-      fs.writeFileSync(CONFIG_FILE, JSON.stringify(this.config, null, 2), "utf-8");
+      writeJsonAtomic(CONFIG_FILE, this.config);
     } catch (e) {
       console.error("[SecurityService] Fehler beim Speichern der Security-Config:", e);
     }

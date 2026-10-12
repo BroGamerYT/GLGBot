@@ -128,6 +128,12 @@ async function proxy(req: NextRequest, { params }: { params: { path: string[] } 
   }
 
   const token = process.env.INTERNAL_API_TOKEN || process.env.SESSION_SECRET || "";
+  if (!token || token.length < 32) {
+    return NextResponse.json(
+      { error: "Sicherheitsfehler: SESSION_SECRET oder INTERNAL_API_TOKEN ist nicht oder zu kurz konfiguriert (min. 32 Zeichen)." },
+      { status: 500 }
+    );
+  }
   const port = process.env.BOT_API_PORT || "3101";
   const search = req.nextUrl.search || "";
   const session = await verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);

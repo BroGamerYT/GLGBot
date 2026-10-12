@@ -12,6 +12,7 @@ export interface BotGuild {
 
 export async function fetchBotGuilds(): Promise<BotGuild[] | null> {
   const token = process.env.INTERNAL_API_TOKEN || process.env.SESSION_SECRET || "";
+  if (!token || token.length < 32) return null;
   const port = process.env.BOT_API_PORT || "3101";
   try {
     const res = await fetch(`http://127.0.0.1:${port}/guilds`, {

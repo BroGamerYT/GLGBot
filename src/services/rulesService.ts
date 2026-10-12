@@ -293,7 +293,8 @@ class RulesService {
     );
 
     const everyone = guild.roles.everyone.id;
-    const botId = guild.members.me!.id;
+    const botId = guild.members.me?.id || guild.client.user?.id;
+    if (!botId) throw new Error("Bot-ID konnte nicht ermittelt werden.");
 
     // #regeln: für ALLE sichtbar, aber niemand kann schreiben
     await rules.channel.permissionOverwrites.set(

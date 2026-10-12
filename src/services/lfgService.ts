@@ -112,7 +112,19 @@ class LfgService {
         permissionOverwrites: [
           { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.Connect] },
           ...g.members.map((id) => ({ id, allow: [PermissionFlagsBits.Connect, PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Speak] })),
-          { id: guild.members.me!.id, allow: [PermissionFlagsBits.Connect, PermissionFlagsBits.ViewChannel, PermissionFlagsBits.MoveMembers, PermissionFlagsBits.ManageChannels] },
+          ...(guild.members.me?.id || guild.client.user?.id
+            ? [
+                {
+                  id: (guild.members.me?.id || guild.client.user?.id)!,
+                  allow: [
+                    PermissionFlagsBits.Connect,
+                    PermissionFlagsBits.ViewChannel,
+                    PermissionFlagsBits.MoveMembers,
+                    PermissionFlagsBits.ManageChannels,
+                  ],
+                },
+              ]
+            : []),
         ],
         reason: `GLGBot: LFG-Gruppe ${g.game}`,
       });
@@ -147,19 +159,28 @@ class LfgService {
     const [, action, id] = interaction.customId.split("_");
     const g = store.get(guild.id)[id];
     if (!g) {
-      await interaction.reply({ content: "❌ Diese Gruppe gibt es nicht mehr.", ephemeral: true });
+      await interaction.reply({ content: "❌ Diese Gruppe gibt es nicht mehr.", ephemeral: true }).catch(() => null);
       return;
     }
     const userId = interaction.user.id;
     const channel = interaction.channel as TextChannel;
 
     if (action === "join") {
-      if (g.status !== "open") return void interaction.reply({ content: "❌ Die Gruppe ist schon voll oder geschlossen.", ephemeral: true });
-      if (g.members.includes(userId)) return void interaction.reply({ content: "ℹ️ Du bist schon dabei.", ephemeral: true });
+      if (g.status !== "open") {
+        await interaction.reply({ content: "❌ Die Gruppe ist schon voll oder geschlossen.", ephemeral: true }).catch(() => null);
+        return;
+      }
+      if (g.members.includes(userId)) {
+        await interaction.reply({ content: "ℹ️ Du bist schon dabei.", ephemeral: true }).catch(() => null);
+        return;
+      }
       g.members.push(userId);
       if (g.members.length >= g.slots) await this.fill(guild, g, channel);
     } else if (action === "leave") {
-      if (!g.members.includes(userId)) return void interaction.reply({ content: "ℹ️ Du bist nicht in dieser Gruppe.", ephemeral: true });
+      if (!g.members.includes(userId)) {
+        await interaction.reply({ content: "ℹ️ Du bist nicht in dieser Gruppe.", ephemeral: true }).catch(() => null);
+        return;
+      }
       if (userId === g.leaderId) {
         g.status = "closed";
       } else {
@@ -168,7 +189,10 @@ class LfgService {
       }
     } else if (action === "close") {
       const isMod = interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages);
-      if (userId !== g.leaderId && !isMod) return void interaction.reply({ content: "❌ Nur der Gruppenleiter kann die Gruppe schließen.", ephemeral: true });
+      if (userId !== g.leaderId && !isMod) {
+        await interaction.reply({ content: "❌ Nur der Gruppenleiter kann die Gruppe schließen.", ephemeral: true }).catch(() => null);
+        return;
+      }
       g.status = "closed";
     }
 

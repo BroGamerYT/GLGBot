@@ -2,6 +2,7 @@ import http from "http";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { writeJsonAtomic } from "../utils/jsonFile";
 import { Client, PermissionFlagsBits, EmbedBuilder, ChannelType, TextChannel, NewsChannel } from "discord.js";
 import { freeGamesService } from "../services/freeGamesService";
 import { rulesService } from "../services/rulesService";
@@ -49,6 +50,7 @@ function getToken(): string | null {
 }
 
 function safeEqual(a: string, b: string) {
+  if (!a || !b || a.length < 32 || b.length < 32) return false;
   const ab = Buffer.from(a);
   const bb = Buffer.from(b);
   return ab.length === bb.length && crypto.timingSafeEqual(ab, bb);
@@ -96,9 +98,7 @@ function noteKey(guildId: string, userId: string) {
 }
 function saveAdminNotes(notes: Record<string, string>) {
   try {
-    const dir = path.dirname(NOTES_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(NOTES_FILE, JSON.stringify(notes, null, 2), "utf-8");
+    writeJsonAtomic(NOTES_FILE, notes);
   } catch {}
 }
 
@@ -154,8 +154,11 @@ export function startInternalApi(client: Client) {
 
     if (route === "POST /system/restart") {
       const body = await readBody(req);
-      const target = (body?.target || "bot") as "bot" | "web" | "all";
-      const result = await systemService.restart(target);
+      const rawTarget = String(body?.target || "bot").toLowerCase();
+      if (rawTarget !== "bot" && rawTarget !== "web" && rawTarget !== "all") {
+        return send(res, 400, { error: "Ungültiges Neustart-Ziel. Erlaubt: bot, web, all." });
+      }
+      const result = await systemService.restart(rawTarget as "bot" | "web" | "all");
       return send(res, 200, result);
     }
 
@@ -176,6 +179,14 @@ export function startInternalApi(client: Client) {
     const by = decodeURIComponent(String(req.headers["x-dashboard-user"] || "")).slice(0, 64) || undefined;
     const isLoggedIn = req.headers["x-dashboard-auth"] === "1";
     const actorId = String(req.headers["x-dashboard-user-id"] || "");
+
+    // IDOR-Schutz: Wenn ein Nutzer eingeloggt ist (und nicht Bot-Owner), muss er Mitglied des angefragten Servers sein
+    if (isLoggedIn && actorId && !guildAccessService.isBotOwner(actorId, client)) {
+      const actorMember = await guild.members.fetch(actorId).catch(() => null);
+      if (!actorMember) {
+        return send(res, 403, { error: "Keine Berechtigung: Du bist kein Mitglied dieses Servers." });
+      }
+    }
     /** Eingeloggtes Dashboard-Mitglied (für Rangprüfungen). */
     const getActor = async () => (actorId ? await guild.members.fetch(actorId).catch(() => null) : null);
     /** Owner & Administratoren dürfen alles, alle anderen nur Mitglieder bzw. Rollen UNTER ihrer höchsten Rolle. */

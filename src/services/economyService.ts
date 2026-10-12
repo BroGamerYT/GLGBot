@@ -93,6 +93,8 @@ export interface GuildEconomyStore {
 const DATA_DIR = path.resolve(process.cwd(), "data");
 const ECONOMY_FILE = path.join(DATA_DIR, "economy.json");
 
+export const MAX_BALANCE = 1_000_000_000;
+
 class EconomyService {
   /** guildId -> GuildEconomyStore */
   private stores: Record<string, GuildEconomyStore> = {};
@@ -314,9 +316,12 @@ class EconomyService {
     targetUserTag?: string
   ): UserWallet {
     const wallet = this.getOrCreateWallet(guildId, userId, userTag);
-    const safeAmount = Math.max(0, Math.floor(amount));
-    wallet.balance += safeAmount;
-    wallet.totalEarned += safeAmount;
+    const num = Number.isFinite(amount) ? amount : 0;
+    const safeAmount = Math.max(0, Math.floor(num));
+    const previous = wallet.balance;
+    wallet.balance = Math.min(MAX_BALANCE, wallet.balance + safeAmount);
+    const actualAdded = wallet.balance - previous;
+    wallet.totalEarned = Math.min(MAX_BALANCE, wallet.totalEarned + actualAdded);
     wallet.updatedAt = new Date().toISOString();
     this.logTransaction(guildId, {
       userId,
@@ -342,9 +347,12 @@ class EconomyService {
     targetUserTag?: string
   ): UserWallet {
     const wallet = this.getOrCreateWallet(guildId, userId, userTag);
-    const safeAmount = Math.max(0, Math.floor(amount));
+    const num = Number.isFinite(amount) ? amount : 0;
+    const safeAmount = Math.max(0, Math.floor(num));
+    const previous = wallet.balance;
     wallet.balance = Math.max(0, wallet.balance - safeAmount);
-    wallet.totalSpent += safeAmount;
+    const actualRemoved = previous - wallet.balance;
+    wallet.totalSpent = Math.min(MAX_BALANCE, wallet.totalSpent + actualRemoved);
     wallet.updatedAt = new Date().toISOString();
     this.logTransaction(guildId, {
       userId,
@@ -367,8 +375,10 @@ class EconomyService {
     userTag?: string
   ): UserWallet {
     const wallet = this.getOrCreateWallet(guildId, userId, userTag);
-    const diff = Math.floor(newBalance) - wallet.balance;
-    wallet.balance = Math.max(0, Math.floor(newBalance));
+    const num = Number.isFinite(newBalance) ? newBalance : 0;
+    const clamped = Math.min(MAX_BALANCE, Math.max(0, Math.floor(num)));
+    const diff = clamped - wallet.balance;
+    wallet.balance = clamped;
     wallet.updatedAt = new Date().toISOString();
     this.logTransaction(guildId, {
       userId,
@@ -418,13 +428,19 @@ class EconomyService {
     const netAmount = cleanAmount - fee;
 
     const toWallet = this.getOrCreateWallet(guildId, toUserId, toTag);
+    if (toWallet.balance + netAmount > MAX_BALANCE) {
+      return {
+        success: false,
+        error: `Der Empfänger kann maximal ${MAX_BALANCE.toLocaleString("de-DE")} Coins besitzen.`,
+      };
+    }
 
     fromWallet.balance -= cleanAmount;
-    fromWallet.totalSpent += cleanAmount;
+    fromWallet.totalSpent = Math.min(MAX_BALANCE, fromWallet.totalSpent + cleanAmount);
     fromWallet.updatedAt = new Date().toISOString();
 
-    toWallet.balance += netAmount;
-    toWallet.totalEarned += netAmount;
+    toWallet.balance = Math.min(MAX_BALANCE, toWallet.balance + netAmount);
+    toWallet.totalEarned = Math.min(MAX_BALANCE, toWallet.totalEarned + netAmount);
     toWallet.updatedAt = new Date().toISOString();
 
     this.logTransaction(guildId, {

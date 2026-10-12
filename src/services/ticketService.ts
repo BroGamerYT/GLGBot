@@ -190,8 +190,12 @@ class TicketService {
           PermissionFlagsBits.ReadMessageHistory,
         ],
       },
-      {
-        id: client.user!.id,
+    ];
+
+    const botId = client.user?.id || guild.members.me?.id;
+    if (botId) {
+      permissionOverwrites.push({
+        id: botId,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
@@ -199,8 +203,8 @@ class TicketService {
           PermissionFlagsBits.EmbedLinks,
           PermissionFlagsBits.AttachFiles,
         ],
-      },
-    ];
+      });
+    }
 
     // Support-Rolle hinzufügen falls konfiguriert
     if (cfg.supportRoleId) {

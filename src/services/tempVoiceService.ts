@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { writeJsonAtomic } from "../utils/jsonFile";
 import { ChannelType, VoiceState, PermissionFlagsBits, VoiceChannel, MessageFlags } from "discord.js";
 import { createVoicePanelEmbed, createVoicePanelComponents } from "../commands/voice/voicePanel";
 
@@ -48,7 +49,7 @@ class TempVoiceService {
   private saveConfig() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(CONFIG_FILE, JSON.stringify(this.config, null, 2), "utf-8");
+      writeJsonAtomic(CONFIG_FILE, this.config);
     } catch (error) {
       console.error("[TempVoice] Fehler beim Speichern der Konfiguration:", error);
     }
@@ -75,7 +76,7 @@ class TempVoiceService {
         channelId,
         ownerId,
       }));
-      fs.writeFileSync(TEMP_CHANNELS_FILE, JSON.stringify(list, null, 2), "utf-8");
+      writeJsonAtomic(TEMP_CHANNELS_FILE, list);
     } catch (error) {
       console.error("[TempVoice] Fehler beim Speichern der aktiven Kanäle:", error);
     }

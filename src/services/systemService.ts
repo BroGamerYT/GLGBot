@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { exec } from "child_process";
+import { exec, spawn } from "child_process";
 import { promisify } from "util";
 
 const execAsync = promisify(exec);
@@ -407,34 +407,43 @@ class SystemService {
 
   /**
    * Führt einen Neustart des Bots, des Webinterfaces oder beider aus.
+   * Streng typisierte Argumentliste mit spawn (keine Shell, keine Command Injection möglich).
    */
   public async restart(target: "bot" | "web" | "all" = "bot"): Promise<{ success: boolean; message: string }> {
-    console.log(`[SystemService] Neustart angefordert für Ziel: ${target}`);
+    const validTarget: "bot" | "web" | "all" =
+      target === "web" || target === "all" ? target : "bot";
 
-    let cmd = "";
-    if (target === "web") {
-      cmd = "pm2 restart discord-web";
-    } else if (target === "all") {
-      cmd = "pm2 restart discord-bot discord-web";
-    } else {
-      cmd = "pm2 restart discord-bot";
-    }
+    console.log(`[SystemService] Neustart angefordert für Ziel: ${validTarget}`);
+
+    const pm2Args =
+      validTarget === "web"
+        ? ["restart", "discord-web"]
+        : validTarget === "all"
+        ? ["restart", "discord-bot", "discord-web"]
+        : ["restart", "discord-bot"];
 
     // Nicht-blockierend im Hintergrund ausführen mit kleiner Verzögerung,
     // damit die API-Antwort noch sauber an den Client gesendet werden kann!
     setTimeout(() => {
-      exec(cmd, (err, stdout, stderr) => {
-        if (err) {
-          console.error(`[SystemService] PM2 Restart Fehler (${cmd}):`, err);
-          // Fallback für den Bot falls PM2 fehlschlägt:
-          if (target === "bot" || target === "all") {
+      try {
+        const proc = spawn("pm2", pm2Args, {
+          shell: false,
+          stdio: "ignore",
+        });
+
+        proc.on("error", (err) => {
+          console.error(`[SystemService] PM2 Spawn Fehler (pm2 ${pm2Args.join(" ")}):`, err);
+          if (validTarget === "bot" || validTarget === "all") {
             console.log("[SystemService] Verwende Fallback: process.exit(0)");
             process.exit(0);
           }
-        } else {
-          console.log(`[SystemService] PM2 Restart erfolgreich:\n${stdout}`);
+        });
+      } catch (err) {
+        console.error(`[SystemService] Fehler beim Starten des PM2-Prozesses:`, err);
+        if (validTarget === "bot" || validTarget === "all") {
+          process.exit(0);
         }
-      });
+      }
     }, 800);
 
     const targetNames = {
@@ -445,7 +454,7 @@ class SystemService {
 
     return {
       success: true,
-      message: `Neustart für ${targetNames[target] || target} wurde erfolgreich angestoßen. Der Prozess startet in Kürze neu.`,
+      message: `Neustart für ${targetNames[validTarget]} wurde erfolgreich angestoßen. Der Prozess startet in Kürze neu.`,
     };
   }
 }

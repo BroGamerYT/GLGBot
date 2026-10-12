@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { writeJsonAtomic } from "../utils/jsonFile";
 import { 
   Client, 
   EmbedBuilder, 
@@ -135,7 +136,7 @@ class StreamNotificationService {
   public saveNotifications() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify(this.notifications, null, 2), "utf-8");
+      writeJsonAtomic(NOTIFICATIONS_FILE, this.notifications);
     } catch (e) {
       console.error("[StreamNotification] Fehler beim Speichern:", e);
     }
@@ -171,7 +172,7 @@ class StreamNotificationService {
       const res = await fetch("https://gql.twitch.tv/gql", {
         method: "POST",
         headers: {
-          "Client-ID": "kimne78kx3ncx6brgo4mv6wki5h1ko",
+          "Client-ID": process.env.TWITCH_CLIENT_ID || "kimne78kx3ncx6brgo4mv6wki5h1ko",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ query }),

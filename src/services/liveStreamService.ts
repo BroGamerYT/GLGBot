@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { writeJsonAtomic } from "../utils/jsonFile";
 import {
   Client,
   Guild,
@@ -134,7 +135,7 @@ class LiveStreamService {
   private saveConfig() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(CONFIG_FILE, JSON.stringify(this.config, null, 2), "utf-8");
+      writeJsonAtomic(CONFIG_FILE, this.config);
     } catch (e) {
       console.error("[LiveStream] Fehler beim Speichern der Konfiguration:", e);
     }
@@ -161,7 +162,7 @@ class LiveStreamService {
   private saveActive() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(ACTIVE_FILE, JSON.stringify(this.entries, null, 2), "utf-8");
+      writeJsonAtomic(ACTIVE_FILE, this.entries);
     } catch (e) {
       console.error("[LiveStream] Fehler beim Speichern der aktiven Kanäle:", e);
     }

@@ -198,10 +198,12 @@ class SetupService {
 
       case "voice": {
         const cfg = tempVoiceService.getConfig(guild.id);
-        if (cfg && exists(guild, cfg.masterChannelId)) {
-          const master = guild.channels.cache.get(cfg.masterChannelId)!;
-          add(`🔊 ${master.name}`, false);
-          return;
+        if (cfg && cfg.masterChannelId && exists(guild, cfg.masterChannelId)) {
+          const master = guild.channels.cache.get(cfg.masterChannelId);
+          if (master) {
+            add(`🔊 ${master.name}`, false);
+            return;
+          }
         }
         let category = guild.channels.cache.find(
           (c) => c.type === ChannelType.GuildCategory && /voice|sprach|talk/i.test(c.name)
@@ -231,7 +233,9 @@ class SetupService {
             topic: "Steuere hier deine eigene Lobby (Name, Limit, sperren, verstecken …)",
             permissionOverwrites: [
               { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.AddReactions] },
-              { id: guild.members.me!.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks] },
+              ...(guild.members.me?.id || guild.client.user?.id
+                ? [{ id: (guild.members.me?.id || guild.client.user?.id)!, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks] }]
+                : []),
             ],
             reason: "GLGBot: Voice-Steuerung",
           });
@@ -269,7 +273,9 @@ class SetupService {
                 ? [
                     { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
                     { id: alertRole.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory], deny: [PermissionFlagsBits.SendMessages] },
-                    { id: guild.members.me!.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks] },
+                    ...(guild.members.me?.id || guild.client.user?.id
+                      ? [{ id: (guild.members.me?.id || guild.client.user?.id)!, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks] }]
+                      : []),
                   ]
                 : [{ id: guild.roles.everyone.id, deny: [PermissionFlagsBits.SendMessages] }],
               reason: "GLGBot: Live-Ankündigungen",
@@ -277,7 +283,8 @@ class SetupService {
           announceId = ch.id;
           add(`#${ch.name}`, !found);
         } else {
-          add(`#${guild.channels.cache.get(announceId!)!.name}`, false);
+          const ch = announceId ? guild.channels.cache.get(announceId) : undefined;
+          add(`#${ch?.name || "stream-alerts"}`, false);
         }
 
         liveStreamService.setConfig(

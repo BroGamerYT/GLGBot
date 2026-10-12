@@ -89,6 +89,8 @@ class StatsChannelsService {
     let category = cfg.categoryId ? guild.channels.cache.get(cfg.categoryId) : undefined;
     const anyEnabled = (Object.keys(COUNTERS) as CounterId[]).some((id) => wanted[id]?.enabled);
 
+    const botId = guild.members.me?.id || guild.client.user?.id;
+
     if (anyEnabled && (!category || category.type !== ChannelType.GuildCategory)) {
       category = await guild.channels.create({
         name: "📊 Server-Statistik",
@@ -96,7 +98,7 @@ class StatsChannelsService {
         position: 0,
         permissionOverwrites: [
           { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.Connect], allow: [PermissionFlagsBits.ViewChannel] },
-          { id: guild.members.me!.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.ManageChannels] },
+          ...(botId ? [{ id: botId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.ManageChannels] }] : []),
         ],
         reason: "GLGBot: Statistik-Kanäle",
       });
@@ -117,7 +119,7 @@ class StatsChannelsService {
             parent: category?.id,
             permissionOverwrites: [
               { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.Connect], allow: [PermissionFlagsBits.ViewChannel] },
-              { id: guild.members.me!.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.ManageChannels] },
+              ...(botId ? [{ id: botId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.ManageChannels] }] : []),
             ],
             reason: `GLGBot: Statistik-Kanal (${COUNTERS[id].label})`,
           });

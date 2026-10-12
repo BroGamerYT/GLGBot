@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { writeJsonAtomic } from "../utils/jsonFile";
 
 const DATA_DIR = path.join(__dirname, "../../data");
 const PASSWORDS_FILE = path.join(DATA_DIR, "channel_passwords.json");
@@ -40,7 +41,7 @@ class ChannelPasswordService {
       for (const [channelId, pw] of this.passwords.entries()) {
         obj[channelId] = pw;
       }
-      fs.writeFileSync(PASSWORDS_FILE, JSON.stringify(obj, null, 2), "utf-8");
+      writeJsonAtomic(PASSWORDS_FILE, obj);
     } catch (err) {
       console.error("[ChannelPasswordService] Fehler beim Speichern der Passwörter:", err);
     }

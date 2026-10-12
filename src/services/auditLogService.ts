@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { writeJsonAtomic } from "../utils/jsonFile";
 import {
   Client,
   Guild,
@@ -78,7 +79,7 @@ class AuditLogService {
   private saveConfig() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(CONFIG_FILE, JSON.stringify(this.config, null, 2), "utf-8");
+      writeJsonAtomic(CONFIG_FILE, this.config);
     } catch (e) {
       console.error("[AuditLogService] Fehler beim Speichern der Audit-Log-Config:", e);
     }
@@ -101,7 +102,7 @@ class AuditLogService {
       this.saveTimeout = null;
       try {
         this.ensureDataDir();
-        fs.writeFileSync(LOGS_FILE, JSON.stringify(this.logs, null, 2), "utf-8");
+        writeJsonAtomic(LOGS_FILE, this.logs);
       } catch (e) {
         console.error("[AuditLogService] Fehler beim Speichern der Audit-Logs:", e);
       }
