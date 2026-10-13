@@ -72,16 +72,37 @@ function send(res: http.ServerResponse, status: number, body: unknown) {
   }
 }
 
+export class PayloadTooLargeError extends Error {
+  public status = 413;
+  constructor(message = "Anfrage zu groß (maximal 512 KB erlaubt).") {
+    super(message);
+    this.name = "PayloadTooLargeError";
+  }
+}
+
+export class InvalidJsonError extends Error {
+  public status = 400;
+  constructor(message = "Ungültiges JSON-Format im Anfrage-Body.") {
+    super(message);
+    this.name = "InvalidJsonError";
+  }
+}
+
 async function readBody(req: http.IncomingMessage): Promise<any> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > 512 * 1024) throw new Error("Anfrage zu groß");
+    if (size > 512 * 1024) throw new PayloadTooLargeError();
     chunks.push(chunk as Buffer);
   }
-  const raw = Buffer.concat(chunks).toString("utf-8");
-  return raw ? JSON.parse(raw) : {};
+  const raw = Buffer.concat(chunks).toString("utf-8").trim();
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new InvalidJsonError();
+  }
 }
 
 const NOTES_FILE = path.join(__dirname, "../../data/admin_notes.json");
@@ -110,10 +131,11 @@ export function startInternalApi(client: Client) {
   }
 
   const server = http.createServer(async (req, res) => {
-    const given = String(req.headers["x-bot-token"] || "");
-    if (!safeEqual(given, token)) return send(res, 401, { error: "Nicht autorisiert." });
-
     const route = `${req.method} ${(req.url || "").split("?")[0]}`;
+
+    try {
+      const given = String(req.headers["x-bot-token"] || "");
+      if (!safeEqual(given, token)) return send(res, 401, { error: "Nicht autorisiert." });
 
     // ---------------- Server-übergreifend (ohne aktiven Server) ----------------
     if (route === "GET /guilds") {
@@ -201,8 +223,7 @@ export function startInternalApi(client: Client) {
         console.error("[BotAPI] News Kopf-Nachricht:", e)
       );
 
-    try {
-      switch (route) {
+    switch (route) {
         case "GET /health":
           return send(res, 200, { ok: true, bot: client.user?.tag, guild: guild.name });
 
@@ -1931,6 +1952,12 @@ export function startInternalApi(client: Client) {
           return send(res, 404, { error: "Unbekannte Aktion." });
       }
     } catch (e: any) {
+      if (e instanceof PayloadTooLargeError || e?.status === 413 || e?.message?.includes("zu groß")) {
+        return send(res, 413, { error: e.message || "Anfrage zu groß (maximal 512 KB erlaubt)." });
+      }
+      if (e instanceof InvalidJsonError || e instanceof SyntaxError || e?.status === 400) {
+        return send(res, 400, { error: e.message || "Ungültiges JSON-Format im Anfrage-Body." });
+      }
       console.error(`[BotAPI] Fehler bei ${route}:`, e);
       return send(res, 500, { error: e?.message || "Interner Fehler." });
     }
