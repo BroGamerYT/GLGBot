@@ -3,6 +3,7 @@ import { rolePanelService } from "./rolePanelService";
 import { rulesService } from "./rulesService";
 import { tempVoiceService } from "./tempVoiceService";
 import { liveStreamService } from "./liveStreamService";
+import { streamNotificationService } from "./streamNotificationService";
 import { ticketService } from "./ticketService";
 import { auditLogService } from "./auditLogService";
 import { prisonService } from "./prisonService";
@@ -298,6 +299,9 @@ class SetupService {
           cfg.silent ?? false,
           cfg.customMessage
         );
+        if (announceId) {
+          streamNotificationService.updateChannelForGuild(guild.id, announceId);
+        }
         return;
       }
 

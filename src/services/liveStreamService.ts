@@ -602,11 +602,19 @@ class LiveStreamService {
 
       // Ankündigung in den konfigurierten Ankündigungskanal senden (mit anpassbarem Rollen-Ping und Silent-Einstellung)
       if (
-        cfg.announcementChannelId &&
         !this.wasRecentlyAnnounced(member.guild.id, member.id) &&
         !this.isLinkedStreamer(member.guild.id, member.id) // sonst doppelt: Stream-Alert + Live-Ankündigung
       ) {
-        const announceChannel = member.guild.channels.cache.get(cfg.announcementChannelId);
+        let announceChannel = cfg.announcementChannelId ? member.guild.channels.cache.get(cfg.announcementChannelId) : undefined;
+        if (!announceChannel || !announceChannel.isTextBased()) {
+          announceChannel = member.guild.channels.cache.find(
+            (c: any) => c.isTextBased() && /stream[-_]?alert|live[-_]?alert/i.test(c.name)
+          );
+          if (announceChannel) {
+            cfg.announcementChannelId = announceChannel.id;
+            this.saveConfig();
+          }
+        }
         if (announceChannel && announceChannel.isTextBased()) {
           const rolesCfgPath = path.join(DATA_DIR, "role_panel_config.json");
           let pingRoleId = cfg.pingRoleId;
