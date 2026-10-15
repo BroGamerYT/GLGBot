@@ -152,6 +152,27 @@ class StreamNotificationService {
       });
   }
 
+  public getBackupNotifications(guildId: string): StreamNotification[] {
+    return this.notifications
+      .filter((notification) => notification.guildId === guildId)
+      .map(({ guildId: _guildId, isLive: _isLive, currentStreamId: _currentStreamId, lastNotified: _lastNotified, ...notification }) => ({ ...notification } as StreamNotification));
+  }
+
+  public setBackupNotifications(guildId: string, notifications: StreamNotification[]) {
+    const oldIds = new Set(this.notifications.filter((entry) => entry.guildId === guildId).map((entry) => entry.id));
+    this.notifications = this.notifications.filter((entry) => entry.guildId !== guildId);
+    for (const id of oldIds) delete this.state[id];
+    this.notifications.push(...notifications.map((entry) => ({
+      ...entry,
+      guildId,
+      isLive: false,
+      currentStreamId: undefined,
+      lastNotified: undefined,
+    })));
+    this.saveNotifications();
+    this.saveState();
+  }
+
   // Fragt Twitch User- & Stream-Status über die Web-GQL-Schnittstelle ab
   public async fetchTwitchUser(channelName: string): Promise<{
     exists: boolean;

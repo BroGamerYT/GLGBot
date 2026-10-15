@@ -54,6 +54,11 @@ class BirthdayService {
     return store.get(guildId);
   }
 
+  public getBackupConfig(guildId: string) {
+    const data = store.get(guildId);
+    return { channelId: data.channelId, roleId: data.roleId, message: data.message };
+  }
+
   public formatDate(day: number, month: number) {
     return `${day}. ${MONTHS[month - 1]}`;
   }

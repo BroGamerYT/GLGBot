@@ -20,6 +20,11 @@ const ALLOWED = new Set([
   "POST rules/lock",
   "POST rules/unlock",
   "GET health",
+  "GET roles/manage",
+  "GET roles/manage/members",
+  "POST roles/manage/create",
+  "POST roles/manage/update",
+  "POST roles/manage/delete",
   "GET news",
   "POST news/feeds",
   "POST news/feeds/update",
@@ -32,9 +37,12 @@ const ALLOWED = new Set([
   "POST logs/config",
   "POST logs/setup",
   "GET backups",
+  "GET backups/channels",
   "GET backups/download",
   "POST backups/upload",
+  "POST backups/upload-encrypted",
   "POST backups/create",
+  "POST backups/preview",
   "POST backups/restore",
   "POST backups/delete",
   "DELETE backups/delete",
@@ -119,6 +127,23 @@ const ALLOWED = new Set([
   "GET system/logs",
   "POST system/restart",
   "POST system/logs/clear",
+  "GET radio/status",
+  "GET sounds",
+  "GET music/queue",
+  "POST music/upload-code",
+  "POST music/play-local",
+  "POST music/play-playlist",
+  "GET musicbot/status",
+  "POST musicbot/start",
+  "POST musicbot/stop",
+  "POST musicbot/restart",
+  "POST radio/start",
+  "POST radio/volume",
+  "POST radio/probe",
+  "POST radio/setup-channel",
+  "POST radio/stop",
+  "POST radio/pause",
+  "POST radio/resume",
 ]);
 
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {
@@ -136,13 +161,14 @@ async function proxy(req: NextRequest, { params }: { params: { path: string[] } 
   }
   const port = process.env.BOT_API_PORT || "3101";
   const search = req.nextUrl.search || "";
+  const contentType = req.headers.get("content-type") || "application/json";
   const session = await verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);
 
   try {
     const res = await fetch(`http://127.0.0.1:${port}/${path}${search}`, {
       method: req.method,
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": contentType,
         "x-bot-token": token,
         "x-dashboard-user": encodeURIComponent(session?.name || "Dashboard-User"),
         // Für Rechteprüfungen im Bot: wer ist eingeloggt? (leer = öffentlicher Besucher ohne Login)
@@ -151,7 +177,9 @@ async function proxy(req: NextRequest, { params }: { params: { path: string[] } 
         // Multi-Guild: gewählter Server (nur einer, den der Nutzer verwalten darf; sonst Haupt-Server)
         "x-guild-id": pickActiveGuild(session, req.cookies.get(ACTIVE_GUILD_COOKIE)?.value),
       },
-      body: req.method === "GET" ? undefined : await req.text(),
+      body: req.method === "GET" ? undefined : contentType.startsWith("application/octet-stream")
+        ? new Uint8Array(await req.arrayBuffer())
+        : await req.text(),
       cache: "no-store",
     });
     const data = await res.json().catch(() => ({ error: "Ungültige Antwort vom Bot." }));

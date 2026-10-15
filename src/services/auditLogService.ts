@@ -131,6 +131,24 @@ class AuditLogService {
     return this.config[guildId];
   }
 
+  public getBackupConfig(guildId: string): AuditLogConfig | null {
+    const config = this.config[guildId];
+    if (!config) return null;
+    return {
+      ...config,
+      enabled: {
+        messages: config.enabled?.messages ?? true,
+        members: config.enabled?.members ?? true,
+        channels: config.enabled?.channels ?? true,
+        roles: config.enabled?.roles ?? true,
+        voice: config.enabled?.voice ?? true,
+        server: config.enabled?.server ?? true,
+      },
+      ignoredChannelIds: config.ignoredChannelIds ? [...config.ignoredChannelIds] : undefined,
+      ignoredUserIds: config.ignoredUserIds ? [...config.ignoredUserIds] : undefined,
+    };
+  }
+
   public setConfig(guildId: string, patch: Partial<AuditLogConfig>): AuditLogConfig {
     const current = this.getConfig(guildId);
     this.config[guildId] = {

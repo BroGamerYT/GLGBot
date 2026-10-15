@@ -52,6 +52,8 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/releases/") ||
     pathname === "/economy" ||
     pathname.startsWith("/economy/") ||
+    pathname === "/radio" ||
+    pathname.startsWith("/radio/") ||
     pathname.startsWith("/s/") ||
     pathname.startsWith("/server/") ||
     pathname.startsWith("/go/");
@@ -59,13 +61,21 @@ export async function middleware(req: NextRequest) {
   const isPublicApi =
     pathname.startsWith("/api/auth/") ||
     pathname.startsWith("/api/guild") ||
-    ((pathname.startsWith("/api/bot/stats") ||
+    pathname.startsWith("/api/discord/guild") ||
+    pathname.startsWith("/api/radio/download") ||
+    ((pathname === "/api/config/radio" ||
+      pathname === "/api/config/musicbot" ||
+      pathname.startsWith("/api/bot/stats") ||
       pathname.startsWith("/api/bot/free-games") ||
       pathname.startsWith("/api/bot/news") ||
       pathname.startsWith("/api/bot/live/active") ||
       pathname.startsWith("/api/bot/releases") ||
       pathname.startsWith("/api/bot/economy") ||
-      pathname.startsWith("/api/bot/rules")) &&
+      pathname.startsWith("/api/bot/rules") ||
+      pathname.startsWith("/api/bot/radio") ||
+      pathname.startsWith("/api/bot/sounds") ||
+      pathname.startsWith("/api/bot/music/queue") ||
+      pathname.startsWith("/api/bot/musicbot/status")) &&
       (req.method === "GET" || req.method === "HEAD"));
 
   if (isPublicApi) {

@@ -27,7 +27,8 @@ export type BotModuleId =
   | "clips"
   | "releases"
   | "economy"
-  | "templates";
+  | "templates"
+  | "music";
 
 export interface BotModuleInfo {
   id: BotModuleId;
@@ -247,6 +248,14 @@ export const BOT_MODULES: BotModuleInfo[] = [
     category: "management",
     commands: ["server-setup"],
   },
+  {
+    id: "music",
+    name: "Radio & Musik",
+    description: "Web-Radio-Streams und YouTube-Musik mit Warteschlange (/radio, /music) plus Dashboard-Seite",
+    emoji: "🎵",
+    category: "community",
+    commands: ["radio", "music", "music-panel", "soundboard"],
+  },
 ];
 
 /** 
@@ -349,6 +358,23 @@ class ModuleService {
     }));
   }
 
+  public getStateSnapshot(guildId: string): Record<string, boolean> {
+    return Object.fromEntries(BOT_MODULES.map((module) => [module.id, this.isEnabled(guildId, module.id)]));
+  }
+
+  public applyStateSnapshot(guildId: string, snapshot: Record<string, boolean>) {
+    const allowed = new Set(BOT_MODULES.map((module) => module.id));
+    const next: Record<string, boolean> = {};
+    for (const [id, enabled] of Object.entries(snapshot)) {
+      if (!allowed.has(id as BotModuleId) || typeof enabled !== "boolean") {
+        throw new Error(`Ungültiger Modulstatus im Backup: ${id}`);
+      }
+      next[id] = enabled;
+    }
+    this.config[guildId] = next;
+    this.saveConfig();
+  }
+
   public getModuleById(moduleId: string): BotModuleInfo | undefined {
     return BOT_MODULES.find((m) => m.id === moduleId);
   }
@@ -368,6 +394,9 @@ class ModuleService {
     if (id.startsWith("btn_sugg_")) return "suggestions";
     if (id.startsWith("giveaway_")) return "giveaways";
     if (id.startsWith("lfg_")) return "lfg";
+    if (id === "queue_prev" || id === "queue_next") return "music";
+    if (id.startsWith("music_") || id === "sound_pick") return "music";
+    if (id.startsWith("radio_")) return "music";
     return null;
   }
 

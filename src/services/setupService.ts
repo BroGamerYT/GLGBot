@@ -1,4 +1,6 @@
-import { ChannelType, Guild, GuildBasedChannel, PermissionFlagsBits, TextChannel } from "discord.js";
+import { ChannelType, Guild, GuildBasedChannel, PermissionFlagsBits, TextChannel, VoiceChannel } from "discord.js";
+import fs from "fs";
+import path from "path";
 import { rolePanelService } from "./rolePanelService";
 import { rulesService } from "./rulesService";
 import { tempVoiceService } from "./tempVoiceService";
@@ -8,6 +10,7 @@ import { ticketService } from "./ticketService";
 import { auditLogService } from "./auditLogService";
 import { prisonService } from "./prisonService";
 import { createVoicePanelComponents, createVoicePanelEmbed } from "../commands/voice/voicePanel";
+import { trackMusicChannel } from "./musicChannelCleanup";
 import { moduleService, BotModuleId } from "./moduleService";
 
 /** Welches abschaltbare Bot-Modul gehört zu welchem Einrichtungs-Bereich? */
@@ -17,6 +20,7 @@ const BOT_MODULE_FOR: Record<string, BotModuleId> = {
   lock: "rules",
   voice: "voice",
   live: "live",
+  music: "music",
   tickets: "tickets",
   logs: "auditLogs",
   prison: "prison",
@@ -26,7 +30,7 @@ const BOT_MODULE_FOR: Record<string, BotModuleId> = {
  * Komplett-Einrichtung: legt für ausgewählte Bereiche alle fehlenden Rollen & Kanäle an.
  * Vorhandenes wird erkannt und nur verknüpft - nichts wird doppelt erstellt.
  */
-export const SETUP_MODULES = ["roles", "rules", "voice", "live", "tickets", "logs", "prison", "lock"] as const;
+export const SETUP_MODULES = ["roles", "rules", "voice", "live", "music", "tickets", "logs", "prison", "lock"] as const;
 export type SetupModule = (typeof SETUP_MODULES)[number];
 
 export const MODULE_INFO: Record<SetupModule, { label: string; description: string }> = {
@@ -45,6 +49,10 @@ export const MODULE_INFO: Record<SetupModule, { label: string; description: stri
   live: {
     label: "Live-Streamer",
     description: "Kategorie für Live-Kanäle und #stream-alerts für die Ankündigungen.",
+  },
+  music: {
+    label: "Radio & Musik",
+    description: "Kategorie „Musik“ mit einem Voice-Kanal für den Radio-Stream.",
   },
   tickets: { label: "Support-Tickets", description: "#support mit Ticket-Button." },
   logs: { label: "Audit-Log", description: "Geschützter Log-Kanal, nur für das Team sichtbar." },
@@ -99,6 +107,7 @@ class SetupService {
       rules: !!findText(guild, (n) => n.includes("regeln") || n.includes("rules")) && exists(guild, rp.permissionsChannelId),
       voice: !!voice && exists(guild, voice.masterChannelId),
       live: !!live && roleExists(guild, live.liveRoleId) && exists(guild, live.announcementChannelId),
+      music: !!guild.channels.cache.find((c) => c.type === ChannelType.GuildCategory && /musik|music|radio/i.test(c.name)),
       tickets: !!findText(guild, (n) => n.includes("support")),
       logs: exists(guild, logs.logChannelId),
       prison: !!guild.roles.cache.find((r) => r.name === "🔒・Gefängnis" || r.name === "Gefängnis"),
@@ -302,6 +311,55 @@ class SetupService {
         if (announceId) {
           streamNotificationService.updateChannelForGuild(guild.id, announceId);
         }
+        return;
+      }
+
+      case "music": {
+        const radioConfigPath = path.join(__dirname, "../../data/radio_config.json");
+        let stationName = "Radio";
+        try {
+          if (fs.existsSync(radioConfigPath)) {
+            const radioConfig = JSON.parse(fs.readFileSync(radioConfigPath, "utf-8"));
+            const guildConfig = radioConfig[guild.id];
+            if (guildConfig?.stations?.[0]?.name) {
+              stationName = guildConfig.stations[0].name;
+            }
+          }
+        } catch {}
+
+        const existingCategory = guild.channels.cache.find(
+          (c) => c.type === ChannelType.GuildCategory && /musik|music|radio/i.test(c.name)
+        ) as GuildBasedChannel | undefined;
+        const catCreated = !existingCategory;
+        const category = existingCategory || await guild.channels.create({
+          name: "🎵 Musik",
+          type: ChannelType.GuildCategory,
+          reason: "GLGBot: Musik-Einrichtung",
+        });
+        add(`Kategorie ${category.name}`, catCreated);
+
+        const existingVoice = guild.channels.cache.find(
+          (c) => c.type === ChannelType.GuildVoice && c.parentId === category.id
+        ) as VoiceChannel | undefined;
+        const voiceCreated = !existingVoice;
+        let voiceChannel = existingVoice;
+        if (!voiceChannel) {
+          // Beste Audioqualität (384 → 128 → Standard)
+          const { createMusicVoiceChannel } = await import("../utils/voiceQuality");
+          voiceChannel = await createMusicVoiceChannel(guild, {
+            name: `🎧 ${stationName}`,
+            parent: category.id,
+            reason: "GLGBot: Radio-Stream",
+          });
+        } else {
+          // Bestehenden Kanal auf Musik-Niveau heben (gegen Lag)
+          try {
+            const { ensureMusicBitrate } = await import("../utils/voiceQuality");
+            await ensureMusicBitrate(voiceChannel);
+          } catch {}
+        }
+        add(`🔊 ${voiceChannel.name}`, voiceCreated);
+        if (voiceCreated) trackMusicChannel(guild.id, voiceChannel.id, voiceChannel.name, stationName, guild);
         return;
       }
 

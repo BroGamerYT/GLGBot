@@ -96,6 +96,11 @@ class TicketService {
     return this.config[guildId];
   }
 
+  public getBackupConfig(guildId: string): TicketConfig | null {
+    const config = this.config[guildId];
+    return config ? { ...config } : null;
+  }
+
   public setConfig(guildId: string, patch: Partial<TicketConfig>): TicketConfig {
     this.config[guildId] = { ...(this.config[guildId] || {}), ...patch };
     this.saveData();

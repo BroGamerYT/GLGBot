@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { decode as decodeHtmlEntities } from "he";
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -136,9 +137,42 @@ async function get(url: string, browser = false) {
   });
 }
 
+export function decodeNewsBytes(bytes: Uint8Array, contentType = ""): string {
+  const charset = contentType.match(/charset\s*=\s*["']?([^;"'\s]+)/i)?.[1];
+  if (charset) {
+    try {
+      const label = /^iso-8859-1$|^latin-1$/i.test(charset) ? "windows-1252" : charset;
+      return new TextDecoder(label).decode(bytes);
+    } catch {
+      // Fall back to UTF-8 for unknown or invalid charset labels.
+    }
+  }
+
+  const utf8 = new TextDecoder("utf-8").decode(bytes);
+  if (utf8.includes("\uFFFD")) {
+    const windows1252 = new TextDecoder("windows-1252").decode(bytes);
+    if (!windows1252.includes("\uFFFD")) return windows1252;
+  }
+  return utf8;
+}
+
+async function readResponseText(response: Response): Promise<string> {
+  return decodeNewsBytes(new Uint8Array(await response.arrayBuffer()), response.headers.get("content-type") || "");
+}
+
+export function cleanNewsPlainText(raw: string): string {
+  return decodeHtmlEntities(decodeHtmlEntities(raw || ""))
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<br\s*\/?>|<\/(?:p|li|div|h\d)>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /** Steam-BBCode/HTML in kurzen Klartext umwandeln. */
 function cleanSteamText(raw: string, max = 350) {
-  const text = raw
+  const text = decodeHtmlEntities(raw)
     .replace(/\[img[^\]]*\][\s\S]*?\[\/img\]/gi, " ")
     .replace(/\[img[^\]]*\/?\]/gi, " ")
     .replace(/\[previewyoutube[^\]]*\][\s\S]*?\[\/previewyoutube\]/gi, " ")
@@ -154,16 +188,12 @@ function cleanSteamText(raw: string, max = 350) {
     .replace(/<\/(p|li|h\d)>/gi, "\n")
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
     .replace(/https?:\/\/\S+/g, "")
     .replace(/[ \t]+/g, " ")
     .replace(/\n\s*\n+/g, "\n")
     .trim();
-  return text.length > max ? text.slice(0, max - 1).trimEnd() + "…" : text;
+  const decoded = cleanNewsPlainText(text);
+  return decoded.length > max ? decoded.slice(0, max - 1).trimEnd() + "…" : decoded;
 }
 
 function steamImageFromContents(raw: string): string | undefined {
@@ -178,7 +208,7 @@ function steamImageFromContents(raw: string): string | undefined {
 /** Steam-BBCode/HTML in formatierten Text / Markdown mit Bildern und Listen umwandeln. */
 export function cleanSteamFullContent(raw: string): string {
   if (!raw) return "";
-  let text = raw
+  let text = decodeHtmlEntities(raw)
     .replace(/\{STEAM_CLAN_IMAGE\}\//g, "https://clan.akamai.steamstatic.com/images/")
     .replace(/\{STEAM_CLAN_LOC_IMAGE\}\//g, "https://clan.akamai.steamstatic.com/images/")
     .replace(/\[img\s+src=["']?([^"']+)["']?\s*\](?:\[\/img\])?/gi, "\n\n![]($1)\n\n")
@@ -205,15 +235,10 @@ export function cleanSteamFullContent(raw: string): string {
     .replace(/<img\s+[^>]*src=["']([^"']+)["'][^>]*>/gi, "\n\n![]($1)\n\n")
     .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  return text;
+  return decodeHtmlEntities(text);
 }
 
 class GameNewsService {
@@ -241,6 +266,15 @@ class GameNewsService {
   // ------------------------------------------------------------------
   public getFeeds(guildId: string): NewsFeed[] {
     return this.data.guilds[guildId]?.feeds || [];
+  }
+
+  public getBackupFeeds(guildId: string): NewsFeed[] {
+    return this.getFeeds(guildId).map((feed) => ({ ...feed }));
+  }
+
+  public setBackupFeeds(guildId: string, feeds: NewsFeed[]) {
+    this.data.guilds[guildId] = { ...this.data.guilds[guildId], feeds: feeds.map((feed) => ({ ...feed })) };
+    this.saveFeeds();
   }
 
   private saveFeeds() {
@@ -402,7 +436,7 @@ class GameNewsService {
           const items: any[] = json?.appnews?.newsitems || [];
           return items.map((n) => ({
             id: String(n.gid),
-            title: String(n.title || "Neuigkeiten"),
+            title: cleanNewsPlainText(String(n.title || "Neuigkeiten")),
             url: n.url || `https://store.steampowered.com/news/app/${feed.appId}`,
             text: cleanSteamText(String(n.contents || "")),
             rawContent: String(n.contents || ""),
@@ -460,7 +494,7 @@ class GameNewsService {
         case "amd-gpu": {
           const res = await get("https://www.amd.com/en/support/download/drivers.html", true);
           if (!res.ok) return null;
-          const html = await res.text();
+          const html = await readResponseText(res);
           const v = html.match(/amd-software-adrenalin-edition-(\d+\.\d+\.\d+)-/i)?.[1];
           if (!v) return null;
           return [{
@@ -477,7 +511,7 @@ class GameNewsService {
         case "amd-chipset": {
           const res = await get("https://www.amd.com/en/support/downloads/drivers.html/chipsets/am5/x870e.html", true);
           if (!res.ok) return null;
-          const html = await res.text();
+          const html = await readResponseText(res);
           const v = html.match(/AMD_Chipset_Software_(\d+\.\d+\.\d+\.\d+)\.exe/i)?.[1];
           if (!v) return null;
           return [{
@@ -495,7 +529,7 @@ class GameNewsService {
           const page = "https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html";
           const res = await get(page, true);
           if (!res.ok) return null;
-          const html = await res.text();
+          const html = await readResponseText(res);
           const v = html.match(/\b(3\d\.0\.\d{3}\.\d{4})\b/)?.[1];
           if (!v) return null;
           return [{
@@ -527,7 +561,7 @@ class GameNewsService {
           const res = await get("https://archive.synology.com/download/Os/DSM", true);
           let v = "7.2.2-72806";
           if (res.ok) {
-            const html = await res.text();
+            const html = await readResponseText(res);
             const m = html.match(/href="\/download\/Os\/DSM\/(\d+\.\d+(?:\.\d+)?-\d+)"/i);
             if (m?.[1]) v = m[1];
           }
@@ -560,20 +594,20 @@ class GameNewsService {
           try {
             const res = await get("https://mariushosting.com/?s=UGOS+Pro&feed=rss2", true);
             if (res.ok) {
-              const xml = await res.text();
+              const xml = await readResponseText(res);
               const itemsMatch = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)];
               const items: NewsItem[] = [];
               for (const m of itemsMatch) {
                 const itemXml = m[1];
                 const titleMatch = itemXml.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i);
-                const title = titleMatch ? titleMatch[1].replace(/&#8211;/g, "–").replace(/&#038;/g, "&").trim() : "";
+                const title = titleMatch ? cleanNewsPlainText(titleMatch[1]) : "";
                 if (!/UGOS\s*PRO|UGREEN.*(?:Released|Update|Firmware)/i.test(title)) continue;
 
                 const linkMatch = itemXml.match(/<link>([\s\S]*?)<\/link>/i);
                 const link = linkMatch ? linkMatch[1].trim() : "https://nas.ugreen.com/pages/downloads";
 
                 const descMatch = itemXml.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/i);
-                let desc = descMatch ? descMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "";
+                let desc = descMatch ? cleanNewsPlainText(descMatch[1]) : "";
                 if (desc.length > 300) desc = desc.slice(0, 297) + "…";
 
                 const pubDateMatch = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/i);
@@ -848,21 +882,21 @@ class GameNewsService {
         try {
           const res = await get(src.url, true);
           if (!res.ok) return;
-          const xml = await res.text();
+          const xml = await readResponseText(res);
           const itemRegex = src.isAtom ? /<entry>([\s\S]*?)<\/entry>/gi : /<item>([\s\S]*?)<\/item>/gi;
           const matches = [...xml.matchAll(itemRegex)].slice(0, 10);
 
           for (const m of matches) {
             const itemXml = m[1];
             const titleMatch = itemXml.match(/<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i);
-            const title = titleMatch ? titleMatch[1].replace(/&#8211;/g, "–").replace(/&#038;/g, "&").replace(/&quot;/g, '"').trim() : "";
+            const title = titleMatch ? cleanNewsPlainText(titleMatch[1]) : "";
             if (!title) continue;
 
             const linkMatch = itemXml.match(/<link[^>]*href=["']([^"']+)["']/i) || itemXml.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
-            const url = linkMatch ? linkMatch[1].trim() : "";
+            const url = linkMatch ? cleanNewsPlainText(linkMatch[1]) : "";
 
             const descMatch = itemXml.match(/<(?:description|summary|content)[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/(?:description|summary|content)>/i);
-            let summary = descMatch ? descMatch[1].replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/\s+/g, " ").trim() : "";
+            let summary = descMatch ? cleanNewsPlainText(descMatch[1]) : "";
             if (summary.length > 320) summary = summary.slice(0, 317) + "…";
 
             const dateMatch = itemXml.match(/<(?:pubDate|updated|published)[^>]*>([\s\S]*?)<\/(?:pubDate|updated|published)>/i);
@@ -905,7 +939,10 @@ class GameNewsService {
     const cached = this.articlesCache[guildId];
     const now = Date.now();
     // 5 Minuten In-Memory/Disk-Cache
-    if (!forceRefresh && cached && now - cached.timestamp < 5 * 60 * 1000 && Array.isArray(cached.data) && cached.data.length > 0) {
+    const cachedTextIsDamaged = cached?.data?.some((article) =>
+      /\uFFFD|(?:&(?:gt|lt|amp|nbsp|quot|#\d+|#x[\da-f]+);)/i.test(`${article.title} ${article.summary} ${article.content}`)
+    );
+    if (!forceRefresh && cached && !cachedTextIsDamaged && now - cached.timestamp < 5 * 60 * 1000 && Array.isArray(cached.data) && cached.data.length > 0) {
       return cached.data;
     }
 

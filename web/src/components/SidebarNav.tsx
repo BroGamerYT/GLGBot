@@ -77,6 +77,7 @@ const GROUPS: NavGroup[] = [
     icon: Users,
     items: [
       { href: "/voice", label: "Voice-Manager", icon: Mic, color: "text-discord-green" },
+      { href: "/radio", label: "Radio & Musik", icon: Radio, color: "text-red-500" },
       { href: "/live", label: "Live-Streamer", icon: Radio, color: "text-red-500" },
       { href: "/stats", label: "Level & Rangliste", icon: Trophy, color: "text-amber-400" },
       { href: "/economy", label: "Wirtschaft & Shop", icon: Coins, color: "text-yellow-400" },

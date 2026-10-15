@@ -20,6 +20,9 @@ import { gameServerService } from "../services/gameServerService";
 import { clipService } from "../services/clipService";
 import { releaseService } from "../services/releaseService";
 import { prisonService } from "../services/prisonService";
+import { radioService } from "../services/radioService";
+import { musicBotManager } from "../services/musicBotManager";
+import { reconcileMusicChannels } from "../services/musicChannelCleanup";
 
 const readyEvent: BotEvent<Events.ClientReady> = {
   name: Events.ClientReady,
@@ -73,6 +76,15 @@ const readyEvent: BotEvent<Events.ClientReady> = {
 
     // Live-Rollen & Temp-Kanäle nach dem Neustart abgleichen
     liveStreamService.reconcile(client).catch((e) => console.error("[LiveStream] Fehler beim Abgleich:", e));
+
+    // Gespeicherte Radio-Streams nach dem Neustart wiederherstellen
+    radioService.restoreAll(client).catch((e) => console.error("[Radio] Fehler bei Wiederherstellung:", e));
+
+    // Ungenutzte temporäre Musik-Kanäle prüfen und aufräumen
+    reconcileMusicChannels(client).catch((e) => console.error("[MusicCleanup] Fehler beim Abgleich:", e));
+
+    // Separaten Musik-Bot (eigener Token) automatisch mitstarten und überwachen
+    musicBotManager.autostart();
 
     // Game-News (Spiel-Updates & Treiber)
     gameNewsService.startAutoChecker(client);

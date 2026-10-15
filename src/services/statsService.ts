@@ -145,6 +145,11 @@ class StatsService {
     return this.config[guildId];
   }
 
+  public getBackupConfig(guildId: string): GuildStatsConfig | null {
+    const config = this.config[guildId];
+    return config ? { ...DEFAULT_STATS_CONFIG, ...config } : null;
+  }
+
   public setConfig(guildId: string, patch: Partial<GuildStatsConfig>): GuildStatsConfig {
     this.config[guildId] = { ...this.getConfig(guildId), ...patch };
     this.scheduleSave();

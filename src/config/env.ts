@@ -9,6 +9,8 @@ const envSchema = z.object({
   GUILD_ID: z.string().optional(),
   DATABASE_URL: z.string().optional(),
   REDIS_URL: z.string().optional(),
+  MUSIC_MODE: z.enum(["embedded", "disabled"]).optional().default("embedded"),
+  RADIO_AUTO_RESUME: z.enum(["true", "false"]).optional().default("true"),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -21,7 +23,13 @@ export const env = parsed.success
       GUILD_ID: process.env.GUILD_ID || "",
       DATABASE_URL: process.env.DATABASE_URL || "",
       REDIS_URL: process.env.REDIS_URL || "",
+      MUSIC_MODE: (process.env.MUSIC_MODE === "disabled" ? "disabled" : "embedded") as "embedded" | "disabled",
+      RADIO_AUTO_RESUME: (process.env.RADIO_AUTO_RESUME === "false" ? "false" : "true") as "true" | "false",
     };
+
+export function isMusicEnabled(): boolean {
+  return (process.env.MUSIC_MODE || "embedded") !== "disabled";
+}
 
 export function validateEnv(): boolean {
   if (!parsed.success) {

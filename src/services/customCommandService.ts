@@ -40,6 +40,14 @@ class CustomCommandService {
     return [...store.get(guildId)].sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  public getBackupCommands(guildId: string): CustomCommand[] {
+    return this.list(guildId).map((command) => ({ ...command, embed: command.embed ? { ...command.embed } : undefined, uses: 0, updatedAt: 0 }));
+  }
+
+  public setBackupCommands(guildId: string, commands: CustomCommand[]) {
+    store.set(guildId, commands.map((command) => ({ ...command, uses: 0, updatedAt: Date.now() })));
+  }
+
   public find(guildId: string, name: string): CustomCommand | undefined {
     return store.get(guildId).find((c) => c.name === name.toLowerCase());
   }

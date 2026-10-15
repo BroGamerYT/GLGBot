@@ -32,6 +32,10 @@ import { economyService } from "../services/economyService";
 import { templateService } from "../services/templateService";
 import { authCodeService } from "../services/authCodeService";
 import { systemService } from "../services/systemService";
+import { radioService } from "../services/radioService";
+import { musicService } from "../services/musicService";
+import { trackMusicChannel } from "../services/musicChannelCleanup";
+import { musicBotManager } from "../services/musicBotManager";
 import { CHANNEL_STYLES } from "../utils/fontUtils";
 
 /**
@@ -88,12 +92,12 @@ export class InvalidJsonError extends Error {
   }
 }
 
-async function readBody(req: http.IncomingMessage): Promise<any> {
+async function readBody(req: http.IncomingMessage, maxBytes = 512 * 1024): Promise<any> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > 512 * 1024) throw new PayloadTooLargeError();
+    if (size > maxBytes) throw new PayloadTooLargeError(`Anfrage zu groß (maximal ${Math.floor(maxBytes / (1024 * 1024)) || 1} MB erlaubt).`);
     chunks.push(chunk as Buffer);
   }
   const raw = Buffer.concat(chunks).toString("utf-8").trim();
@@ -103,6 +107,17 @@ async function readBody(req: http.IncomingMessage): Promise<any> {
   } catch {
     throw new InvalidJsonError();
   }
+}
+
+async function readRawBody(req: http.IncomingMessage, maxBytes: number): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > maxBytes) throw new PayloadTooLargeError(`Anfrage zu groß (maximal ${Math.floor(maxBytes / (1024 * 1024))} MB erlaubt).`);
+    chunks.push(chunk as Buffer);
+  }
+  return Buffer.concat(chunks);
 }
 
 const NOTES_FILE = path.join(__dirname, "../../data/admin_notes.json");
@@ -211,6 +226,53 @@ export function startInternalApi(client: Client) {
     }
     /** Eingeloggtes Dashboard-Mitglied (für Rangprüfungen). */
     const getActor = async () => (actorId ? await guild.members.fetch(actorId).catch(() => null) : null);
+    const canManageBackups = async () => {
+      const actor = await getActor();
+      return !!actor && (
+        actor.id === guild.ownerId ||
+        actor.permissions.has(PermissionFlagsBits.Administrator) ||
+        actor.permissions.has(PermissionFlagsBits.ManageGuild)
+      );
+    };
+    const getRoleManagerActor = async () => {
+      const actor = await getActor();
+      if (!actor) return { actor: null, error: "Anmeldung mit Server-Verwaltungsrechten erforderlich." };
+      const owner = actor.id === guild.ownerId;
+      if (!owner && !actor.permissions.has(PermissionFlagsBits.ManageRoles)) {
+        return { actor, error: "Dir fehlt die Discord-Berechtigung „Rollen verwalten“." };
+      }
+      if (!guild.members.me?.permissions.has(PermissionFlagsBits.ManageRoles)) {
+        return { actor, error: "Der Bot benötigt die Discord-Berechtigung „Rollen verwalten“." };
+      }
+      return { actor, error: null };
+    };
+    const canEditRole = (role: import("discord.js").Role, actor: import("discord.js").GuildMember) => {
+      if (role.id === guild.id || role.managed) return false;
+      if (!guild.members.me || guild.members.me.roles.highest.position <= role.position) return false;
+      return actor.id === guild.ownerId || actor.roles.highest.position > role.position;
+    };
+    const dangerousRolePermissions =
+      PermissionFlagsBits.Administrator |
+      PermissionFlagsBits.ManageGuild |
+      PermissionFlagsBits.ManageRoles |
+      PermissionFlagsBits.ManageChannels |
+      PermissionFlagsBits.BanMembers |
+      PermissionFlagsBits.KickMembers |
+      PermissionFlagsBits.ManageWebhooks;
+    const parseRolePermissionChanges = (body: Record<string, unknown>, current = BigInt(0)) => {
+      if (!body || typeof body !== "object" || !body.permissions || typeof body.permissions !== "object" || Array.isArray(body.permissions)) {
+        return { permissions: current, error: null };
+      }
+      let permissions = current;
+      for (const [name, enabled] of Object.entries(body.permissions as Record<string, unknown>)) {
+        const flag = PermissionFlagsBits[name as keyof typeof PermissionFlagsBits];
+        if (typeof enabled !== "boolean" || typeof flag !== "bigint") {
+          return { permissions: current, error: `Ungültige Berechtigung: ${name}` };
+        }
+        permissions = enabled ? permissions | flag : permissions & ~flag;
+      }
+      return { permissions, error: null };
+    };
     /** Owner & Administratoren dürfen alles, alle anderen nur Mitglieder bzw. Rollen UNTER ihrer höchsten Rolle. */
     const outranks = async (targetPosition: number) => {
       const actor = await getActor();
@@ -224,6 +286,109 @@ export function startInternalApi(client: Client) {
       );
 
     switch (route) {
+        case "GET /roles/manage": {
+          const { actor, error } = await getRoleManagerActor();
+          if (error || !actor) return send(res, 403, { error });
+          await guild.roles.fetch();
+          const botPosition = guild.members.me?.roles.highest.position ?? 0;
+          const canGrantDangerous = actor.id === guild.ownerId || actor.permissions.has(PermissionFlagsBits.Administrator);
+          const roles = Array.from(guild.roles.cache.values())
+            .filter((role) => role.id !== guild.id)
+            .sort((a, b) => b.position - a.position)
+            .map((role) => ({
+              id: role.id,
+              name: role.name,
+              color: role.hexColor,
+              position: role.position,
+              hoist: role.hoist,
+              mentionable: role.mentionable,
+              managed: role.managed,
+              memberCount: role.members.size,
+              editable: canEditRole(role, actor) && (canGrantDangerous || (role.permissions.bitfield & dangerousRolePermissions) === BigInt(0)),
+              permissions: role.permissions.toArray(),
+            }));
+          return send(res, 200, { roles, botPosition, canCreate: botPosition > 1, canGrantDangerous });
+        }
+        case "GET /roles/manage/members": {
+          const { actor, error } = await getRoleManagerActor();
+          if (error || !actor) return send(res, 403, { error });
+          const query = new URL(req.url || "", "http://localhost").searchParams.get("q")?.trim() || "";
+          if (query.length < 2) return send(res, 400, { error: "Bitte mindestens zwei Zeichen eingeben." });
+          const members = await guild.members.search({ query: query.slice(0, 32), limit: 25 });
+          return send(res, 200, {
+            members: members.map((member) => ({
+              id: member.id,
+              username: member.user.username,
+              displayName: member.displayName,
+              isOwner: member.id === guild.ownerId,
+              roles: member.roles.cache.filter((role) => role.id !== guild.id).map((role) => ({ id: role.id, name: role.name, position: role.position })),
+            })),
+          });
+        }
+        case "POST /roles/manage/create": {
+          const { actor, error } = await getRoleManagerActor();
+          if (error || !actor) return send(res, 403, { error });
+          const body = await readBody(req);
+          const name = String(body?.name || "").trim();
+          if (!name || name.length > 100) return send(res, 400, { error: "Der Rollenname muss 1 bis 100 Zeichen lang sein." });
+          const color = String(body?.color || "#000000");
+          if (!/^#[0-9a-f]{6}$/i.test(color)) return send(res, 400, { error: "Ungültige Rollenfarbe." });
+          const parsed = parseRolePermissionChanges(body);
+          if (parsed.error) return send(res, 400, { error: parsed.error });
+          const actorIsAdmin = actor.id === guild.ownerId || actor.permissions.has(PermissionFlagsBits.Administrator);
+          if (!actorIsAdmin && (parsed.permissions & dangerousRolePermissions) !== BigInt(0)) {
+            return send(res, 403, { error: "Gefährliche Server-Rechte darf nur ein Administrator vergeben." });
+          }
+          const role = await guild.roles.create({
+            name,
+            color: parseInt(color.slice(1), 16),
+            hoist: body?.hoist === true,
+            mentionable: body?.mentionable === true,
+            permissions: parsed.permissions,
+            reason: `Rolle über Web-Dashboard erstellt von ${by || actor.user.tag}`,
+          });
+          return send(res, 201, { ok: true, role: { id: role.id, name: role.name, color: role.hexColor, position: role.position, permissions: role.permissions.toArray(), memberCount: role.members.size } });
+        }
+        case "POST /roles/manage/update": {
+          const { actor, error } = await getRoleManagerActor();
+          if (error || !actor) return send(res, 403, { error });
+          const body = await readBody(req);
+          const role = guild.roles.cache.get(String(body?.roleId || ""));
+          if (!role) return send(res, 404, { error: "Rolle nicht gefunden." });
+          if (!canEditRole(role, actor)) return send(res, 403, { error: "Diese Rolle liegt über deiner oder der Bot-Rolle oder wird von Discord verwaltet." });
+          const patch: { name?: string; color?: number; hoist?: boolean; mentionable?: boolean; permissions?: bigint } = {};
+          if (body?.name !== undefined) {
+            const name = String(body.name).trim();
+            if (!name || name.length > 100) return send(res, 400, { error: "Der Rollenname muss 1 bis 100 Zeichen lang sein." });
+            patch.name = name;
+          }
+          if (body?.color !== undefined) {
+            const color = String(body.color);
+            if (!/^#[0-9a-f]{6}$/i.test(color)) return send(res, 400, { error: "Ungültige Rollenfarbe." });
+            patch.color = parseInt(color.slice(1), 16);
+          }
+          if (body?.hoist !== undefined) patch.hoist = body.hoist === true;
+          if (body?.mentionable !== undefined) patch.mentionable = body.mentionable === true;
+          const parsed = parseRolePermissionChanges(body, role.permissions.bitfield);
+          if (parsed.error) return send(res, 400, { error: parsed.error });
+          const actorIsAdmin = actor.id === guild.ownerId || actor.permissions.has(PermissionFlagsBits.Administrator);
+          if (!actorIsAdmin && (parsed.permissions & dangerousRolePermissions) !== BigInt(0)) {
+            return send(res, 403, { error: "Gefährliche Server-Rechte darf nur ein Administrator vergeben." });
+          }
+          if (body?.permissions !== undefined) patch.permissions = parsed.permissions;
+          const updated = await role.edit({ ...patch, reason: `Rolle über Web-Dashboard geändert von ${by || actor.user.tag}` });
+          return send(res, 200, { ok: true, role: { id: updated.id, name: updated.name, color: updated.hexColor, position: updated.position, permissions: updated.permissions.toArray(), memberCount: updated.members.size } });
+        }
+        case "POST /roles/manage/delete": {
+          const { actor, error } = await getRoleManagerActor();
+          if (error || !actor) return send(res, 403, { error });
+          const body = await readBody(req);
+          const role = guild.roles.cache.get(String(body?.roleId || ""));
+          if (!role) return send(res, 404, { error: "Rolle nicht gefunden." });
+          if (!canEditRole(role, actor)) return send(res, 403, { error: "Diese Rolle liegt über deiner oder der Bot-Rolle oder wird von Discord verwaltet." });
+          await role.delete(`Rolle über Web-Dashboard gelöscht von ${by || actor.user.tag}`);
+          return send(res, 200, { ok: true });
+        }
         case "GET /health":
           return send(res, 200, { ok: true, bot: client.user?.tag, guild: guild.name });
 
@@ -1263,35 +1428,79 @@ export function startInternalApi(client: Client) {
 
         // ---------------- Backups ----------------
         case "GET /backups": {
+          if (!(await canManageBackups())) return send(res, 403, { error: "Server-Verwaltungsrechte erforderlich." });
           const backups = backupService.listBackups(guild.id);
           return send(res, 200, { backups });
         }
+        case "GET /backups/channels": {
+          if (!(await canManageBackups())) return send(res, 403, { error: "Server-Verwaltungsrechte erforderlich." });
+          const channels = Array.from(guild.channels.cache.values())
+            .filter((channel) => channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildAnnouncement)
+            .map((channel) => ({ id: channel.id, name: channel.name, type: channel.type }));
+          return send(res, 200, { channels });
+        }
         case "GET /backups/download": {
+          if (!(await canManageBackups())) return send(res, 403, { error: "Server-Verwaltungsrechte erforderlich." });
           const qs = (req.url || "").split("?")[1] || "";
           const backupId = new URLSearchParams(qs).get("id") || "";
           if (!backupId) return send(res, 400, { error: "Keine backupId angegeben." });
-          const backup = backupService.getBackup(backupId);
+          const backup = backupService.getBackup(backupId, guild.id);
           if (!backup) return send(res, 404, { error: "Backup nicht gefunden." });
           return send(res, 200, { backup });
         }
         case "POST /backups/upload": {
-          const body = await readBody(req);
-          if (!body.backup) return send(res, 400, { error: "Keine Backup-Daten übergeben." });
+          if (!(await canManageBackups())) return send(res, 403, { error: "Server-Verwaltungsrechte erforderlich." });
           try {
+            const body = await readBody(req, 16 * 1024 * 1024);
+            if (!body.backup) return send(res, 400, { error: "Keine Backup-Daten übergeben." });
             const imported = backupService.importBackup(guild.id, body.backup, by || "Web-Upload");
-            return send(res, 200, { ok: true, backup: imported });
+            return send(res, 200, { ok: true, backup: { id: imported.id, summary: imported.summary } });
           } catch (e: any) {
-            return send(res, 400, { error: e.message || "Import fehlgeschlagen." });
+            return send(res, e.status || 400, { error: e.message || "Import fehlgeschlagen." });
+          }
+        }
+        case "POST /backups/upload-encrypted": {
+          if (!(await canManageBackups())) return send(res, 403, { error: "Server-Verwaltungsrechte erforderlich." });
+          const secret = process.env.BACKUP_ENCRYPTION_KEY || "";
+          if (secret.length < 32) return send(res, 500, { error: "Der Entschlüsselungsschlüssel ist nicht korrekt konfiguriert." });
+          try {
+            const encrypted = await readRawBody(req, 16 * 1024 * 1024);
+            const imported = backupService.importEncryptedBackup(guild.id, encrypted, secret, by || "Verschlüsselter Web-Upload");
+            return send(res, 200, { ok: true, backup: { id: imported.id, summary: imported.summary } });
+          } catch (e: any) {
+            return send(res, e.status || 400, { error: e.message || "Verschlüsselter Import fehlgeschlagen." });
           }
         }
         case "POST /backups/create": {
+          if (!(await canManageBackups())) return send(res, 403, { error: "Server-Verwaltungsrechte erforderlich." });
           const body = await readBody(req);
-          const backup = await backupService.createBackup(guild, body.creator || "Web-Dashboard");
-          return send(res, 200, { ok: true, backup });
+          if (body.chatChannelIds !== undefined && (!Array.isArray(body.chatChannelIds) || body.chatChannelIds.length > 10)) {
+            return send(res, 400, { error: "Ungültige Kanal-Auswahl für das Chat-Archiv." });
+          }
+          const backup = await backupService.createBackup(guild, body.creator || "Web-Dashboard", {
+            chatChannelIds: body.chatChannelIds,
+            messagesPerChannel: body.messagesPerChannel,
+          });
+          return send(res, 200, { ok: true, backup: { id: backup.id, summary: backup.summary } });
         }
-        case "POST /backups/restore": {
+        case "POST /backups/preview": {
+          if (!(await canManageBackups())) return send(res, 403, { error: "Server-Verwaltungsrechte erforderlich." });
           const body = await readBody(req);
           if (!body.backupId) return send(res, 400, { error: "Keine backupId angegeben." });
+          try {
+            const preview = await backupService.previewRestore(guild, body.backupId, body.options);
+            return send(res, 200, { ok: true, preview });
+          } catch (e: any) {
+            return send(res, 400, { error: e.message || "Vorschau fehlgeschlagen." });
+          }
+        }
+        case "POST /backups/restore": {
+          if (!(await canManageBackups())) return send(res, 403, { error: "Server-Verwaltungsrechte erforderlich." });
+          const body = await readBody(req);
+          if (!body.backupId) return send(res, 400, { error: "Keine backupId angegeben." });
+          if (body.options?.wipeFirst && actorId !== guild.ownerId) {
+            return send(res, 403, { error: "Die Wipe-Option darf nur der Server-Inhaber ausführen." });
+          }
           try {
             const result = await backupService.restoreBackup(guild, body.backupId, body.options);
             return send(res, 200, { ok: true, result });
@@ -1301,9 +1510,10 @@ export function startInternalApi(client: Client) {
         }
         case "POST /backups/delete":
         case "DELETE /backups/delete": {
+          if (!(await canManageBackups())) return send(res, 403, { error: "Server-Verwaltungsrechte erforderlich." });
           const body = await readBody(req);
           if (!body.backupId) return send(res, 400, { error: "Keine backupId angegeben." });
-          const ok = backupService.deleteBackup(body.backupId);
+          const ok = backupService.deleteBackup(body.backupId, guild.id);
           return send(res, 200, { ok });
         }
 
@@ -1946,6 +2156,237 @@ export function startInternalApi(client: Client) {
           notes[noteKey(guild.id, userId)] = String(note || "").trim();
           saveAdminNotes(notes);
           return send(res, 200, { ok: true, userId, note: notes[noteKey(guild.id, userId)] });
+        }
+
+        case "GET /radio/status": {
+          const status = radioService.getStatus(guild.id);
+          return send(res, 200, { status });
+        }
+
+        case "POST /radio/start": {
+          if ((process.env.MUSIC_MODE || "embedded") === "disabled") {
+            return send(res, 503, { error: "Musik ist deaktiviert (MUSIC_MODE=disabled)." });
+          }
+          const body = await readBody(req);
+          const { url, name, channelId } = body;
+          if (!url) return send(res, 400, { error: "url erforderlich." });
+          let channel = null as import("discord.js").VoiceBasedChannel | null;
+          if (channelId) {
+            const fetched = await guild.channels.fetch(String(channelId)).catch(() => null);
+            if (!fetched || !fetched.isVoiceBased()) {
+              return send(res, 400, { error: "Der gewählte Kanal ist kein Sprachkanal." });
+            }
+            channel = fetched;
+          } else {
+            const member = actorId ? await guild.members.fetch(actorId).catch(() => null) : null;
+            channel = member?.voice?.channel ?? null;
+          }
+          if (!channel) return send(res, 400, { error: "Kein Sprachkanal gefunden. Wähle im Dashboard einen Ziel-Sprachkanal oder betrete einen Voice-Kanal." });
+          const status = await radioService.start(channel, String(url), String(name || "Web-Radio"), actorId || undefined);
+          return send(res, 200, { status });
+        }
+
+        case "POST /music/play-local": {
+          if ((process.env.MUSIC_MODE || "embedded") === "disabled") {
+            return send(res, 503, { error: "Musik ist deaktiviert (MUSIC_MODE=disabled)." });
+          }
+          const body = await readBody(req);
+          const { file, channelId } = body;
+          if (!file) return send(res, 400, { error: "file erforderlich." });
+          let channel = null as import("discord.js").VoiceBasedChannel | null;
+          if (channelId) {
+            const fetched = await guild.channels.fetch(String(channelId)).catch(() => null);
+            if (!fetched || !fetched.isVoiceBased()) {
+              return send(res, 400, { error: "Der gewählte Kanal ist kein Sprachkanal." });
+            }
+            channel = fetched;
+          } else {
+            const member = actorId ? await guild.members.fetch(actorId).catch(() => null) : null;
+            channel = member?.voice?.channel ?? null;
+          }
+          if (!channel) return send(res, 400, { error: "Kein Sprachkanal gefunden. Wähle im Dashboard einen Ziel-Sprachkanal oder betrete einen Voice-Kanal." });
+          const requester =
+            (actorId && (await client.users.fetch(actorId).catch(() => null))) ||
+            client.user;
+          if (!requester) return send(res, 500, { error: "Anfragender Nutzer unbekannt." });
+          try {
+            const result = await musicService.play(channel, `local:${String(file)}`, requester);
+            return send(res, 200, { ok: true, result: { status: result.status, title: result.item?.title, position: result.position } });
+          } catch (e: any) {
+            return send(res, 400, { error: e?.message || "Konnte Datei nicht abspielen." });
+          }
+        }
+
+        case "POST /music/play-playlist": {
+          if ((process.env.MUSIC_MODE || "embedded") === "disabled") {
+            return send(res, 503, { error: "Musik ist deaktiviert (MUSIC_MODE=disabled)." });
+          }
+          const body = await readBody(req);
+          const { files, channelId } = body;
+          if (!Array.isArray(files) || files.length === 0 || files.length > 100) {
+            return send(res, 400, { error: "files (1–100) erforderlich." });
+          }
+          let channel = null as import("discord.js").VoiceBasedChannel | null;
+          if (channelId) {
+            const fetched = await guild.channels.fetch(String(channelId)).catch(() => null);
+            if (!fetched || !fetched.isVoiceBased()) {
+              return send(res, 400, { error: "Der gewählte Kanal ist kein Sprachkanal." });
+            }
+            channel = fetched;
+          } else {
+            const member = actorId ? await guild.members.fetch(actorId).catch(() => null) : null;
+            channel = member?.voice?.channel ?? null;
+          }
+          if (!channel) return send(res, 400, { error: "Kein Sprachkanal gefunden. Wähle im Dashboard einen Ziel-Sprachkanal oder betrete einen Voice-Kanal." });
+          const requester =
+            (actorId && (await client.users.fetch(actorId).catch(() => null))) ||
+            client.user;
+          if (!requester) return send(res, 500, { error: "Anfragender Nutzer unbekannt." });
+          const failed: Array<{ file: string; error: string }> = [];
+          let added = 0;
+          for (const f of files.slice(0, 100)) {
+            try {
+              await musicService.play(channel, `local:${String(f)}`, requester);
+              added++;
+            } catch (e: any) {
+              failed.push({ file: String(f), error: e?.message || "Fehler" });
+            }
+          }
+          return send(res, 200, { ok: true, added, failed });
+        }
+
+        case "POST /radio/setup-channel": {
+          if ((process.env.MUSIC_MODE || "embedded") === "disabled") {
+            return send(res, 503, { error: "Musik ist deaktiviert (MUSIC_MODE=disabled)." });
+          }
+          const body = await readBody(req);
+          const { url, name, channelId, userLimit } = body;
+          if (!url) return send(res, 400, { error: "url erforderlich." });
+          const stationName = String(name || "Radio").slice(0, 60);
+          const limit = Number.isFinite(Number(userLimit)) ? Math.max(0, Math.min(99, Number(userLimit))) : 0;
+          let target: import("discord.js").VoiceBasedChannel | null = null;
+          let created = false;
+          if (channelId) {
+            const fetched = await guild.channels.fetch(String(channelId)).catch(() => null);
+            if (!fetched || !fetched.isVoiceBased()) {
+              return send(res, 400, { error: "Der gewählte Kanal ist kein Sprachkanal." });
+            }
+            target = fetched;
+            if (limit > 0 && "setUserLimit" in target) {
+              await (target as import("discord.js").VoiceChannel).setUserLimit(limit).catch(() => null);
+            }
+          } else {
+            const wanted = `📻・${stationName}`.toLowerCase();
+            const existing = guild.channels.cache.find(
+              (c) => c.isVoiceBased() && c.name.toLowerCase() === wanted,
+            ) as import("discord.js").VoiceBasedChannel | undefined;
+            if (existing) {
+              target = existing;
+            } else {
+              let category = guild.channels.cache.find(
+                (c) => c.type === ChannelType.GuildCategory && /musik|music|radio/i.test(c.name),
+              );
+              if (!category) {
+                category = await guild.channels.create({
+                  name: "🎵 Musik",
+                  type: ChannelType.GuildCategory,
+                  reason: "GLGBot: Radio-Einrichtung",
+                });
+              }
+              // Beste Audioqualität (384 → 128 → Standard)
+              const { createMusicVoiceChannel } = await import("../utils/voiceQuality");
+              target = await createMusicVoiceChannel(guild, {
+                name: `📻・${stationName}`,
+                parent: category.id,
+                userLimit: limit,
+                reason: "GLGBot: Radio-Einrichtung",
+              });
+              created = true;
+            }
+          }
+          // Kanal-Bitrate auf Musik-Niveau heben (gegen Lag durch Transcoding)
+          try {
+            const { ensureMusicBitrate } = await import("../utils/voiceQuality");
+            await ensureMusicBitrate(target);
+          } catch {}
+          const status = await radioService.start(target, String(url), stationName);
+          if (created) trackMusicChannel(guild.id, target.id, target.name, stationName, guild);
+          return send(res, 200, { status, channelId: target.id, created });
+        }
+
+        case "POST /radio/probe": {
+          const body = await readBody(req);
+          const { url } = body;
+          if (!url) return send(res, 400, { error: "url erforderlich." });
+          const result = await radioService.probeUrl(String(url));
+          return send(res, 200, result);
+        }
+
+        case "POST /radio/stop": {
+          const ok = radioService.stop(guild.id);
+          return send(res, 200, { ok });
+        }
+
+        case "POST /radio/pause": {
+          const ok = radioService.pause(guild.id);
+          return send(res, 200, { ok });
+        }
+
+        case "POST /radio/resume": {
+          const ok = radioService.resume(guild.id);
+          return send(res, 200, { ok });
+        }
+
+        case "POST /radio/volume": {
+          const body = await readBody(req);
+          const percent = Math.max(0, Math.min(100, Number(body?.volume ?? body?.percent ?? 100)));
+          const channelId = typeof body?.channelId === "string" ? body.channelId : undefined;
+          const ok = radioService.setVolume(guild.id, percent, channelId, actorId || undefined);
+          if (!ok) return send(res, 400, { error: "Es läuft gerade kein Radio." });
+          return send(res, 200, { ok: true, volume: percent });
+        }
+
+        case "GET /sounds": {
+          const { soundboardService } = await import("../services/soundboardService");
+          return send(res, 200, { sounds: soundboardService.list(), usage: soundboardService.usage() });
+        }
+
+        case "GET /musicbot/status": {
+          if (!isLoggedIn) return send(res, 401, { error: "Bitte einloggen." });
+          return send(res, 200, musicBotManager.status());
+        }
+
+        case "POST /musicbot/start":
+        case "POST /musicbot/stop":
+        case "POST /musicbot/restart": {
+          const actor = await getActor();
+          if (!actor || (actor.id !== guild.ownerId && !actor.permissions.has(PermissionFlagsBits.Administrator))) {
+            return send(res, 403, { error: "Nur Owner und Administratoren dürfen den Musik-Bot steuern." });
+          }
+          if (route === "POST /musicbot/start") return send(res, 200, musicBotManager.start());
+          if (route === "POST /musicbot/stop") return send(res, 200, await musicBotManager.stop());
+          return send(res, 200, await musicBotManager.restart());
+        }
+
+        case "POST /music/upload-code": {
+          const actor = await getActor();
+          if (!actor || (actor.id !== guild.ownerId && !actor.permissions.has(PermissionFlagsBits.Administrator))) {
+            return send(res, 403, { error: "Nur Owner und Administratoren können Upload-Codes erzeugen." });
+          }
+          const { musicUploadService } = await import("../services/musicUploadService");
+          const code = musicUploadService.createCode(guild.id, actor.id);
+          return send(res, 200, { code, expiresInSec: 600 });
+        }
+
+        case "GET /music/queue": {
+          const status = musicService.getStatus(guild.id);
+          return send(res, 200, {
+            current: status?.current || null,
+            queue: musicService.getQueue(guild.id),
+            loop: status?.loop || "off",
+            paused: status?.isPaused || false,
+            lastError: status?.lastError || null,
+          });
         }
 
         default:

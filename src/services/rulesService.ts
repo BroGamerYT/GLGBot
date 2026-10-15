@@ -120,7 +120,7 @@ class RulesService {
    * Embeds/Nachrichten verteilt (Discord: max. 4096 Zeichen pro Embed, 6000 pro Nachricht).
    * Die letzte Nachricht enthält den "Regeln akzeptieren"-Button.
    */
-  /** Löst {@name}-Platzhalter in Erwähnungen auf (Benutzername, Anzeigename oder Nickname). */
+  /** Löst {@name}- oder {@ID}-Platzhalter in Erwähnungen auf (Benutzer-ID, Benutzername, Anzeigename oder Nickname). */
   private async resolveMentions(guild: Guild): Promise<Map<string, string>> {
     const R = this.getRules(guild.id);
     const all = [R.intro, R.consequences, R.acceptText, ...R.rules.map((r) => r.text)].join("\n");
@@ -128,14 +128,34 @@ class RulesService {
     const result = new Map<string, string>();
 
     for (const name of names) {
-      const lower = name.toLowerCase();
-      const found = await guild.members.fetch({ query: name, limit: 10 }).catch(() => null);
-      const member = found?.find(
+      const trimmed = name.trim();
+      // Wenn direkt eine Discord Snowflake-ID eingegeben wurde: {@123456789012345678}
+      if (/^\d{17,20}$/.test(trimmed)) {
+        result.set(name, `<@${trimmed}>`);
+        continue;
+      }
+
+      const lower = trimmed.toLowerCase();
+      // Zuerst im Cache suchen (schnell)
+      let member = guild.members.cache.find(
         (m) =>
+          m.id === trimmed ||
           m.user.username.toLowerCase() === lower ||
           m.user.globalName?.toLowerCase() === lower ||
           m.nickname?.toLowerCase() === lower
-      ) || (found && found.size === 1 ? found.first() : undefined);
+      );
+
+      // Falls nicht im Cache, via fetch suchen
+      if (!member) {
+        const found = await guild.members.fetch({ query: trimmed, limit: 10 }).catch(() => null);
+        member = found?.find(
+          (m) =>
+            m.id === trimmed ||
+            m.user.username.toLowerCase() === lower ||
+            m.user.globalName?.toLowerCase() === lower ||
+            m.nickname?.toLowerCase() === lower
+        ) || (found && found.size === 1 ? found.first() : undefined);
+      }
 
       if (member) {
         result.set(name, `<@${member.id}>`);
@@ -145,6 +165,16 @@ class RulesService {
       }
     }
     return result;
+  }
+
+  public async fillPlaceholders(guild: Guild, text: string, permissionsChannelId?: string): Promise<string> {
+    if (!text) return "";
+    const mentions = await this.resolveMentions(guild);
+    return text
+      .replace(/{@([^}]+)}/g, (_, name: string) => mentions.get(name) || `**${name}**`)
+      .replace(/{server}/g, guild.name)
+      .replace(/{owner}/g, `<@${guild.ownerId}>`)
+      .replace(/{permissions}/g, permissionsChannelId ? `<#${permissionsChannelId}>` : "**#berechtigungen**");
   }
 
   public async createRulesMessages(guild: Guild, permissionsChannelId?: string) {

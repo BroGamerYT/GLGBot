@@ -24,6 +24,7 @@ interface GameServer {
   host: string;
   port: number;
   displayAddress?: string;
+  hideAddress?: boolean;
   status: Status | null;
 }
 
@@ -33,7 +34,15 @@ const TYPES: Record<ServerType, { label: string; hint: string }> = {
   tcp: { label: "Port-Check", hint: "Nur online/offline - z. B. TeamSpeak (10011 oder 30033) oder eine Webseite" },
 };
 
-const emptyForm = (port = 25565) => ({ id: "", name: "", type: "minecraft" as ServerType, host: "", port: String(port), displayAddress: "" });
+const emptyForm = (port = 25565) => ({
+  id: "",
+  name: "",
+  type: "minecraft" as ServerType,
+  host: "",
+  port: String(port),
+  displayAddress: "",
+  hideAddress: false,
+});
 
 export default function GameServersPage() {
   const [servers, setServers] = useState<GameServer[]>([]);
@@ -185,6 +194,17 @@ export default function GameServersPage() {
               className={`${input} md:col-span-4`}
             />
           </div>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={form.hideAddress}
+                onChange={(e) => setForm({ ...form, hideAddress: e.target.checked })}
+                className="rounded border-discord-border text-discord-blurple focus:ring-0"
+              />
+              <span>🔒 <strong>Adresse verbergen</strong> (IP & Port in Discord <code>/serverstatus</code> und im Dashboard nicht öffentlich anzeigen)</span>
+            </label>
+          </div>
           <button
             onClick={save}
             disabled={busy !== null || !form.name || !form.host}
@@ -203,13 +223,16 @@ export default function GameServersPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {servers.map((s) => {
             const st = s.status;
-            const address = s.displayAddress || `${s.host}:${s.port}`;
+            const address = s.hideAddress ? "🔒 Adresse verborgen" : (s.displayAddress || `${s.host}:${s.port}`);
             return (
               <div key={s.id} className={`p-4 rounded-xl border ${st?.online ? "border-discord-green/30 bg-discord-green/5" : "border-discord-border bg-discord-dark/40"}`}>
                 <div className="flex items-start gap-3">
                   <span className={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${st?.online ? "bg-discord-green animate-pulse" : st ? "bg-red-500" : "bg-gray-500"}`} />
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-white text-sm truncate">{s.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-white text-sm truncate">{s.name}</p>
+                      {s.hideAddress && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300">IP verborgen</span>}
+                    </div>
                     <p className="text-[11px] text-gray-500">{TYPES[s.type].label}</p>
                     {st?.online ? (
                       <div className="text-xs text-gray-300 mt-1 space-y-0.5">
@@ -222,18 +245,32 @@ export default function GameServersPage() {
                     ) : (
                       <p className="text-xs text-red-300 mt-1">{st ? `Offline${st.error ? ` – ${st.error}` : ""}` : "Noch nicht geprüft"}</p>
                     )}
-                    <button
-                      onClick={() => copy(address, s.id)}
-                      className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-discord-dark border border-discord-border text-[11px] font-mono text-gray-300 hover:text-white"
-                    >
-                      {copied === s.id ? <Check className="w-3 h-3 text-discord-green" /> : <Copy className="w-3 h-3" />}
-                      {address}
-                    </button>
+                    {!s.hideAddress ? (
+                      <button
+                        onClick={() => copy(address, s.id)}
+                        className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-discord-dark border border-discord-border text-[11px] font-mono text-gray-300 hover:text-white"
+                      >
+                        {copied === s.id ? <Check className="w-3 h-3 text-discord-green" /> : <Copy className="w-3 h-3" />}
+                        {address}
+                      </button>
+                    ) : (
+                      <span className="mt-2 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-discord-dark/50 border border-discord-border/50 text-[11px] text-gray-500">
+                        🔒 IP/Port wird nicht angezeigt
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1 shrink-0">
                     <button
                       onClick={() => {
-                        setForm({ id: s.id, name: s.name, type: s.type, host: s.host, port: String(s.port), displayAddress: s.displayAddress || "" });
+                        setForm({
+                          id: s.id,
+                          name: s.name,
+                          type: s.type,
+                          host: s.host,
+                          port: String(s.port),
+                          displayAddress: s.displayAddress || "",
+                          hideAddress: Boolean(s.hideAddress),
+                        });
                         setShowForm(true);
                       }}
                       title="Bearbeiten"

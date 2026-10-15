@@ -32,8 +32,23 @@ interface BackupMeta {
     roleCount: number;
     categoryCount: number;
     channelCount: number;
+    chatChannelCount?: number;
+    chatMessageCount?: number;
   };
   fileSize: number;
+}
+
+interface BackupChannelOption {
+  id: string;
+  name: string;
+  type: number;
+}
+
+interface RestoreMappingCandidate {
+  sourceId: string;
+  sourceName: string;
+  kind: "role" | "category" | "channel";
+  candidates: Array<{ id: string; name: string }>;
 }
 
 export default function BackupsPage() {
@@ -46,6 +61,15 @@ export default function BackupsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [selectedBackupForRestore, setSelectedBackupForRestore] = useState<BackupMeta | null>(null);
+  const [pendingRestoreMappings, setPendingRestoreMappings] = useState<{
+    backupId: string;
+    candidates: RestoreMappingCandidate[];
+    choices: Record<string, string>;
+  } | null>(null);
+  const [archiveChannels, setArchiveChannels] = useState<BackupChannelOption[]>([]);
+  const [selectedArchiveChannelIds, setSelectedArchiveChannelIds] = useState<string[]>([]);
+  const [includeChatArchive, setIncludeChatArchive] = useState(false);
+  const [messagesPerChannel, setMessagesPerChannel] = useState(100);
 
   // Restore Options
   const [restoreOption, setRestoreOption] = useState<"all" | "roles" | "channels">("all");
@@ -53,6 +77,7 @@ export default function BackupsPage() {
   const [stripMemberOverwrites, setStripMemberOverwrites] = useState(true);
   const [preserveOwnerRank, setPreserveOwnerRank] = useState(true);
   const [wipeFirst, setWipeFirst] = useState(false);
+  const [restoreChatArchive, setRestoreChatArchive] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -73,22 +98,38 @@ export default function BackupsPage() {
 
   useEffect(() => {
     fetchBackups();
+    fetch("/api/bot/backups/channels")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => setArchiveChannels(data?.channels || []))
+      .catch((error) => console.error("Fehler beim Laden der Textkanäle:", error));
   }, []);
 
   const handleCreateBackup = async () => {
+    if (includeChatArchive && selectedArchiveChannelIds.length === 0) {
+      setStatusMessage({ type: "error", text: "Wähle mindestens einen Textkanal für das Nachrichtenarchiv aus." });
+      return;
+    }
+    if (includeChatArchive && (messagesPerChannel < 100 || messagesPerChannel > 1000 || selectedArchiveChannelIds.length * messagesPerChannel > 2000)) {
+      setStatusMessage({ type: "error", text: "Das Archiv darf 2.000 Nachrichten insgesamt nicht überschreiten." });
+      return;
+    }
     setCreating(true);
     setStatusMessage(null);
     try {
       const res = await fetch("/api/bot/backups/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ creator: "Web-Dashboard Admin" }),
+        body: JSON.stringify({
+          creator: "Web-Dashboard Admin",
+          chatChannelIds: includeChatArchive ? selectedArchiveChannelIds : [],
+          messagesPerChannel,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
         setStatusMessage({
           type: "success",
-          text: `✅ Backup ${data.backup.id} erfolgreich erstellt (${data.backup.summary.roleCount} Rollen, ${data.backup.summary.channelCount} Kanäle).`,
+          text: `✅ Backup ${data.backup.id} erfolgreich erstellt (${data.backup.summary.roleCount} Rollen, ${data.backup.summary.channelCount} Kanäle, ${data.backup.summary.chatMessageCount || 0} archivierte Nachrichten).`,
         });
         fetchBackups();
       } else {
@@ -131,19 +172,34 @@ export default function BackupsPage() {
   const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      setStatusMessage({ type: "error", text: "Backups dürfen maximal 15 MB groß sein." });
+      e.target.value = "";
+      return;
+    }
     setUploading(true);
     setStatusMessage(null);
     try {
-      const text = await file.text();
-      const json = JSON.parse(text);
-      if (!json || !Array.isArray(json.roles) || !Array.isArray(json.channels)) {
-        throw new Error("Ungültiges Backup-Format: In der JSON-Datei müssen 'roles' und 'channels' enthalten sein.");
+      const encrypted = file.name.toLowerCase().endsWith(".glgbak");
+      let res: Response;
+      if (encrypted) {
+        res = await fetch("/api/bot/backups/upload-encrypted", {
+          method: "POST",
+          headers: { "Content-Type": "application/octet-stream" },
+          body: await file.arrayBuffer(),
+        });
+      } else {
+        const text = await file.text();
+        const json = JSON.parse(text);
+        if (!json || !Array.isArray(json.roles) || !Array.isArray(json.channels)) {
+          throw new Error("Ungültiges Backup-Format: In der JSON-Datei müssen 'roles' und 'channels' enthalten sein.");
+        }
+        res = await fetch("/api/bot/backups/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ backup: json }),
+        });
       }
-      const res = await fetch("/api/bot/backups/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ backup: json }),
-      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Upload fehlgeschlagen");
       setStatusMessage({
@@ -159,36 +215,68 @@ export default function BackupsPage() {
     }
   };
 
-  const executeRestore = async () => {
+  const executeRestore = async (idMappings?: Record<string, string>) => {
     if (!selectedBackupForRestore) return;
     setRestoringId(selectedBackupForRestore.id);
     setStatusMessage(null);
 
-    const options: Record<string, boolean> = {
+    const options: Record<string, unknown> = {
       allowCrossServer,
       stripMemberOverwrites,
       preserveOwnerRank,
       wipeFirst,
+      restoreChatArchive,
     };
     if (restoreOption === "roles") options.rolesOnly = true;
     if (restoreOption === "channels") options.channelsOnly = true;
+    if (idMappings) options.idMappings = idMappings;
 
     try {
+      const previewRes = await fetch("/api/bot/backups/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ backupId: selectedBackupForRestore.id, options }),
+      });
+      const previewData = await previewRes.json();
+      if (!previewRes.ok) throw new Error(previewData.error || "Restore-Vorschau fehlgeschlagen.");
+      const preview = previewData.preview;
+      if (preview.ambiguousMappings.length > 0) {
+        if (!idMappings && preview.mappingCandidates?.length) {
+          setPendingRestoreMappings({
+            backupId: selectedBackupForRestore.id,
+            candidates: preview.mappingCandidates,
+            choices: {},
+          });
+          return;
+        }
+        throw new Error(`Mehrdeutige Zuordnungen: ${preview.ambiguousMappings.slice(0, 4).join("; ")}`);
+      }
+      const confirmation = [
+        `Restore von "${preview.sourceGuild}" auf "${preview.targetGuild}"?`,
+        `Rollen: ${preview.roles.create.length} neu, ${preview.roles.update.length} aktualisieren.`,
+        `Kategorien: ${preview.categories.create.length} neu, ${preview.categories.update.length} aktualisieren.`,
+        `Kanäle: ${preview.channels.create.length} neu, ${preview.channels.update.length} aktualisieren.`,
+        ...(preview.memberOverwritesToSkip ? [`Übersprungene Einzelrechte: ${preview.memberOverwritesToSkip}.`] : []),
+        ...preview.warnings,
+      ].join("\n");
+      if (!window.confirm(confirmation)) return;
+
       const res = await fetch("/api/bot/backups/restore", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           backupId: selectedBackupForRestore.id,
-          options,
+          options: { ...options, ...(idMappings ? { idMappings } : {}) },
         }),
       });
       const data = await res.json();
       if (res.ok) {
         setStatusMessage({
           type: "success",
-          text: `✅ Wiederherstellung abgeschlossen! (${data.result.rolesCreated} Rollen neu, ${data.result.rolesUpdated} Rollen aktualisiert, ${data.result.channelsCreated} Kanäle erstellt).`,
+          text: `✅ Wiederherstellung abgeschlossen! (${data.result.rolesCreated} Rollen neu, ${data.result.rolesUpdated} Rollen aktualisiert, ${data.result.channelsCreated} Kanäle erstellt, ${data.result.chatArchivesRestored || 0} Chat-Archive veröffentlicht).${data.result.preRestoreBackupId ? ` Vorher-Snapshot: ${data.result.preRestoreBackupId}.` : ""}`,
         });
         setSelectedBackupForRestore(null);
+        setPendingRestoreMappings(null);
       } else {
         setStatusMessage({ type: "error", text: `❌ Wiederherstellung fehlgeschlagen: ${data.error}` });
       }
@@ -238,7 +326,7 @@ export default function BackupsPage() {
           <input
             type="file"
             ref={fileInputRef}
-            accept=".json,application/json"
+            accept=".json,.glgbak,application/json,application/octet-stream"
             onChange={handleUploadFile}
             className="hidden"
           />
@@ -307,6 +395,42 @@ export default function BackupsPage() {
         </div>
       </div>
 
+      <section className="space-y-3 rounded-lg border border-discord-border bg-discord-card p-4">
+        <label className="flex items-start gap-2.5 cursor-pointer text-sm text-white">
+          <input type="checkbox" checked={includeChatArchive} onChange={(event) => setIncludeChatArchive(event.target.checked)} className="mt-0.5" />
+          <span>
+            <strong>Nachrichtenarchiv einschließen</strong>
+            <span className="block text-xs text-gray-400">Optional für ausgewählte Textkanäle. Maximal 2.000 Nachrichten und 5 MB Anhänge pro Backup.</span>
+          </span>
+        </label>
+        {includeChatArchive && (
+          <div className="space-y-3 pl-6">
+            <label className="flex items-center gap-3 text-xs text-gray-300">
+              Nachrichten pro Kanal
+              <input type="number" min={100} max={1000} step={100} value={messagesPerChannel} onChange={(event) => setMessagesPerChannel(Number(event.target.value))} className="w-24 rounded border border-discord-border bg-discord-dark px-2 py-1 text-white" />
+              <span className="text-gray-500">{selectedArchiveChannelIds.length} Kanäle / {selectedArchiveChannelIds.length * messagesPerChannel} Nachrichten</span>
+            </label>
+            <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3 max-h-52 overflow-y-auto">
+              {archiveChannels.map((channel) => {
+                const checked = selectedArchiveChannelIds.includes(channel.id);
+                return (
+                  <label key={channel.id} className="flex items-center gap-2 rounded px-2 py-1 text-xs text-gray-300 hover:bg-discord-dark">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={!checked && (selectedArchiveChannelIds.length >= 10 || messagesPerChannel < 100 || messagesPerChannel > 1000 || (selectedArchiveChannelIds.length + 1) * messagesPerChannel > 2000)}
+                      onChange={(event) => setSelectedArchiveChannelIds((current) => event.target.checked ? [...current, channel.id] : current.filter((id) => id !== channel.id))}
+                    />
+                    <span className="truncate"># {channel.name}</span>
+                  </label>
+                );
+              })}
+              {archiveChannels.length === 0 && <span className="text-xs text-gray-500">Keine Textkanäle gefunden.</span>}
+            </div>
+          </div>
+        )}
+      </section>
+
       {/* Backup List */}
       <div className="space-y-3">
         <h2 className="text-base font-bold text-white flex items-center gap-2">
@@ -366,6 +490,7 @@ export default function BackupsPage() {
                       </span>
                       <span className="text-gray-600">•</span>
                       <span className="text-gray-400 font-mono">{sizeKb} KB</span>
+                      {b.summary.chatMessageCount ? <><span className="text-gray-600">•</span><span className="text-gray-300">{b.summary.chatMessageCount} archivierte Nachrichten</span></> : null}
                       <span className="text-gray-600">•</span>
                       <span className="text-gray-400">Ersteller: <span className="text-gray-300">{b.creatorTag || "System"}</span></span>
                     </div>
@@ -522,6 +647,15 @@ export default function BackupsPage() {
                     </span>
                   </div>
                 </label>
+                {selectedBackupForRestore.summary.chatMessageCount ? (
+                  <label className="flex items-start gap-2.5 cursor-pointer pt-1 border-t border-discord-border/50">
+                    <input type="checkbox" checked={restoreChatArchive} onChange={(event) => setRestoreChatArchive(event.target.checked)} className="mt-0.5" />
+                    <div>
+                      <span className="font-bold text-white block">Chat-Archive als HTML veröffentlichen</span>
+                      <span className="text-gray-400 text-[11px] leading-tight block">{selectedBackupForRestore.summary.chatMessageCount} Nachrichten. Archive werden als Datei in den zugeordneten Kanälen gepostet und können dort sichtbar sein.</span>
+                    </div>
+                  </label>
+                ) : null}
               </div>
             </div>
 
@@ -535,12 +669,57 @@ export default function BackupsPage() {
               </button>
               <button
                 type="button"
-                onClick={executeRestore}
+                onClick={() => executeRestore()}
                 disabled={restoringId !== null}
                 className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
               >
                 {restoringId !== null && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                 {restoringId !== null ? "Stelle wieder her..." : "Jetzt wiederherstellen"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingRestoreMappings && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-lg border border-discord-border bg-discord-card p-6 shadow-2xl">
+            <div>
+              <h2 className="text-lg font-bold text-white">Cross-Server-Zuordnungen prüfen</h2>
+              <p className="mt-1 text-xs text-gray-400">Wähle für jeden Konflikt eine eindeutige Zielrolle oder einen Zielkanal. Ohne Auswahl wird nichts verändert.</p>
+            </div>
+            <div className="space-y-3">
+              {pendingRestoreMappings.candidates.map((candidate) => (
+                <label key={candidate.sourceId} className="grid grid-cols-1 gap-2 rounded border border-discord-border p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:items-center">
+                  <span className="min-w-0 text-xs text-gray-300">
+                    <span className="block font-semibold text-white">{candidate.kind === "role" ? "Rolle" : candidate.kind === "category" ? "Kategorie" : "Kanal"}: {candidate.sourceName}</span>
+                    <span className="block truncate font-mono text-[10px] text-gray-500">Quell-ID: {candidate.sourceId}</span>
+                  </span>
+                  <select
+                    value={pendingRestoreMappings.choices[candidate.sourceId] || ""}
+                    onChange={(event) => setPendingRestoreMappings((current) => current ? {
+                      ...current,
+                      choices: { ...current.choices, [candidate.sourceId]: event.target.value },
+                    } : current)}
+                    className="w-full rounded border border-discord-border bg-discord-dark px-2 py-2 text-xs text-white"
+                  >
+                    <option value="">Ziel auswählen …</option>
+                    {candidate.candidates.map((target) => (
+                      <option key={target.id} value={target.id}>{target.name} ({target.id})</option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-discord-border pt-4">
+              <button type="button" onClick={() => setPendingRestoreMappings(null)} className="rounded border border-discord-border bg-discord-dark px-3 py-2 text-xs text-gray-300 hover:text-white">Abbrechen</button>
+              <button
+                type="button"
+                disabled={Object.keys(pendingRestoreMappings.choices).length !== pendingRestoreMappings.candidates.length || new Set(Object.values(pendingRestoreMappings.choices)).size !== pendingRestoreMappings.candidates.length || restoringId !== null}
+                onClick={() => executeRestore(pendingRestoreMappings ? pendingRestoreMappings.choices : undefined)}
+                className="rounded bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Zuordnungen prüfen und fortfahren
               </button>
             </div>
           </div>

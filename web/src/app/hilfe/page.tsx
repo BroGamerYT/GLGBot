@@ -23,6 +23,7 @@ import {
   Coins,
   LayoutTemplate,
   Archive,
+  Music,
 } from "lucide-react";
 import DynamicRulesView from "@/components/DynamicRulesView";
 
@@ -40,6 +41,7 @@ const SECTIONS = [
   { id: "regeln", title: "Regeln & Freischaltung", icon: ScrollText },
   { id: "rollen", title: "Rollen & Benachrichtigungen", icon: Shield },
   { id: "voice", title: "Voice-Manager", icon: Mic },
+  { id: "radiomusik", title: "Radio, Musik & Soundboard", icon: Music },
   { id: "live", title: "Live-System", icon: Radio },
   { id: "alerts", title: "Stream-Alerts", icon: Bell },
   { id: "freegames", title: "Free-Games & Releases", icon: Gift },
@@ -123,6 +125,14 @@ const COMMANDS: { group: string; items: [string, string, string][] }[] = [
       ["/font <text> [stil]", "Wandelt jeden Text in stylische Unicode-Schriftarten (Small Caps, Bold Sans, Gothic, Double-Struck, Monospace, Bubble etc.) um.", "Alle"],
       ["/ping", "Prüft die Latenz und Erreichbarkeit des Bots.", "Alle"],
       ["/twitch-live start | stop", "Sich selbst als live melden bzw. Live-Status vorzeitig beenden.", "Alle"],
+      ["/radio start <url> | stop | pause | resume | status | ton", "Web-Radio-Stream im eigenen Voice-Kanal abspielen. Mit ton einen 5s-Testton zur Prüfung abspielen.", "Alle"],
+      ["/radio panel", "Postet das Radio-Panel: Sender per Dropdown starten, Pause/Weiter/Stop und Lautstärke ±10 % regeln.", "Kanäle verwalten"],
+      ["/music play <suche|url|local:name> | skip | queue | shuffle | loop | volume | nowplaying | history | stop", "YouTube- & lokale Musik mit Warteschlange: Song suchen, URL oder Datei aus data/music abspielen, Queue verwalten, Verlauf ansehen.", "Alle"],
+      ["/music spotify <link>", "Importiert eine Spotify-Playlist (bis 30 Titel) als YouTube-Suche in die Queue.", "Alle"],
+      ["/music upload <datei> [code]", "MP3/WAV/OGG/M4A hochladen. Braucht „Kanäle verwalten“, die DJ-Rolle (im Economy-Shop für Coins kaufbar) oder einen Upload-Code aus dem Dashboard.", "Alle"],
+      ["/music-panel", "Postet das permanente Musik-Panel mit Pause/Skip/Stop/Shuffle, Lautstärke ±10 % und Loop-Umschaltung.", "Kanäle verwalten"],
+      ["/soundboard list | play <sound>", "Kurze Sounds aus data/music im eigenen Voice-Kanal abspielen.", "Alle"],
+      ["/radio add <name> <url> | remove | list", "Eigene Radio-Sender speichern, löschen und auflisten.", "Kanäle verwalten"],
     ],
   },
   {
@@ -549,6 +559,35 @@ export default function HelpPage() {
             <Note type="warn">
               Discord erlaubt pro Kanal nur <strong>2 Umbenennungen in 10 Minuten</strong>. Wer öfter umbenennt, muss kurz warten.
             </Note>
+          </Section>
+
+          {/* Radio, Musik & Soundboard */}
+          <Section id="radiomusik" title="Radio, Musik & Soundboard" icon={Music}>
+            <p>
+              Unter <Link href="/radio" className="text-discord-blurple hover:underline font-semibold">Radio & Musik</Link> im Web-Dashboard
+              oder per Discord-Befehl streamst du werbefreie Webradios, YouTube-Musik und eigene Soundboard-Dateien:
+            </p>
+            <ul className="list-disc list-inside space-y-2 pl-1">
+              <li>
+                <strong className="text-white">📻 4 strukturierte Dashboard-Tabs:</strong>
+                <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-400">
+                  <li><strong className="text-gray-200">Radio-Sender:</strong> Sofortsuche, Sender-Kategorien (SUNSHINE LIVE, SomaFM, laut.fm, Eigene), URL-Audio-Probe und 1-Klick-Start.</li>
+                  <li><strong className="text-gray-200">Soundboard & Musik:</strong> Live-Filter über alle Audio-Dateien, Ordner-Pills, Sofort-Abspielen, Download (⬇) und Drag & Drop in Playlisten.</li>
+                  <li><strong className="text-gray-200">Upload-Zentrale:</strong> Drag & Drop Uploader (ganze Ordner werden automatisch als Playlist angelegt!) und DM-Upload-Code Generator.</li>
+                  <li><strong className="text-gray-200">Playlisten & Queue:</strong> Eigene Playlisten erstellen, verwalten und sortieren; parallele Anzeige der Live-Warteschlange.</li>
+                  <li><strong className="text-gray-200">Bot-Einstellungen:</strong> Anzeigename, dedizierter Worker-Status (PID, Uptime, Restarts, Start/Stop) und Token-Verwaltung für Multi-Bot Betrieb.</li>
+                </ul>
+              </li>
+              <li>
+                <strong className="text-white">🎛️ Persistenter Mini-Player:</strong> Die obere Player-Leiste zeigt immer den Live-Status (🟢 Läuft / ⏸️ Pausiert / ⚪ Bereit), ICY-Titel („Was läuft gerade“), den aktuellen Sprachkanal, Play/Pause/Stop und Lautstärke-Tasten (±10%).
+              </li>
+              <li>
+                <strong className="text-white">⚡ Temporäre Sender-Kanäle & Auto-Cleanup:</strong> Klickst du im Dashboard auf <em>„+ Temp-Kanal“</em>, legt der Bot einen temporären Sprachkanal (<Cmd>📻・&lt;Sender&gt;</Cmd>) mit 120s Beitrittsfrist an. Wenn alle Personen den Kanal verlassen, läuft ein 60s Countdown ab, nach dem der Bot sich trennt und den Kanal automatisch wieder löscht.
+              </li>
+              <li>
+                <strong className="text-white">💬 Discord-Befehle:</strong> <Cmd>/radio start</Cmd>, <Cmd>/radio panel</Cmd>, <Cmd>/music play &lt;suche|url|local:name&gt;</Cmd>, <Cmd>/music-panel</Cmd> und <Cmd>/soundboard play &lt;sound&gt;</Cmd>.
+              </li>
+            </ul>
           </Section>
 
           {/* Live */}

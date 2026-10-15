@@ -2,14 +2,16 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.23.0 (siehe History ganz unten)
+**Aktueller Stand:** v2.25.0 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
 
+> **Offen:** Punkte 22–26 sowie die nicht abgehakten Technik-Schulden. Die Punkte 1–21 und das Musik-System (Phase 1–2) sind abgeschlossen; die offenen Vorhaben sind noch nicht untereinander priorisiert.
+
 ---
 
-## 🚀 Priorität 1: Sofort anstehend
+## ✅ Abgeschlossen: Kernfeatures (Punkte 1–3)
 
 ### 1. 🎁 Free Games & Game News öffentlich (Read-Only ohne Login) ✅ v2.7.0
 * [x] **Middleware & Routen:**
@@ -56,7 +58,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-## 🎯 Priorität 2: Community- & Interaktions-Features
+## ✅ Abgeschlossen: Community- & Interaktions-Features (Punkte 4–9)
 
 ### 4. 🔴 „Gerade Live“-Widget auf der Dashboard-Startseite ✅ v2.7.0
 * [x] Live-Banner auf der Dashboard-Startseite `web/src/app/page.tsx`.
@@ -104,14 +106,30 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-### 9. 🛡️ Erweiterter Auto-Mod & Anti-Spam
+### 9. 🛡️ Erweiterter Auto-Mod & Anti-Spam ✅
 * [x] Automatische Erkennung und Löschung von unerlaubten Discord-Einladungslinks fremder Server *(gibt es schon in `blacklistService.ts`)*.
 * [x] Mass-Mention-Schutz (>5 Mentions = Auto-Löschung + 10 Min. Timeout) *(v2.7.0)*.
 * [x] Verknüpfung mit dem Levelsystem: Automatische Strafpunkte (-XP) bei moderativen Vorfällen *(Warn, Timeout, Knast, Kick, Ban, Wortfilter - einstellbar unter Level-Einstellungen)*.
 
 ---
 
-## 🎧 Großes Feature: Hybrides Musik- & Audio-System (Sub-Bot & All-in-One wählbar)
+## ✅ Abgeschlossen: Musiksystem Phase 1–3 – Web-Radio + YouTube Queue + Web-Dashboard
+> **Status:** Discord-Slash-Commands `/radio` und `/music`, YouTube-Suche mit Queue, Web-Dashboard Radio-Seite mit Sender-Auswahl und Live-Anzeige.
+* [x] Web-Radio mit undici HTTP Streams (Icecast/Shoutcast)
+* [x] SQLite Queue (persistente Warteschlange über Bot-Neustarts)
+* [x] Discord Integration: /radio start <url>, stop, pause, resume, skip, queue
+* [x] Web-Dashboard API: Live-Metadaten, URL-Test, MP3-Upload
+* [x] YouTube-Suche & Queue-System (`/music play|skip|stop|pause|resume|queue|shuffle|remove|volume|nowplaying`)
+* [x] Web-Dashboard Radio-Seite (`/radio`) mit Sender-Auswahl, Live-Anzeige und Bot-Steuerung
+* [x] Musik-Setup-Modul: Automatische "Musik"-Kategorie mit Voice-Channel beim Server-Setup
+* [x] Mini-Musik-Bot (`musicbot/`, eigener Token, vom GLGBot verwaltet): Auto-Kategorie + Sender-Kanäle (384 kbps), Auto-Play aller aktiven Sender, ICY-Status, Reconnect, Panel + `/musik`, Kanal-Wiederherstellung, Dashboard-Steuerung
+* [x] `/music loop` (aus/Song/Queue), Now-Playing Steuer-Buttons (⏸️/▶️/⏭️/⏹️/🔀)
+* [x] `MUSIC_MODE` Schalter (`embedded`/`disabled`, `.env` + `.env.example`)
+* [x] Stream-URL-Härtung: SSRF-Schutz (keine privaten/lokalen Hosts) + Erreichbarkeits-Test
+* [x] Radio Auto-Resume nach Bot-Neustart (`data/radio_state.json`)
+* [x] ICY-Titelanzeige „Was läuft gerade“ (Bot + Dashboard, 60s-Refresh)
+* [ ] Phase 4 (TODO): Spotify/YouTube via Lavalink
+* [ ] Phase 3 (TODO): Cover-Art + DM-Uploads (React-Komponente unter `/radio` ist fertig)
 
 > **Architektur-Ziel & Strategie-Update:**
 > * **Empfohlene Reihenfolge:** Fokus auf **Modus B (Embedded)** und extrem stabile Audio-Quellen:
@@ -119,63 +137,92 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 >   2. **📁 Lokales Soundboard & MP3-Upload:** Eigene MP3s über das Web-Dashboard hochladen oder kurze Sounds im Voice abspielen (`/soundboard`).
 >   3. **YouTube/Spotify:** Nur optional über externe Lavalink-Instanz mit Cookie-Support, da YouTube Standalone-Bots und Server-IPs blockiert.
 
-* [ ] **Konfiguration & Modus-Auswahl (`config/music.json` / `.env`):**
-  * [ ] Schalter `MUSIC_MODE: "subbot" | "embedded" | "disabled"`.
-  * [ ] Im Embedded-Modus: Haupt-Bot verbindet sich direkt in den Voice-Kanal via `@discordjs/voice`.
-* [ ] **Audio-Engine & Quellen:**
-  * [ ] **📻 24/7 Web-Radio:** Direktes Streaming von Web-Radiosendern (`/radio <sender>`, Dropdown im Chat).
-  * [ ] **📁 Lokale Dateien & Soundboard:**
-    * [ ] Musik-Verzeichnis auf dem Server (`data/music/`).
-    * [ ] Wiedergabe lokaler MP3/WAV-Dateien (`/play local:<dateiname>`).
-    * [ ] Soundboard-Modus für kurze Community-Sounds (`/soundboard <sound>`).
-  * [ ] **🎵 Spotify-Metadaten:** Metadaten-Auflösung via Spotify Web API.
-  * [ ] **🎥 YouTube / Lavalink:** Optionale externe Lavalink-Verbindung mit Cookie-Fallback.
-* [ ] **Discord Slash-Commands:**
-  * [ ] `/play <link_oder_titel>`, `/radio <sender>`, `/soundboard <sound>`, `/skip`, `/stop`, `/pause`, `/resume`, `/queue`, `/nowplaying`, `/volume <1-100>`, `/loop`.
-  * [ ] Interaktives Embed mit Steuerungs-Buttons (`⏮️`, `⏯️`, `⏭️`, `⏹️`, `🔀`, `🔁`).
-* [ ] **Web-Dashboard Musik-Zentrale (`/music`):**
-  * [ ] Live-Anzeige des aktuellen Tracks mit Cover, Fortschrittsbalken und Queue-Liste.
-  * [ ] Web-Controls (Play/Pause, Skip, Lautstärke per Slider).
-  * [ ] Datei-Uploader: Eigene MP3s direkt im Browser hochladen und der Server-Bibliothek hinzufügen.
+* [x] **Konfiguration & Modus-Auswahl (`.env`):**
+  * [x] Schalter `MUSIC_MODE: "embedded" | "disabled"` (Standard `embedded`).
+  * [x] Im Embedded-Modus: Haupt-Bot verbindet sich direkt in den Voice-Kanal via `@discordjs/voice`.
+* [x] **Audio-Engine & Quellen:**
+  * [x] **📻 24/7 Web-Radio:** Direkte Icecast-/Shoutcast-/MP3-Streams abspielen, z. B. `https://stream.laut.fm/hardtekk-radio`; keine YouTube-Scraping-Quelle voraussetzen.
+  * [x] Sender pro Server (`guildId`) speichern: Anzeigename, Stream-URL, Discord-Voice-Kanal, Nutzerlimit und Aktiv-Status (`data/radio_config.json`).
+  * [x] **Web-Dashboard `/radio`:** Radiosender hinzufügen, bearbeiten und entfernen; URL testen; Kanal und Nutzerlimit einstellen; mit „Erstellen & starten“ die Radio-Konfiguration speichern, einen passenden Voice-Kanal `📻・<Sendername>` mit dem gewählten Nutzerlimit erstellen oder auswählen und den Bot mit dem Stream verbinden.
+  * [x] Bestehende Voice-Kanäle optional auswählen; vor dem Anlegen auf Namenskonflikte prüfen. Der Bot erstellt keinen separaten Bot-Account, sondern nutzt seine Voice-Verbindung.
+  * [x] **Live-Übersicht „Was läuft gerade?“:** ICY-/Icecast-Metadaten (Titel/Interpret) regelmäßig auslesen und in `/radio` anzeigen; bei Streams ohne Metadaten Sendername und Verbindungsstatus zeigen.
+  * [x] Discord-Status im Voice-Kanal bei Titelwechsel aktuell halten (nur bei Änderung, Rate-Limit-schonend).
+  * [x] **Discord-Befehle:** `/radio add|remove|list`, `/radio start <url>`, `/radio stop|pause|resume|status`; Verwaltung mit `MoveMembers`-Recht.
+  * [x] Stream-URL strikt validieren (nur HTTP(S), Timeouts und Redirects begrenzen, lokale/private Ziele blockieren) und unerreichbare oder ungültige Streams verständlich melden.
+  * [x] Radio-Verbindung nach Bot-Neustart anhand der Server-Konfiguration wiederherstellen; Stoppen/Entfernen muss die Voice-Verbindung sauber trennen.
+  * [x] **📁 Lokale Dateien & Soundboard:**
+    * [x] Musik-Verzeichnis auf dem Server (`data/music/`, max. 25 MB, MP3/WAV/OGG/M4A).
+    * [x] Soundboard-Modus für kurze Community-Sounds (`/soundboard list|play`).
+    * [x] Sound-Bibliothek im Dashboard (`/radio`) einsehbar (inkl. Ordner).
+    * [x] Unterordner in `data/music/` + Sound-Dropdown im Musik-Panel zur Einzelauswahl.
+    * [x] Wiedergabe lokaler MP3s als Musik-Queue (`/music play local:<dateiname>`).
+    * [x] Dashboard-Upload (Typ/Größe/Duplikat geprüft, Drag & Drop, Mehrfach-Upload) und DM-Upload per Einmal-Code (`MUS-XXXXXX`, 10 Min., nur Owner/Admins).
+    * [x] Download pro Sound und Playlisten (erstellen, Drag-&-Drop-Sortierung, „Alle abspielen“).
+    * [ ] Speicherquote pro Server und Duplikat-Verwaltung (noch offen).
+  * [ ] **🎵 Spotify-Metadaten:** Metadaten-Auflösung via Spotify Web API (braucht API-Credentials).
+  * [ ] **🎥 YouTube / Lavalink:** Optionale externe Lavalink-Verbindung mit Cookie-Fallback (braucht Lavalink-Server).
+* [x] **Discord Slash-Commands:**
+  * [x] `/music play <suche|url>`, `/radio start <url>`, `/skip`, `/stop`, `/pause`, `/resume`, `/queue`, `/nowplaying`, `/volume <1-100>`, `/loop`, `/shuffle`, `/remove`.
+  * [x] Interaktives Embed mit Steuerungs-Buttons (⏸️/▶️/⏭️/⏹️/🔀).
+  * [ ] `/soundboard <sound>` für lokale Sounds (braucht MP3-Bibliothek, noch offen).
+  * [x] **Web-Dashboard Musik-Zentrale (`/radio`):**
+  * [x] Live-Anzeige des aktuellen Tracks mit Sendername und Hörerzahl.
+  * [x] Web-Controls (Play/Pause/Stop) für Radio-Streams.
+  * [x] **MP3-Eingang:** Eigene MP3s im Dashboard hochladen; geprüfte Dateien in die Bibliothek übernehmen.
+  * [x] **DM-Upload:** MP3 per Bot-DM mit kurzlebigem Einmal-Code (`MUS-XXXXXX`, 10 Min.) aus dem Dashboard. Nur Owner/Admins erzeugen Codes.
+  * [x] Dateigrenzen und Typ serverseitig prüfen (MP3/WAV/OGG/M4A, 25 MB, Dateiname bereinigen, Duplikate ablehnen); fehlgeschlagene Dateien mit verständlichem Status ablehnen.
+  * [ ] Speicherquote und Uploads pro `guildId` getrennt halten (noch offen).
+  * [x] **Warteschlange pro Server im Dashboard:** Aktueller Song + Queue mit Dauer und Uploader auf `/radio` (Live-Polling alle 10s).
+  * [ ] **Live-Übersicht für alle erreichbaren Bots/Server:** Gesamtansicht mit einer getrennten Karte je Server/Voice-Kanal und Filtern nach Radio, lokaler Musik, YouTube und Spotify.
+  * [ ] Pro aktiver Wiedergabe Live-Titel, Interpret, Cover (falls verfügbar), Quelle, Voice-Kanal, Listener-Zahl, Verbindungsstatus und nächsten Track anzeigen; bei Radio ohne Metadaten Streamname/Online-Status darstellen.
+  * [ ] Aktionen und Uploads immer dem aktuell ausgewählten Server zuordnen; Gesamtübersicht darf nur Server anzeigen/steuern, für die der eingeloggte Nutzer Berechtigungen hat.
 
 ---
 
-## 🚀 Priorität 5: Erweiterte Automationen, Backup v3 & Intelligentes Setup
+## 🚀 Offene Vorhaben: Erweiterte Automationen, Backup v3 & intelligentes Setup
 
-### 22. 📦 Ultra-Backup v3: Chat-Inhalte, Voice-Logs & 1:1 Bot-Konfigurations-Spiegelung
-* [ ] **Textkanal-Nachrichtenverlauf & Chat-Inhalte:**
-  * [ ] Konfigurierbare Sicherung der letzten *N* Nachrichten (z. B. 100 bis 1.000) pro Textkanal beim Erstellen eines Snapshots.
-  * [ ] Speicherung von Autoren-Tag, Zeitstempel, Inhalt, Embeds, Reaktionen, Anhängen und gepinnten Nachrichten.
-  * [ ] Export als formatierte HTML-Transkripte (analog zum Ticket-System) und maschinenlesbares JSON.
-  * [ ] Optionale Chat-Wiederherstellung: Bot kann auf Wunsch Archiv-Transkripte in neu erstellte Kanäle posten oder als Datei anheften.
-* [ ] **Voice-Channel Historie & Konfiguration:**
-  * [ ] Sicherung der VoiceMaster-Einstellungen, Kanal-Bitraten, Nutzer-Limits und Video-/Streaming-Berechtigungen.
-  * [ ] Sicherung der Voice-Aktivitätsstatistiken und Rollen-Zuweisungen.
-* [ ] **1:1 Server- & Bot-Einstellungen im Backup:**
-  * [ ] Nicht nur Discord-Rollen und Kanäle, sondern die **vollständigen Server-Einstellungen des Bots** sichern:
-    * [ ] Alle Modul-Schalter (`moduleService` Status für alle 26 Module).
-    * [ ] Rollen-IDs & Verknüpfungen (Gast, Team, Streamer, Farbrollen, Level-Belohnungs-Rollen).
-    * [ ] Level- & XP-Konfigurationen (Multiplikatoren, Cooldowns, Berechnungsart).
-    * [ ] Economy-Werte (Shop-Items, Farbrollen-Katalog, Börsen-Wechselkurs `xpPerCoin`, Daily-Streak-Regeln).
-    * [ ] Gefängnis-Einstellungen (Voice-Knast-ID, Haftstrafen-Presets).
-    * [ ] Willkommens-Karten-Settings (Banner-URL, Text, Glassmorphismus-Filter).
-    * [ ] Streamer-Listen, Alert-Kanäle und Benachrichtigungs-Pings.
-    * [ ] Ticket-Kategorien & Reaktions-Panels.
-    * [ ] Release-Kalender & News-Quellen-Zuweisung.
-    * [ ] Auto-Roles, Blacklist & Anti-Raid Filter.
-* [ ] **Intelligenter Cross-Server ID-Remapper (1:1 Übertragung auf neue Server):**
-  * [ ] Beim Wiederherstellen auf einem fremden Server werden neue Discord-IDs für Rollen und Kanäle erzeugt.
-  * [ ] Der Bot übersetzt alle gespeicherten Rollen- und Kanal-Referenzen in den Bot-Konfigurationen automatisch auf die neu erzeugten IDs (z. B. altes `#support` -> neues `#support`).
-  * [ ] Der neue Server läuft nach 1 Klick mit exakt denselben Bot-Einstellungen, Menüs und Panels wie das Original!
-* [ ] **Automatischer Cloud- & Discord-Backup-Export (Notfall-Tresor):**
-  * [ ] Wöchentlicher oder täglicher automatischer Scheduler sichert den vollständigen Server-Snapshot.
-  * [ ] Automatischer Datei-Upload des verschlüsselten Snapshots in einen geschützten Discord-Admin-Kanal (`#🔒・bot-backups`).
-  * [ ] Server-Inhaber erhält eine DM-Bestätigung mit Backup-ID und Datei.
+### 22. 📦 Backup v3: sichere Restores, Bot-Konfigurationen & optionales Chat-Archiv
+> **Ist-Stand (v2.22.0):** Rollen-/Kanal-Snapshots, JSON-Download/-Upload und ein grundlegender Cross-Server-Restore sind vorhanden. Die folgenden Aufgaben härten und erweitern diesen Bestand.
+> **Ziel:** Wiederherstellung nachvollziehbar und überprüfbar machen. Kein Backup enthält Geheimnisse; Cross-Server-Zuordnungen werden bei Mehrdeutigkeit nicht automatisch geraten.
+
+* [x] **Vorhandene Basis:** Rollen-/Kanal-Snapshot, JSON-Import/-Export und grundlegender Cross-Server-Restore *(v2.22.0)*.
+* [ ] **Phase 1 – Versioniertes Format & sicherer Restore:**
+  * [x] `schemaVersion` 1 ergänzen, unversionierte v2.22-Backups als Legacy-Format akzeptieren und Importdaten auf Struktur, Datentypen, Wertebereiche und Größenlimits prüfen.
+  * [x] Snapshot-Integrität per SHA-256-Prüfsumme prüfen und Backup-Dateien atomar schreiben.
+  * [ ] Migrationen zwischen zukünftigen Formatversionen unterstützen.
+  * [x] Restore-Vorschau mit Änderungen, Member-Overwrites und Warnungen ergänzen; Cross-Server-Mehrdeutigkeiten vor Änderungen blockieren.
+  * [x] Vor einem Wipe automatisch einen Vorher-Snapshot erstellen; Vorschau und ausdrückliche Bestätigung im Dashboard und Slash-Command verlangen.
+  * [x] Backups auf ein striktes Rollen-/Kanal-Schema begrenzen; `.env`-Werte, Tokens und OAuth-Secrets werden nicht exportiert.
+* [ ] **Phase 2 – Guild-Konfigurationen:**
+  * [x] Guild-Konfigurationen pro Server exportieren und wiederherstellen: Modulstatus, Level, Economy-Shop, Tickets, Voice, Rollen-Panels, Welcome, Audit-Logging, Blacklist, Live-Streamer, Releases, News-Feeds, Geburtstags-Einstellungen, Game-Server-Endpunkte, Free Games, Clips, Statistik-Kanäle, Stream-Alerts und eigene Befehle.
+  * [ ] Prison- und sonstige Modul-spezifische Einstellungen prüfen; aktive Haftfälle, Geburtstagsdaten, XP-Verläufe und Wallets bleiben aus Datenschutz-/Integritätsgründen ausgeschlossen.
+  * [x] Nur bekannte Konfigurationsfelder aufnehmen; keine beliebigen Dateien aus `data/` oder `config/` spiegeln.
+  * [ ] Wiederherstellung mit Round-Trip-Test (Export -> Import -> gleicher Konfigurationszustand) und Tests für ältere Formatversionen absichern.
+* [ ] **Phase 3 – Optionales Chat-Archiv:**
+  * [x] Archivierung nur für explizit ausgewählte Kanäle aktivieren; Nachrichtenlimit pro Kanal und Gesamtlimits anwenden.
+  * [x] Autor-ID/Anzeigename, Zeitstempel, Inhalt, Embeds, Reaktionen und Pins als HTML-Transkript und JSON exportieren.
+  * [x] Anhänge innerhalb fester Einzel- und Gesamtlimits herunterladen; keine CDN-URLs als Archivinhalt speichern.
+  * [x] Wiederhergestellte Inhalte als Archiv markieren und nicht als ursprüngliche Autoren ausgeben.
+  * [ ] Gezielt personenbezogene Archivdaten löschen können; die lokale 20-Snapshot-Retention ist keine individuelle Löschfunktion. Keine Sprachaufnahmen erstellen.
+* [ ] **Phase 4 – Cross-Server-Zuordnung:**
+  * [x] Im selben Server IDs bevorzugen; beim Serverwechsel Kandidaten anhand Typ und Name erkennen.
+  * [x] Mehrdeutige Zuordnungen in der Vorschau manuell entscheiden lassen; fehlende Ziele werden vorab als Neuanlage angezeigt.
+  * [x] Mitglieder-IDs und individuelle Member-Overwrites nicht automatisch auf einen anderen Server übertragen.
+  * [x] Rollen-/Kanal-Referenzen in den unterstützten Bot-Konfigurationen mit der ID-Zuordnung aktualisieren.
+* [ ] **Phase 5 – Verschlüsselter externer Notfall-Export:**
+  * [x] Täglichen Scheduler für lokale Snapshots und externe Exporte einrichten; lokale Aufbewahrung auf 20 Snapshots begrenzen.
+  * [x] Backups vor externem Upload mit AES-256-GCM verschlüsseln; Schlüssel bleibt in der Umgebung und außerhalb der Backup-Datei.
+  * [x] Discord-Upload optional mit Größenlimit und S3-kompatiblen Objektspeicher als externes Ziel unterstützen.
+  * [x] Inhaber über Backup-ID und Exportergebnis informieren; `.glgbak`-Dateien können nach Upload wieder importiert werden.
+  * [x] Externe Aufbewahrung konfigurierbar machen (Standard 90 Tage) und alte Discord-/S3-Dateien bereinigen.
+  * [x] Schlüsselrotation unterstützen: vorherige Schlüssel für Importe konfigurierbar halten, bis alte Dateien abgelaufen sind.
+  * [ ] Regelmäßige automatisierte Wiederherstellungsübungen gegen eine isolierte Testumgebung ergänzen.
 
 ---
 
 ### 23. 🧩 Modularer 1-Klick Setup Wizard ("Alles einrichten nach Wunsch-Modulen")
 > **Ziel:** Ein einziger Knopfdruck richtet auf Discord und im Bot genau die Module ein, die der Server-Inhaber haben möchte – inklusive aller Rollen, Kategorien, Kanäle, Berechtigungen und interaktiver Start-Panels.
+> **Abgrenzung zu Punkt 20:** Punkt 20 richtet allgemeine Server-Templates ein. Diese Erweiterung baut auf dem bestehenden `/setup`-Service auf und ergänzt dessen Modul-Auswahl; kein zweites Setup-System anlegen.
 
 * [ ] **Modulare Auswahl-Matrix im Dashboard (`/setup` & `/templates`) und via `/setup-all`:**
   * [ ] Übersichtliche Checkboxen für alle Kern- und Zusatzmodule:
@@ -199,7 +246,78 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 ---
 
 ### 24. 📊 Dashboard Health & Server-Statistiken (`/system-logs` & Dashboard-Home)
-* [ ] Live-Anzeige von Discord-Gateway-Ping (Latenz in ms) und REST-API Antwortzeiten mit 24h-Historie.
+* [x] Prozessstatus mit CPU, RAM, Uptime, Node.js-Version und Restart-Zähler in `/system-logs` *(v2.23.0)*.
+* [ ] Discord-Gateway-Ping (Latenz in ms) un
+
+## 🚀 Offene Vorhaben: Erweiterte Automationen, Backup v3 & intelligentes Setup
+
+### 22. 📦 Backup v3: sichere Restores, Bot-Konfigurationen & optionales Chat-Archiv
+> **Ist-Stand (v2.22.0):** Rollen-/Kanal-Snapshots, JSON-Download/-Upload und ein grundlegender Cross-Server-Restore sind vorhanden. Die folgenden Aufgaben härten und erweitern diesen Bestand.
+> **Ziel:** Wiederherstellung nachvollziehbar und überprüfbar machen. Kein Backup enthält Geheimnisse; Cross-Server-Zuordnungen werden bei Mehrdeutigkeit nicht automatisch geraten.
+
+* [x] **Vorhandene Basis:** Rollen-/Kanal-Snapshot, JSON-Import/-Export und grundlegender Cross-Server-Restore *(v2.22.0)*.
+* [ ] **Phase 1 – Versioniertes Format & sicherer Restore:**
+  * [x] `schemaVersion` 1 ergänzen, unversionierte v2.22-Backups als Legacy-Format akzeptieren und Importdaten auf Struktur, Datentypen, Wertebereiche und Größenlimits prüfen.
+  * [x] Snapshot-Integrität per SHA-256-Prüfsumme prüfen und Backup-Dateien atomar schreiben.
+  * [ ] Migrationen zwischen zukünftigen Formatversionen unterstützen.
+  * [x] Restore-Vorschau mit Änderungen, Member-Overwrites und Warnungen ergänzen; Cross-Server-Mehrdeutigkeiten vor Änderungen blockieren.
+  * [x] Vor einem Wipe automatisch einen Vorher-Snapshot erstellen; Vorschau und ausdrückliche Bestätigung im Dashboard und Slash-Command verlangen.
+  * [x] Backups auf ein striktes Rollen-/Kanal-Schema begrenzen; `.env`-Werte, Tokens und OAuth-Secrets werden nicht exportiert.
+* [ ] **Phase 2 – Guild-Konfigurationen:**
+  * [x] Guild-Konfigurationen pro Server exportieren und wiederherstellen: Modulstatus, Level, Economy-Shop, Tickets, Voice, Rollen-Panels, Welcome, Audit-Logging, Blacklist, Live-Streamer, Releases, News-Feeds, Geburtstags-Einstellungen, Game-Server-Endpunkte, Free Games, Clips, Statistik-Kanäle, Stream-Alerts und eigene Befehle.
+  * [ ] Prison- und sonstige Modul-spezifische Einstellungen prüfen; aktive Haftfälle, Geburtstagsdaten, XP-Verläufe und Wallets bleiben aus Datenschutz-/Integritätsgründen ausgeschlossen.
+  * [x] Nur bekannte Konfigurationsfelder aufnehmen; keine beliebigen Dateien aus `data/` oder `config/` spiegeln.
+  * [ ] Wiederherstellung mit Round-Trip-Test (Export -> Import -> gleicher Konfigurationszustand) und Tests für ältere Formatversionen absichern.
+* [ ] **Phase 3 – Optionales Chat-Archiv:**
+  * [x] Archivierung nur für explizit ausgewählte Kanäle aktivieren; Nachrichtenlimit pro Kanal und Gesamtlimits anwenden.
+  * [x] Autor-ID/Anzeigename, Zeitstempel, Inhalt, Embeds, Reaktionen und Pins als HTML-Transkript und JSON exportieren.
+  * [x] Anhänge innerhalb fester Einzel- und Gesamtlimits herunterladen; keine CDN-URLs als Archivinhalt speichern.
+  * [x] Wiederhergestellte Inhalte als Archiv markieren und nicht als ursprüngliche Autoren ausgeben.
+  * [ ] Gezielt personenbezogene Archivdaten löschen können; die lokale 20-Snapshot-Retention ist keine individuelle Löschfunktion. Keine Sprachaufnahmen erstellen.
+* [ ] **Phase 4 – Cross-Server-Zuordnung:**
+  * [x] Im selben Server IDs bevorzugen; beim Serverwechsel Kandidaten anhand Typ und Name erkennen.
+  * [x] Mehrdeutige Zuordnungen in der Vorschau manuell entscheiden lassen; fehlende Ziele werden vorab als Neuanlage angezeigt.
+  * [x] Mitglieder-IDs und individuelle Member-Overwrites nicht automatisch auf einen anderen Server übertragen.
+  * [x] Rollen-/Kanal-Referenzen in den unterstützten Bot-Konfigurationen mit der ID-Zuordnung aktualisieren.
+* [ ] **Phase 5 – Verschlüsselter externer Notfall-Export:**
+  * [x] Täglichen Scheduler für lokale Snapshots und externe Exporte einrichten; lokale Aufbewahrung auf 20 Snapshots begrenzen.
+  * [x] Backups vor externem Upload mit AES-256-GCM verschlüsseln; Schlüssel bleibt in der Umgebung und außerhalb der Backup-Datei.
+  * [x] Discord-Upload optional mit Größenlimit und S3-kompatiblen Objektspeicher als externes Ziel unterstützen.
+  * [x] Inhaber über Backup-ID und Exportergebnis informieren; `.glgbak`-Dateien können nach Upload wieder importiert werden.
+  * [x] Externe Aufbewahrung konfigurierbar machen (Standard 90 Tage) und alte Discord-/S3-Dateien bereinigen.
+  * [x] Schlüsselrotation unterstützen: vorherige Schlüssel für Importe konfigurierbar halten, bis alte Dateien abgelaufen sind.
+  * [ ] Regelmäßige automatisierte Wiederherstellungsübungen gegen eine isolierte Testumgebung ergänzen.
+
+---
+
+### 23. 🧩 Modularer 1-Klick Setup Wizard ("Alles einrichten nach Wunsch-Modulen")
+> **Ziel:** Ein einziger Knopfdruck richtet auf Discord und im Bot genau die Module ein, die der Server-Inhaber haben möchte – inklusive aller Rollen, Kategorien, Kanäle, Berechtigungen und interaktiver Start-Panels.
+> **Abgrenzung zu Punkt 20:** Punkt 20 richtet allgemeine Server-Templates ein. Diese Erweiterung baut auf dem bestehenden `/setup`-Service auf und ergänzt dessen Modul-Auswahl; kein zweites Setup-System anlegen.
+
+* [ ] **Modulare Auswahl-Matrix im Dashboard (`/setup` & `/templates`) und via `/setup-all`:**
+  * [ ] Übersichtliche Checkboxen für alle Kern- und Zusatzmodule:
+    * [ ] 🔊 **Temporäre Voice-Lobbys** (Kategorie + „➕ Lobby erstellen“ + VoiceMaster-Steuerungs-Panel)
+    * [ ] 🔴 **Live-Streamer Suite** (Kategorie + `#stream-alerts` + Rollen `@bn.live`, `@Live`)
+    * [ ] 🎫 **Support-Tickets** (Kategorie + `#support` mit interaktivem Ticket-Erstellen-Button)
+    * [ ] 🔒 **Gefängnis & Voice-Knast** (Rolle `@Gefängnis` + `#gefängnis` + `🔒・gefängnis-voice`)
+    * [ ] 🏆 **Level- & Rangsystem** (Rollen-Belohnungen Level 5, 10, 20, 25 + `#level-ups`)
+    * [ ] 🪙 **Economy & Belohnungs-Shop** (6 Discord-Namensfarben + Shop-Panel + Börsen-Kanal)
+    * [ ] 🎁 **Free Games, Game-News & Software** (`#free-games`, `#game-news`, `#treiber-software` + Rollen)
+    * [ ] 👥 **LFG / Mitspieler-Suche** (`#mitspieler-suche` mit LFG-Panel)
+    * [ ] 🖼️ **Willkommens-System** (`#willkommen` mit Canvas-Banner & Auto-Rolle)
+    * [ ] 🔒 **Regel-Sperre & Verifikation** (`#regeln` mit „Regeln akzeptieren“-Button + `@Gast`)
+* [ ] **1-Klick Ausführung („🚀 Gewählte Module & Kanäle einrichten“):**
+  * [ ] Der Bot durchläuft alle angekreuzten Module in einem einzigen Durchlauf.
+  * [ ] Intelligente Dubletten-Erkennung: Existierende Rollen oder Kanäle werden erkannt und verknüpft, anstatt sie doppelt anzulegen.
+  * [ ] Automatisches Schreiben der neuen IDs direkt in alle zugehörigen JSON-Konfigurationen (`rolesConfig`, `rulesConfig`, `ticketConfig`, `voiceConfig`, `economyConfig` etc.).
+  * [ ] Automatisches Versenden der interaktiven Discord-Embeds mit Buttons (Regel-Button, Ticket-Button, VoiceMaster-Panel).
+  * [ ] Aktivierung aller gewählten Module in `moduleService.ts`.
+
+---
+
+### 24. 📊 Dashboard Health & Server-Statistiken (`/system-logs` & Dashboard-Home)
+* [x] Prozessstatus mit CPU, RAM, Uptime, Node.js-Version und Restart-Zähler in `/system-logs` *(v2.23.0)*.
+* [ ] Discord-Gateway-Ping (Latenz in ms) und REST-API-Antwortzeiten mit 24h-Historie.
 * [ ] Mitglieder-Wachstums-Graph (Joins, Leaves, aktive Chatter).
 * [ ] Übersicht der aktiven Interaktionen (ausgeführte Slash-Commands und Button-Klicks pro Stunde).
 
@@ -219,7 +337,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-## 🎮 Priorität 3: Gaming-Extras & Community-Wachstum
+## ✅ Abgeschlossen: Gaming-Extras & Community-Wachstum (Punkte 10–15)
 
 ### 10. 👥 LFG-System (Looking for Group / Mitspieler-Suche) ✅ v2.11.0
 * [x] Slash-Command `/lfg spiel:<name> mitspieler:<anzahl> [rang:<rang>] [beschreibung:<text>]`.
@@ -272,7 +390,7 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ---
 
-## 🌐 Priorität 4: Public Release & Multi-Guild (max. 5 Server)
+## ✅ Abgeschlossen: Public Release & Multi-Guild (max. 5 Server, Punkte 16–21)
 
 > **Architektur-Konzept:** **Ein einziger Bot-Prozess** (z. B. in einem Proxmox-Container) bedient **bis zu 5 freigegebene** Discord-Server gleichzeitig.
 > * **Ressourcen:** Minimaler RAM-Verbrauch (~200 MB) für alle Server zusammen.

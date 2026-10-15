@@ -152,8 +152,9 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | **Audit-Logs** | `/logs` | 🔒 Admin | Stille Protokollierung von Server-Aktionen (`SuppressNotifications`). |
 | **Server-Backups** | `/backups` | 🔒 Admin | 1-Klick Snapshots aller Rollen & Kanäle, JSON Download & Upload, Cross-Server Transfer & Owner-Schutz. |
 | **Server-Regeln** | `/rules` | 🔒 Admin | Regel-Editor mit Vorschau, 1-Klick-Veröffentlichung und Regel-Sperre (Server erst nach Bestätigung sichtbar). |
-| **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 49 Slash-Befehle mit Beschreibungen. |
-| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.22.0. |
+| **Radio- & Musik-Zentrale** | `/radio` | 🌍 Öffentlich | 4 übersichtliche Tabs: Radio-Sender, Soundboard & Uploads, Playlisten & Warteschlange, Bot-Einstellungen samt persistentem Top-Player. |
+| **Hilfe & Befehle** | `/hilfe` | 🌍 Öffentlich | Vollständige Dokumentation aller 53 Slash-Befehle mit Beschreibungen. |
+| **Changelog & Updates** | `/changelog` | 🌍 Öffentlich | Detaillierte Versionshistorie von v1.0.0 bis v2.26.0. |
 
 ---
 
@@ -318,13 +319,36 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
   * Grafische Begrüßung neuer Mitglieder mit Avatar, Name und Mitgliederzahl.
   * Eigenes Hintergrundbild per Bild-URL; ein dunkler Filter hält Text und Avatar lesbar. Live-Vorschau und Test-Button im Dashboard.
 
+### 14. 📻 Radio- & Musik-Zentrale, Soundboard & Auto-Cleanup
+* **Persistenter Web-Player (`/radio`):**
+  * Live-Status des aktuellen Streams (Titel, ICY-Metadaten, Sender-URL, aktiver Kanal).
+  * Ziel-Sprachkanal-Wahl, Play/Pause, Stop und interaktive Lautstärkeregelung (`−`, `+` in 10%-Schritten).
+* **4 übersichtliche Tabs im Webinterface:**
+  * **📻 Radio-Sender:** Sofortsuche, Kategorie-Filter (*SUNSHINE LIVE*, *SomaFM*, *laut.fm*, *Eigene*), URL-Probe-Test, Sofort-Abspielen und `+ Temp-Kanal`.
+  * **🎵 Soundboard & Musik:** Suchleiste für alle lokalen Audio-Dateien, Ordner-Pills, Direkt-Wiedergabe, Download-Button (`⬇`) und Drag & Drop in Playlisten.
+  * **📤 Uploads:** Integrierter Drag & Drop Uploader (ganze Ordner werden automatisch als Playlist angelegt!) und Discord DM-Upload-Code Generator.
+  * **📜 Playlisten & Queue:** Eigene Playlisten per Drag & Drop sortieren und abspielen; parallele Anzeige der Live-YouTube-Warteschlange.
+  * **⚙️ Bot-Einstellungen:** Radio Bot-Name, Worker-Status (PID, Uptime, Restarts, Start/Stop/Restart) und Token-/Invite-Konfiguration für simultane Bots.
+* **Auto-Cleanup für temporäre Musikkanäle:**
+  * Sender-Kanäle (`📻・<Sender>`) erhalten beim Erstellen eine 2-minütige Beitrittsfrist (`120s Grace`).
+  * Wenn der letzte Mensch den Kanal verlässt, läuft ein 60s Countdown ab; danach trennt der Bot die Verbindung und löscht den temporären Kanal automatisch.
+  * Bestehende Standard-Talk-Kanäle werden bei Inaktivität verlassen, aber nicht gelöscht.
+
 ---
 
-## 💻 Befehlsübersicht (49 Slash-Befehle)
+## 💻 Befehlsübersicht (53 Slash-Befehle)
 
 | Befehl | Beschreibung | Berechtigung |
 |---|---|---|
 | `/help` | Übersicht aller Befehle mit Link zum Dashboard. | Alle |
+| `/radio start <url> \| stop \| pause \| resume \| status \| ton` | Web-Radio-Stream im Voice-Kanal abspielen; `ton` spielt 5s Test-Audio. | Alle |
+| `/radio panel` | Radio-Steuerpanel mit Sender-Dropdown und Lautstärke-Buttons posten. | Kanäle verwalten |
+| `/radio add <name> <url> \| remove \| list` | Eigene Radio-Streams speichern, löschen und verwalten. | Kanäle verwalten |
+| `/music play <titel\|url\|local:name> \| skip \| queue \| pause \| resume \| stop \| loop \| volume \| shuffle \| history` | YouTube- & lokale Musik mit Warteschlange, Lautstärke und Loop-Modus. | Alle |
+| `/music spotify <link>` | Importiert Spotify-Playlisten (bis 30 Tracks) als YouTube-Suche. | Alle |
+| `/music upload <datei> [code]` | Eigene Audio-Dateien (MP3/WAV/OGG/M4A) per Chat hochladen (DJ-Rolle, Recht oder Code). | Alle |
+| `/music-panel` | Permanentes Discord-Musik-Panel mit Buttons für Steuerung, Lautstärke und Loop. | Kanäle verwalten |
+| `/soundboard list \| play <sound>` | Soundboard-Audio aus `data/music/` direkt im Voice abspielen. | Alle |
 | `/ping` | Zeigt die Latenz des Bots (im Chat auch `!ping`). | Alle |
 | `/rank [mitglied]` | Grafische Canvas-Rangkarte mit Level, Badges, Rang, Fortschritt, XP-Herkunft und Daily-Serie. | Alle |
 | `/level status \| sync-roles` | Eigener Level-Fortschritt bzw. verdiente Belohnungsrollen nachträglich vergeben. | Alle |

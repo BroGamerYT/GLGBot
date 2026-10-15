@@ -9,6 +9,7 @@ import { customCommandService } from "../services/customCommandService";
 import { clipService } from "../services/clipService";
 import { economyService } from "../services/economyService";
 import { directMessageService } from "../services/directMessageService";
+import { musicUploadService } from "../services/musicUploadService";
 
 const messageCreateEvent: BotEvent<Events.MessageCreate> = {
   name: Events.MessageCreate,
@@ -18,6 +19,8 @@ const messageCreateEvent: BotEvent<Events.MessageCreate> = {
 
     // Direktnachrichten (DM an den Bot)
     if (!message.guild) {
+      const upload = await musicUploadService.handleDM(message).catch(() => null);
+      if (upload) return;
       await directMessageService.handleMessage(message, client);
       return;
     }

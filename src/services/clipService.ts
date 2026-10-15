@@ -56,6 +56,11 @@ class ClipService {
     return store.get(guildId);
   }
 
+  public getBackupConfig(guildId: string) {
+    const data = store.get(guildId);
+    return { channelId: data.channelId, weekday: data.weekday, hour: data.hour };
+  }
+
   public setConfig(guildId: string, patch: { channelId?: string | null; weekday?: number; hour?: number }) {
     return store.update(guildId, (d) => {
       if (patch.channelId !== undefined) d.channelId = patch.channelId || undefined;

@@ -5,6 +5,7 @@ import { auditLogService } from "../services/auditLogService";
 import { fetchAuditExecutor } from "../utils/auditExecutor";
 import { moduleService } from "../services/moduleService";
 import { prisonService } from "../services/prisonService";
+import { handleMusicVoiceState } from "../services/musicChannelCleanup";
 
 const voiceStateUpdateEvent: BotEvent<Events.VoiceStateUpdate> = {
   name: Events.VoiceStateUpdate,
@@ -35,8 +36,10 @@ const voiceStateUpdateEvent: BotEvent<Events.VoiceStateUpdate> = {
     }
 
     // 1. Audit Logging für Voice-Events (falls AuditLog-Modul aktiv)
+    // Eigene Bot-Joins/Leaves ausblenden (Spam durch Reconnects/Streams)
+    const isSelf = !!member && !!client.user && member.id === client.user.id;
     try {
-      if (member && guild && moduleService.isEnabled(guild.id, "auditLogs")) {
+      if (member && guild && !isSelf && moduleService.isEnabled(guild.id, "auditLogs")) {
         const memberInfo = {
           id: member.id,
           tag: member.user.tag,
@@ -170,6 +173,14 @@ const voiceStateUpdateEvent: BotEvent<Events.VoiceStateUpdate> = {
       } catch (error) {
         console.error("[VoiceStateUpdate Error] Fehler in handleVoiceStateUpdate:", error);
       }
+    }
+
+    // 3. Musik-Kanäle: leere, ungenutzte Kanäle nach Karenzzeit löschen (falls Musik-Modul aktiv)
+    if (guild && moduleService.isEnabled(guild.id, "music")) {
+      handleMusicVoiceState(
+        oldState.channel && oldState.channel.isVoiceBased() ? oldState.channel : null,
+        newState.channel && newState.channel.isVoiceBased() ? newState.channel : null,
+      );
     }
   },
 };

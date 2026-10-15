@@ -57,10 +57,90 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.23.0",
-    date: "12. Oktober 2026",
+    version: "v2.26.0",
+    date: "15. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Radio & Web-Zentrale Redesign, Auto-Cleanup & Stabilität",
+    description: "Komplett neu gestaltetes Radio- & Musik-Dashboard mit persistentem Top-Player, 4 strukturierten Tabs (Sender, Soundboard, Playlisten/Queue, Einstellungen), temporären Musik-Kanälen mit automatischer Löschung und Voice-Stabilitätsfixes.",
+    highlights: [
+      {
+        icon: Radio,
+        title: "Strukturiertes 4-Tab Dashboard & Mini-Player",
+        description: "Persistente Player-Leiste oben mit Kanal-Auswahl, Lautstärke-Regelung (±10%), Live-Statusanzeige und übersichtlichen Reitern für Sender, Sounds, Playlisten und Bot-Settings.",
+      },
+      {
+        icon: Mic,
+        title: "Temporäre Musik-Kanäle & Auto-Cleanup",
+        description: "Automatische Erstellung temporärer 📻-Sprachkanäle mit 120s Beitrittsfrist und 60s Leerlauf-Countdown – der Bot verlässt den Kanal und löscht ihn nach Inaktivität selbstständig.",
+      },
+      {
+        icon: Clapperboard,
+        title: "Soundboard-Filter & Ordner-Upload",
+        description: "Sofortsuche in allen Sound-Dateien, Ordner-Pills, Drag & Drop Uploads (ganze Ordner werden automatisch als Playlist gespeichert) und dedizierter Worker-Status.",
+      },
+    ],
+  },
+  {
+    version: "v2.25.0",
+    date: "14. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
+    title: "Radio & Musik-Zentrale",
+    description: "Eigene Radio-Seite mit Sender-Verwaltung, Musik-Warteschlange mit YouTube-Suche, Soundboard mit Ordnern und Playlisten sowie Panels mit Lautstärke-Steuerung direkt in Discord.",
+    highlights: [
+      {
+        icon: Radio,
+        title: "Radio-Seite mit Sendern & Steuerung",
+        description: "Sender anlegen, URL testen, Kanal mit Limit erstellen und starten, Lautstärke regeln, Live-Titel und Fehler live sehen.",
+      },
+      {
+        icon: Mic,
+        title: "/music, /radio panel & /music-panel",
+        description: "YouTube-Suche mit Queue, Radio-Panel mit Sender-Dropdown und Lautstärke-Buttons, Musik-Panel mit Steuerung und Sound-Dropdown.",
+      },
+      {
+        icon: Clapperboard,
+        title: "Soundboard, Uploads & Playlisten",
+        description: "MP3-Upload per Drag & Drop oder DM-Code, Unterordner, Download, Playlisten mit Drag & Drop und lokale Wiedergabe per /music play local.",
+      },
+    ],
+  },
+  {
+    version: "v2.24.0",
+    date: "13. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
+    title: "Rollen- & Rechte-Zentrum",
+    description: "Die Rollen-Seite wird zur zentralen Serverrollen-Verwaltung: Rollen durchsuchen und nach Hierarchie prüfen, Rechte gruppiert bearbeiten, Mitglieder zuordnen sowie Farben, Sichtbarkeit und Erwähnbarkeit konfigurieren.",
+    highlights: [
+      {
+        icon: Shield,
+        title: "Rollen erstellen, bearbeiten & löschen",
+        description: "Durchsuchbare Hierarchie mit Rollenfarbe, Position, Mitgliederanzahl und klaren Aktionen. Die bisherige Panel-Zuordnung bleibt als eigener Bereich erhalten.",
+      },
+      {
+        icon: Lock,
+        title: "Gruppierte Rechte-Matrix",
+        description: "Verwaltungs-, Mitglieder-, Text- und Sprachrechte übersichtlich bearbeiten. Kritische Serverrechte bleiben Ownern und Administratoren vorbehalten.",
+      },
+      {
+        icon: UserCheck,
+        title: "Mitglieder & Discord-Hierarchie",
+        description: "Mitglieder suchen und Rollen vergeben oder entziehen. Bot und angemeldeter Nutzer können nur Rollen unterhalb ihrer höchsten Rolle verändern; Integrationsrollen sind gesperrt.",
+      },
+      {
+        icon: Newspaper,
+        title: "Getrennte News-Filter",
+        description: "Treiber-/Software-, NAS- und Technikartikel bleiben in ihren eigenen Reitern. Der Treiber-Reiter zeigt keine Technik-News mehr mit an.",
+      },
+    ],
+  },
+  {
+    version: "v2.23.0",
+    date: "12. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "System-Manager, Live-Logkonsole & Umfassendes Sicherheits-Audit",
     description: "Neue Live-Logkonsole mit Terminal-Ansicht (/system-logs), PM2-Prozessüberwachung und 1-Klick Neustart-Steuerung. Vollständige Behebung von Sicherheitsrisiken (Command-Injection, API-Tokens, IDOR), Inflationsschutz und atomare Dateisystem-Härtung.",
     highlights: [

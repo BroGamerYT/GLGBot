@@ -28,7 +28,7 @@ interface CounterConfig {
   lastName?: string;
 }
 
-interface StatsChannelsConfig {
+export interface StatsChannelsConfig {
   categoryId?: string;
   counters: Partial<Record<CounterId, CounterConfig>>;
 }
@@ -42,6 +42,22 @@ class StatsChannelsService {
 
   public getConfig(guildId: string): StatsChannelsConfig {
     return store.get(guildId);
+  }
+
+  public getBackupConfig(guildId: string): StatsChannelsConfig {
+    const config = store.get(guildId);
+    return {
+      categoryId: config.categoryId,
+      counters: Object.fromEntries(Object.entries(config.counters).map(([id, counter]) => [id, {
+        enabled: counter?.enabled || false,
+        template: counter?.template || "{count}",
+        channelId: counter?.channelId,
+      }])),
+    };
+  }
+
+  public setBackupConfig(guildId: string, config: StatsChannelsConfig) {
+    store.set(guildId, config);
   }
 
   /** Anzeige-Wert eines Zählers (Zahl, bei Game-Servern "online/gesamt"). */

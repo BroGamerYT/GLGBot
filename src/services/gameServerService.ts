@@ -21,6 +21,8 @@ export interface GameServer {
   port: number;
   /** Adresse, die Spielern angezeigt wird (z. B. Domain statt LAN-IP) */
   displayAddress?: string;
+  /** Adresse im Discord-Befehl und Webinterface für Besucher verbergen */
+  hideAddress?: boolean;
 }
 
 export interface GameServerStatus {
@@ -197,6 +199,14 @@ class GameServerService {
     return store.get(guildId);
   }
 
+  public getBackupServers(guildId: string): GameServer[] {
+    return store.get(guildId).map((server) => ({ ...server }));
+  }
+
+  public setBackupServers(guildId: string, servers: GameServer[]) {
+    store.set(guildId, servers.map((server) => ({ ...server })));
+  }
+
   public getStatus(id: string): GameServerStatus | undefined {
     return this.status.get(id);
   }
@@ -219,6 +229,7 @@ class GameServerService {
       host,
       port,
       displayAddress: String(input?.displayAddress || "").trim().slice(0, 100) || undefined,
+      hideAddress: Boolean(input?.hideAddress),
     };
     store.set(guildId, existing ? list.map((s) => (s.id === existing.id ? item : s)) : [...list, item]);
     this.status.delete(item.id);

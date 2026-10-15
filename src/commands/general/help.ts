@@ -28,7 +28,14 @@ const helpCommand: Command = {
             "`/voice` • Lobbys sperren, verstecken, Bitrate ändern oder kicken\n" +
             "`/interface` / `/voice-panel` • Postet das interaktive Voice-Steuerungspanel\n" +
             "`/voice-stats` • Zeigt deine Voice-Dauer & Top Talk-Partner an\n" +
-            "`/top-voice` • Rangliste der Mitglieder mit der meisten Sprachzeit",
+            "`/top-voice` • Rangliste der Mitglieder mit der meisten Sprachzeit\n" +
+            "`/radio start|stop|pause|resume|status|ton` • Web-Radio-Stream im Voice-Kanal abspielen\n" +
+            "`/radio panel` • Radio-Panel mit Senderwahl und Lautstärke posten\n" +
+            "`/radio add|remove|list` • Eigene Sender speichern und verwalten\n" +
+            "`/music play|skip|queue|pause|resume|stop|shuffle|loop|volume|nowplaying|history` • YouTube- & lokale Musik mit Warteschlange\n" +
+            "`/music spotify|upload` • Spotify-Playlist importieren oder MP3 hochladen (Kanal-Recht oder Upload-Code)\n" +
+            "`/music-panel` • Permanentes Musik-Panel mit Lautstärke-Buttons posten\n" +
+            "`/soundboard list|play` • Kurze Sounds aus data/music abspielen",
           inline: false,
         },
         {

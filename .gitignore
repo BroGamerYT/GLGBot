@@ -18,3 +18,7 @@ data_from_server/
 /config/
 /server_config.ini
 _backups/
+
+# Lokale Artefakte
+DiscordBot.zip
+.vscode/

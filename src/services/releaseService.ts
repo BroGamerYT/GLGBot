@@ -271,6 +271,7 @@ class ReleaseService {
       if (typeof patch.weeklyPostDay === "number") c.weeklyPostDay = Math.max(0, Math.min(6, patch.weeklyPostDay));
       if (typeof patch.weeklyPostHour === "number") c.weeklyPostHour = Math.max(0, Math.min(23, patch.weeklyPostHour));
       if (patch.lastWeeklyPostDate !== undefined) c.lastWeeklyPostDate = patch.lastWeeklyPostDate;
+      if (Array.isArray(patch.customReleases)) c.customReleases = patch.customReleases;
     });
   }
 

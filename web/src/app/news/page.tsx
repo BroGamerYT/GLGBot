@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
+import { matchesNewsArticleFilter } from "@/lib/newsFilters";
 import {
   Newspaper, Plus, Trash2, Send, RefreshCw, Search, Gamepad2, Cpu, MonitorSmartphone, Link2, CheckCircle2,
   Pickaxe, X, ExternalLink, Sparkles, Hash, AtSign, History, Minus, Play, Pause, Clock, Wrench, Download,
@@ -8,6 +9,7 @@ import {
 } from "lucide-react";
 
 interface HistoryEntry { at: string; action: "added" | "removed" | "enabled" | "disabled"; name: string; type: SourceType; channelId: string; by?: string }
+interface BotOption { id: string; name: string; icon: string | null; main: boolean }
 interface PreviewItem { title: string; url: string; date?: number; text?: string; isPatchnotes?: boolean; isSnapshot?: boolean }
 interface Detail { type: SourceType; appId?: string; name: string; image?: string; description?: string; beta?: boolean }
 
@@ -142,6 +144,77 @@ function formatTimeAgo(timestampInSeconds?: number) {
   });
 }
 
+const NewsArticleCard = memo(function NewsArticleCard({
+  article,
+  onSelect,
+}: {
+  article: PublicNewsArticle;
+  onSelect: (article: PublicNewsArticle) => void;
+}) {
+  return (
+    <div
+      onClick={() => onSelect(article)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect(article);
+        }
+      }}
+      className="bg-discord-card border border-discord-border rounded-2xl overflow-hidden hover:border-orange-500/60 hover:shadow-2xl hover:shadow-orange-500/5 transition-all duration-200 group flex flex-col cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+      style={{ contentVisibility: "auto", containIntrinsicSize: "0 360px" }}
+    >
+      <div className="relative h-44 bg-discord-dark overflow-hidden shrink-0">
+        {article.imageUrl || article.headerImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={article.imageUrl || article.headerImage}
+            alt={article.title}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-discord-card to-discord-dark text-gray-500 p-4">
+            <SourceIcon type={article.sourceType} className="w-12 h-12 mb-2" />
+            <span className="text-xs font-semibold text-gray-400">{article.sourceName}</span>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-discord-card via-transparent to-black/30" />
+        <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
+          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border backdrop-blur-md bg-black/60 shadow-sm ${TYPE_BADGE[article.sourceType].className}`}>
+            {article.sourceName}
+          </span>
+          {article.isPatchnotes ? (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/90 text-white shadow-sm">Patchnotes</span>
+          ) : article.sourceType.includes("gpu") || article.sourceType.includes("chipset") ? (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/90 text-white shadow-sm">Treiber</span>
+          ) : article.isSnapshot ? (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-500/90 text-black shadow-sm">Snapshot</span>
+          ) : null}
+        </div>
+      </div>
+      <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
+        <div>
+          <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-2">
+            <Clock className="w-3.5 h-3.5 text-gray-500" />
+            <span>{formatTimeAgo(article.date)}</span>
+          </div>
+          <h3 className="text-white font-bold text-base leading-snug line-clamp-2 group-hover:text-orange-400 transition-colors">{article.title}</h3>
+          <p className="text-gray-400 text-xs line-clamp-3 leading-relaxed mt-2">{article.summary}</p>
+        </div>
+        <div className="pt-3 border-t border-discord-border flex items-center justify-between text-xs">
+          <span className="text-orange-400 font-semibold group-hover:translate-x-1 transition-transform flex items-center gap-1">
+            Artikel lesen <ChevronRight className="w-3.5 h-3.5" />
+          </span>
+          <span className="text-gray-500 group-hover:text-gray-300 transition-colors">{article.sourceType === "steam" ? "Steam" : "Offiziell"}</span>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 function ArticleContentRenderer({ content }: { content: string }) {
   if (!content) return null;
   const paragraphs = content.split(/\n\n+/);
@@ -215,6 +288,8 @@ export default function NewsPage() {
   const [activeFilter, setActiveFilter] = useState<"all" | "games" | "patchnotes" | "drivers" | "nas" | "tech">("all");
   const [selectedSource, setSelectedSource] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const [filterPending, startFilterTransition] = useTransition();
   const [adminTab, setAdminTab] = useState<"news" | "manage">("news");
   const [showSourcesList, setShowSourcesList] = useState<boolean>(false);
 
@@ -240,6 +315,9 @@ export default function NewsPage() {
   const [optPatchnotes, setOptPatchnotes] = useState(false);
   const [optSnapshots, setOptSnapshots] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [botOptions, setBotOptions] = useState<BotOption[]>([]);
+  const [activeBotId, setActiveBotId] = useState("");
+  const [switchingBot, setSwitchingBot] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -260,7 +338,7 @@ export default function NewsPage() {
 
   async function load() {
     try {
-      const nRes = await fetch("/api/bot/news");
+      const nRes = await fetch("/api/bot/news", { cache: "no-store" });
       const n = await nRes.json();
       if (!nRes.ok) throw new Error(n.error);
       setArticles(n.articles || []);
@@ -274,15 +352,48 @@ export default function NewsPage() {
         if (n.setup.roleId) setAddRole((r) => r || n.setup.roleId);
       }
       try {
-        const gRes = await fetch("/api/discord/guild");
+        const [gRes, botRes] = await Promise.all([
+          fetch("/api/discord/guild", { cache: "no-store" }),
+          fetch("/api/guild", { cache: "no-store" }),
+        ]);
         if (gRes.ok) {
           setGuild(await gRes.json());
+        }
+        if (botRes.ok) {
+          const botData = await botRes.json();
+          setBotOptions(botData.guilds || []);
+          setActiveBotId(botData.active || "");
         }
       } catch {}
     } catch (e: any) {
       setMessage({ text: `❌ ${e.message || "Konnte Game-News nicht laden."}`, type: "error" });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function switchNewsBot(guildId: string) {
+    if (!guildId || guildId === activeBotId) return;
+    setSwitchingBot(true);
+    setLoading(true);
+    setMessage(null);
+    setArticles([]);
+    setSelectedArticle(null);
+    try {
+      const response = await fetch("/api/guild", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guildId }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Bot konnte nicht gewechselt werden.");
+      setActiveBotId(result.active || guildId);
+      await load();
+    } catch (error: any) {
+      setMessage({ text: error.message || "Bot konnte nicht gewechselt werden.", type: "error" });
+      setLoading(false);
+    } finally {
+      setSwitchingBot(false);
     }
   }
 
@@ -429,38 +540,24 @@ export default function NewsPage() {
 
   // Filter-Logik
   const filteredArticles = useMemo(() => {
+    const query = deferredSearchQuery.toLowerCase().trim();
     return articles.filter((a) => {
-      if (activeFilter === "games" && (isDriverOrSoftware(a.sourceType) || isNasSource(a.sourceType) || isTechSource(a.sourceType))) {
-        return false;
-      }
-      if (activeFilter === "drivers" && !isDriverOrSoftware(a.sourceType)) {
-        return false;
-      }
-      if (activeFilter === "nas" && !isNasSource(a.sourceType)) {
-        return false;
-      }
-      if (activeFilter === "tech" && !isTechSource(a.sourceType)) {
-        return false;
-      }
-      if (activeFilter === "patchnotes" && !a.isPatchnotes) {
-        return false;
-      }
+      if (!matchesNewsArticleFilter(a, activeFilter)) return false;
       if (selectedSource !== "all" && a.sourceName !== selectedSource && a.sourceId !== selectedSource) {
         return false;
       }
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchesTitle = a.title.toLowerCase().includes(q);
-        const matchesSummary = a.summary.toLowerCase().includes(q);
-        const matchesSource = a.sourceName.toLowerCase().includes(q);
-        const matchesContent = a.content.toLowerCase().includes(q);
+      if (query) {
+        const matchesTitle = a.title.toLowerCase().includes(query);
+        const matchesSummary = a.summary.toLowerCase().includes(query);
+        const matchesSource = a.sourceName.toLowerCase().includes(query);
+        const matchesContent = a.content.toLowerCase().includes(query);
         if (!matchesTitle && !matchesSummary && !matchesSource && !matchesContent) {
           return false;
         }
       }
       return true;
     });
-  }, [articles, activeFilter, selectedSource, searchQuery]);
+  }, [articles, activeFilter, selectedSource, deferredSearchQuery]);
 
   const counts = useMemo(() => {
     const total = articles.length;
@@ -474,10 +571,21 @@ export default function NewsPage() {
 
   const sourceOptions = useMemo(() => {
     const map = new Map<string, string>();
-    for (const a of articles) map.set(a.sourceName, a.sourceName);
-    for (const f of feeds) map.set(f.name, f.name);
+    for (const a of articles) {
+      if (matchesNewsArticleFilter(a, activeFilter)) {
+        map.set(a.sourceName, a.sourceName);
+      }
+    }
     return Array.from(map.values()).sort();
-  }, [articles, feeds]);
+  }, [articles, activeFilter]);
+
+  // Wenn der Kategorie-Filter gewechselt wird und die gewählte Quelle dort gar nicht vorkommt, auf "all" zurücksetzen
+  useEffect(() => {
+    if (selectedSource !== "all" && !sourceOptions.includes(selectedSource)) {
+      setSelectedSource("all");
+    }
+  }, [selectedSource, sourceOptions]);
+  const activeBotName = botOptions.find((bot) => bot.id === activeBotId)?.name || guild?.guild?.name || "Aktiver Server";
 
   if (loading) {
     return (
@@ -490,7 +598,7 @@ export default function NewsPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Kopfbereich */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
             <Newspaper className="w-8 h-8 text-orange-400" />
@@ -499,10 +607,30 @@ export default function NewsPage() {
           <p className="text-gray-400 text-sm mt-1">
             Offizielle Spiel-Updates, detaillierte Patchnotes und neueste Grafikkarten- & Chipsatz-Treiber im Überblick.
           </p>
+          <div className="mt-3 inline-flex items-center gap-2 rounded-md border border-orange-400/20 bg-orange-400/5 px-2.5 py-1.5 text-xs text-gray-300">
+            <Server className="h-3.5 w-3.5 text-orange-300" />
+            <span className="text-gray-500">Nachrichten für</span>
+            <strong className="max-w-48 truncate text-white">{activeBotName}</strong>
+          </div>
         </div>
 
         {/* Schnell-Statistik */}
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {botOptions.length > 1 && (
+            <label className="flex min-w-48 items-center gap-2 rounded-xl border border-discord-border bg-discord-card px-3 py-1.5 text-gray-400">
+              <Server className="h-3.5 w-3.5 shrink-0 text-orange-300" />
+              <span className="sr-only">News-Server auswählen</span>
+              <select
+                value={activeBotId}
+                onChange={(event) => switchNewsBot(event.target.value)}
+                disabled={switchingBot}
+                className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none disabled:opacity-60"
+              >
+                {botOptions.map((bot) => <option key={bot.id} value={bot.id} className="bg-discord-dark">{bot.name}{bot.main ? " · Hauptserver" : ""}</option>)}
+              </select>
+              {switchingBot && <RefreshCw className="h-3.5 w-3.5 animate-spin text-gray-400" />}
+            </label>
+          )}
           <span className="px-3 py-1.5 rounded-xl bg-discord-card border border-discord-border text-gray-300 font-medium">
             📰 <strong className="text-white">{articles.length}</strong> Artikel
           </span>
@@ -586,7 +714,7 @@ export default function NewsPage() {
                 <Filter className="w-4 h-4 text-gray-400 shrink-0" />
                 <select
                   value={selectedSource}
-                  onChange={(e) => setSelectedSource(e.target.value)}
+                  onChange={(e) => startFilterTransition(() => setSelectedSource(e.target.value))}
                   className="bg-discord-dark border border-discord-border rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500 min-w-[180px]"
                 >
                   <option value="all">Alle Spiele & Quellen ({sourceOptions.length})</option>
@@ -602,7 +730,7 @@ export default function NewsPage() {
             {/* Schnell-Filter Pills */}
             <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-discord-border/50">
               <button
-                onClick={() => setActiveFilter("all")}
+                onClick={() => startFilterTransition(() => setActiveFilter("all"))}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                   activeFilter === "all" ? "bg-orange-500 text-black shadow-md shadow-orange-500/20" : "bg-discord-dark text-gray-400 hover:text-white border border-discord-border"
                 }`}
@@ -610,7 +738,7 @@ export default function NewsPage() {
                 Alle ({counts.total})
               </button>
               <button
-                onClick={() => setActiveFilter("games")}
+                onClick={() => startFilterTransition(() => setActiveFilter("games"))}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   activeFilter === "games" ? "bg-orange-500 text-black shadow-md shadow-orange-500/20" : "bg-discord-dark text-gray-400 hover:text-white border border-discord-border"
                 }`}
@@ -619,7 +747,7 @@ export default function NewsPage() {
                 Spiele ({counts.games})
               </button>
               <button
-                onClick={() => setActiveFilter("patchnotes")}
+                onClick={() => startFilterTransition(() => setActiveFilter("patchnotes"))}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   activeFilter === "patchnotes" ? "bg-orange-500 text-black shadow-md shadow-orange-500/20" : "bg-discord-dark text-gray-400 hover:text-white border border-discord-border"
                 }`}
@@ -628,7 +756,7 @@ export default function NewsPage() {
                 Nur Patchnotes ({counts.patchnotes})
               </button>
               <button
-                onClick={() => setActiveFilter("drivers")}
+                onClick={() => startFilterTransition(() => setActiveFilter("drivers"))}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   activeFilter === "drivers" ? "bg-orange-500 text-black shadow-md shadow-orange-500/20" : "bg-discord-dark text-gray-400 hover:text-white border border-discord-border"
                 }`}
@@ -637,7 +765,7 @@ export default function NewsPage() {
                 Treiber & Software ({counts.drivers})
               </button>
               <button
-                onClick={() => setActiveFilter("nas")}
+                onClick={() => startFilterTransition(() => setActiveFilter("nas"))}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   activeFilter === "nas" ? "bg-orange-500 text-black shadow-md shadow-orange-500/20" : "bg-discord-dark text-gray-400 hover:text-white border border-discord-border"
                 }`}
@@ -646,7 +774,7 @@ export default function NewsPage() {
                 NAS-Systeme ({counts.nas})
               </button>
               <button
-                onClick={() => setActiveFilter("tech")}
+                onClick={() => startFilterTransition(() => setActiveFilter("tech"))}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   activeFilter === "tech" ? "bg-orange-500 text-black shadow-md shadow-orange-500/20" : "bg-discord-dark text-gray-400 hover:text-white border border-discord-border"
                 }`}
@@ -679,7 +807,7 @@ export default function NewsPage() {
                 {feeds.map((f) => (
                   <button
                     key={f.id}
-                    onClick={() => setSelectedSource(selectedSource === f.name ? "all" : f.name)}
+                    onClick={() => startFilterTransition(() => setSelectedSource(selectedSource === f.name ? "all" : f.name))}
                     className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all ${
                       selectedSource === f.name ? "border-orange-500 bg-orange-500/10 text-white" : "border-discord-border bg-discord-dark hover:border-discord-blurple text-gray-300"
                     }`}
@@ -716,75 +844,9 @@ export default function NewsPage() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div aria-busy={filterPending} className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity ${filterPending ? "opacity-70" : "opacity-100"}`}>
               {filteredArticles.map((article) => (
-                <div
-                  key={article.id}
-                  onClick={() => setSelectedArticle(article)}
-                  className="bg-discord-card border border-discord-border rounded-2xl overflow-hidden hover:border-orange-500/60 hover:shadow-2xl hover:shadow-orange-500/5 transition-all duration-200 group flex flex-col cursor-pointer"
-                >
-                  {/* Kachel-Bild mit Tags */}
-                  <div className="relative h-44 bg-discord-dark overflow-hidden shrink-0">
-                    {article.imageUrl || article.headerImage ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={article.imageUrl || article.headerImage}
-                        alt={article.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-discord-card to-discord-dark text-gray-500 p-4">
-                        <SourceIcon type={article.sourceType} className="w-12 h-12 mb-2" />
-                        <span className="text-xs font-semibold text-gray-400">{article.sourceName}</span>
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-discord-card via-transparent to-black/30" />
-
-                    <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
-                      <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border backdrop-blur-md bg-black/60 shadow-sm ${TYPE_BADGE[article.sourceType].className}`}>
-                        {article.sourceName}
-                      </span>
-                      {article.isPatchnotes ? (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/90 text-white shadow-sm">
-                          Patchnotes
-                        </span>
-                      ) : article.sourceType.includes("gpu") || article.sourceType.includes("chipset") ? (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/90 text-white shadow-sm">
-                          Treiber
-                        </span>
-                      ) : article.isSnapshot ? (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-500/90 text-black shadow-sm">
-                          Snapshot
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {/* Kachel-Inhalt */}
-                  <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
-                    <div>
-                      <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-2">
-                        <Clock className="w-3.5 h-3.5 text-gray-500" />
-                        <span>{formatTimeAgo(article.date)}</span>
-                      </div>
-                      <h3 className="text-white font-bold text-base leading-snug line-clamp-2 group-hover:text-orange-400 transition-colors">
-                        {article.title}
-                      </h3>
-                      <p className="text-gray-400 text-xs line-clamp-3 leading-relaxed mt-2">
-                        {article.summary}
-                      </p>
-                    </div>
-
-                    <div className="pt-3 border-t border-discord-border flex items-center justify-between text-xs">
-                      <span className="text-orange-400 font-semibold group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                        Artikel lesen <ChevronRight className="w-3.5 h-3.5" />
-                      </span>
-                      <span className="text-gray-500 group-hover:text-gray-300 transition-colors">
-                        {article.sourceType === "steam" ? "Steam" : "Offiziell"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                <NewsArticleCard key={article.id} article={article} onSelect={setSelectedArticle} />
               ))}
             </div>
           )}

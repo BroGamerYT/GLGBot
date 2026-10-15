@@ -88,6 +88,11 @@ class BlacklistService {
     return this.config[guildId];
   }
 
+  public getBackupConfig(guildId: string): BlacklistConfig | null {
+    const config = this.config[guildId];
+    return config ? { ...config, words: [...config.words] } : null;
+  }
+
   public setConfig(guildId: string, patch: Partial<BlacklistConfig>): BlacklistConfig {
     const current = this.getConfig(guildId);
     this.config[guildId] = { ...current, ...patch };

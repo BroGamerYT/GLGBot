@@ -184,6 +184,15 @@ class EconomyService {
     return { ...DEFAULT_ECONOMY_CONFIG, ...store.config };
   }
 
+  public getBackupSettings(guildId: string): { config: EconomyConfig; shopItems: ShopItem[] } | null {
+    const store = this.stores[guildId];
+    if (!store) return null;
+    return {
+      config: { ...DEFAULT_ECONOMY_CONFIG, ...store.config },
+      shopItems: store.shopItems.map((item) => ({ ...item })),
+    };
+  }
+
   public updateConfig(guildId: string, patch: Partial<EconomyConfig>): EconomyConfig {
     const store = this.getOrCreateGuildStore(guildId);
     store.config = { ...store.config, ...patch };
@@ -233,6 +242,12 @@ class EconomyService {
     const store = this.getOrCreateGuildStore(guildId);
     if (!onlyEnabled) return store.shopItems;
     return store.shopItems.filter((i) => i.enabled);
+  }
+
+  public replaceShopItems(guildId: string, items: ShopItem[]) {
+    const store = this.getOrCreateGuildStore(guildId);
+    store.shopItems = items.map((item) => ({ ...item }));
+    this.scheduleSave();
   }
 
   public getShopItem(guildId: string, itemId: string): ShopItem | null {

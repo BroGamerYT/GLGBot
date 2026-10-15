@@ -63,7 +63,7 @@ echo.
 
 :: Archiv im TEMP-Ordner erstellen (nicht im Projektordner, sonst packt tar sich selbst mit ein)
 if exist "%ARCHIVE%" del "%ARCHIVE%" > nul 2>&1
-tar --exclude="node_modules" --exclude=".git" --exclude=".next" --exclude="./dist" --exclude="./data" --exclude="./data_from_server" --exclude="./.env.from_server" --exclude="./deploy.tar.gz" -czf "%ARCHIVE%" .
+tar --exclude="node_modules" --exclude=".git" --exclude=".next" --exclude="./dist" --exclude="./data" --exclude="./data_from_server" --exclude="./.env.from_server" --exclude="./deploy.tar.gz" --exclude="*.zip" --exclude="*.tar.gz" --exclude="./.vscode" --exclude="./fehler.md" --exclude="./_backups" -czf "%ARCHIVE%" .
 if errorlevel 1 (
     echo.
     echo ❌ Fehler beim Erstellen des Archivs.
@@ -76,17 +76,14 @@ if errorlevel 1 goto upload_fail
 scp "%ARCHIVE%" %REMOTE%:/tmp/discordbot_deploy.tar.gz
 if errorlevel 1 goto upload_fail
 
-ssh %REMOTE% "tar -xzf /tmp/discordbot_deploy.tar.gz -C %SERVER_PATH% && rm -f /tmp/discordbot_deploy.tar.gz"
+ssh %REMOTE% "cd %SERVER_PATH% && rm -rf src web/src musicbot/src && tar -xzf /tmp/discordbot_deploy.tar.gz -C %SERVER_PATH% && rm -f /tmp/discordbot_deploy.tar.gz"
 if errorlevel 1 goto upload_fail
 
 del "%ARCHIVE%" > nul 2>&1
 echo.
 echo ✅ Dateien erfolgreich auf den Proxmox-Server hochgeladen!
 echo.
-echo Moechtest du jetzt 'npm install', Build ^& PM2-Neustart fuer Bot ^& Dashboard ausfuehren?
-set "remote_inst="
-set /p remote_inst="Ausfuehren? [J/N]: "
-if /i not "%remote_inst%"=="J" goto upload_end
+echo [INFO] Fuehre 'npm install', Build ^& PM2-Neustart fuer Bot ^& Dashboard aus (immer aktiv)...
 
 echo.
 echo [1/2] Baue Discord-Bot...
@@ -97,7 +94,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [2/2] Baue Web-Dashboard...
+echo [2/3] Baue Web-Dashboard...
 ssh %REMOTE% "cd %SERVER_PATH%/web && npm install && npm run build && (pm2 restart discord-web || pm2 start npm --name discord-web -- start) && pm2 save"
 if errorlevel 1 (
     echo ❌ Fehler beim Bauen/Starten des Dashboards. Siehe Ausgabe oben.
@@ -105,7 +102,15 @@ if errorlevel 1 (
 )
 
 echo.
-echo ✅ Bot und Dashboard wurden gebaut und neu gestartet!
+echo [3/3] Baue Musik-Bot (wird vom Hauptbot verwaltet, kein PM2)...
+ssh %REMOTE% "cd %SERVER_PATH%/musicbot && npm install && npm run build && pm2 restart discord-bot"
+if errorlevel 1 (
+    echo ❌ Fehler beim Bauen des Musik-Bots. Siehe Ausgabe oben.
+    goto upload_end
+)
+
+echo.
+echo ✅ Bot, Dashboard und Musik-Bot wurden gebaut und neu gestartet!
 goto upload_end
 
 :upload_fail

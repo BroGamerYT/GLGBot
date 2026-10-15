@@ -43,10 +43,11 @@ const rulesCommand: Command = {
         return;
       }
 
+      const ruleText = guild ? await rulesService.fillPlaceholders(guild, rule.text) : rule.text;
       const embed = new EmbedBuilder()
         .setColor(0x5865f2)
         .setTitle(`${rule.emoji || "📌"} §${paragraphOpt} · ${rule.title}`)
-        .setDescription(rule.text)
+        .setDescription(ruleText)
         .setFooter({ text: `${guild?.name || BRANDING.community} • Serverregeln` })
         .setTimestamp();
 
@@ -73,22 +74,25 @@ const rulesCommand: Command = {
       .setThumbnail(icon || null);
 
     if (rulesConfig.intro) {
-      embed.setDescription(rulesConfig.intro.slice(0, 4000));
+      const intro = guild ? await rulesService.fillPlaceholders(guild, rulesConfig.intro) : rulesConfig.intro;
+      embed.setDescription(intro.slice(0, 4000));
     }
 
     // Regeln als Fields (oder formatierter Text) hinzufügen
     for (const [i, r] of rulesConfig.rules.entries()) {
+      const filledText = guild ? await rulesService.fillPlaceholders(guild, r.text) : r.text;
       embed.addFields({
         name: `${r.emoji || "📌"} §${i + 1} · ${r.title}`,
-        value: r.text ? (r.text.length > 1024 ? r.text.slice(0, 1020) + "…" : r.text) : "*Keine Beschreibung*",
+        value: filledText ? (filledText.length > 1024 ? filledText.slice(0, 1020) + "…" : filledText) : "*Keine Beschreibung*",
         inline: false,
       });
     }
 
     if (rulesConfig.consequences) {
+      const consequences = guild ? await rulesService.fillPlaceholders(guild, rulesConfig.consequences) : rulesConfig.consequences;
       embed.addFields({
         name: "⚠️ Konsequenzen bei Verstößen",
-        value: rulesConfig.consequences.slice(0, 1024),
+        value: consequences.slice(0, 1024),
         inline: false,
       });
     }

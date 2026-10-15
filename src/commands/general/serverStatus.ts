@@ -30,7 +30,7 @@ const serverStatusCommand: Command = {
         status.online && status.maxPlayers ? `👥 ${status.players}/${status.maxPlayers} Spieler` : null,
         status.map ? `🗺️ ${status.map}` : null,
         status.version ? `🏷️ ${status.version}` : null,
-        `📡 \`${server.displayAddress || `${server.host}:${server.port}`}\``,
+        server.hideAddress ? null : `📡 \`${server.displayAddress || `${server.host}:${server.port}`}\``,
       ].filter(Boolean);
       embed.addFields({ name: `${server.name} (${TYPE_LABEL[server.type]})`, value: lines.join("\n"), inline: results.length > 1 });
     }

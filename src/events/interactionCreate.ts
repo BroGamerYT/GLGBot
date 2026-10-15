@@ -1,4 +1,4 @@
-import { Events, Interaction, AttachmentBuilder } from "discord.js";
+import { Events, Interaction, AttachmentBuilder, EmbedBuilder } from "discord.js";
 import { BotEvent } from "../types";
 import { 
   handleVoiceSelectMenu, 
@@ -19,6 +19,9 @@ import { customCommandService } from "../services/customCommandService";
 import { lfgService } from "../services/lfgService";
 import { giveawayService } from "../services/giveawayService";
 import { directMessageService } from "../services/directMessageService";
+import { musicService } from "../services/musicService";
+import { handleMusicButton, handleSoundSelect } from "../handlers/musicControlHandler";
+import { handleRadioButton, handleRadioSelect } from "../handlers/radioPanelHandler";
 
 const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
   name: Events.InteractionCreate,
@@ -84,6 +87,14 @@ const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
 
     // 2. Dropdown Menüs (Voice & Streamer Panel)
     if (interaction.isStringSelectMenu()) {
+      if (interaction.customId === "sound_pick") {
+        await handleSoundSelect(interaction);
+        return;
+      }
+      if (interaction.customId === "radio_station_pick") {
+        await handleRadioSelect(interaction);
+        return;
+      }
       if (
         interaction.customId === "voice_settings_menu" ||
         interaction.customId === "voice_permissions_menu"
@@ -182,6 +193,52 @@ const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
           content: "📜 **Transkript erfolgreich erstellt!**\nDu kannst die `.html`-Datei direkt im Browser öffnen (Discord Dark-Theme) oder die `.txt`-Datei ansehen:",
           files: [htmlAttachment, txtAttachment],
         });
+        return;
+      }
+
+      // Music Control Buttons (⏸️/▶️/⏭️/⏹️/🔀)
+      if (interaction.customId.startsWith("music_")) {
+        await handleMusicButton(interaction);
+        return;
+      }
+
+      // Radio Panel Buttons (Pause/Weiter/Stop/Lautstärke/Refresh)
+      if (interaction.customId.startsWith("radio_")) {
+        await handleRadioButton(interaction);
+        return;
+      }
+
+      // Music Queue Buttons
+      if (interaction.customId === "queue_prev" || interaction.customId === "queue_next") {
+        if (!interaction.guildId) return;
+        const queue = musicService.getQueue(interaction.guildId);
+        if (queue.length === 0) {
+          await interaction.reply({ content: "Die Queue ist leer.", ephemeral: true });
+          return;
+        }
+
+        const currentEmbed = interaction.message?.embeds[0];
+        const footerText = currentEmbed?.footer?.text ?? "Seite 1/1";
+        const match = footerText.match(/Seite (\d+)\/(\d+)/);
+        let page = match ? parseInt(match[1], 10) - 1 : 0;
+        const totalPages = match ? parseInt(match[2], 10) : 1;
+
+        if (interaction.customId === "queue_prev") page = Math.max(0, page - 1);
+        else page = Math.min(totalPages - 1, page + 1);
+
+        const pageSize = 10;
+        const start = page * pageSize;
+        const items = queue.slice(start, start + pageSize);
+
+        const embed = new EmbedBuilder()
+          .setColor(0x5865f2)
+          .setTitle(`🎵 Warteschlange (${queue.length} Songs)`)
+          .setDescription(
+            items.map((item, i) => `**${start + i + 1}.** [${item.title}](${item.url}) — ${item.duration} | ${item.requestedBy.tag}`).join("\n"),
+          )
+          .setFooter({ text: `Seite ${page + 1}/${totalPages}` });
+
+        await interaction.update({ embeds: [embed] });
         return;
       }
 

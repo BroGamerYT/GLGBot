@@ -6,6 +6,105 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
 
 ---
 
+## [2.26.0] - 2026-10-15
+
+### Radio & Web-Dashboard Redesign (`/radio`)
+* **Persistente Mini-Player Bar:** Live-Status (🟢 Läuft / ⏸️ Pausiert / ⚪ Bereit), Sendername, ICY-Metadaten („Was läuft gerade“), Ziel-Sprachkanal-Picker, Play/Pause/Stop und Lautstärkeregelung (`−`, `+` in 10%-Schritten).
+* **4 strukturierte Tabs:**
+  * **📻 Radio-Sender:** Live-Suchleiste, Schnellfilter (*Alle*, *SUNSHINE LIVE*, *SomaFM*, *laut.fm*, *Eigene*), Sender-Karten mit „Abspielen“, „+ Temp-Kanal“ und „Probe“ (URL-Test), ausklappbares Formular für eigene Web-Streams.
+  * **🎵 Soundboard & Musik:** Live-Suche über alle Sounds, Ordner-Pills, Direkt-Wiedergabe, Download-Button (`⬇`) und Drag & Drop in Playlisten.
+  * **📤 Upload-Zentrale:** Integrierte Drag & Drop Zone (ganze Ordner werden automatisch als Playlist angelegt!) sowie Discord DM-Upload-Code Generator.
+  * **📜 Playlisten & Queue:** 2-Spalten-Layout für eigene Playlisten und die Live-YouTube-Warteschlange.
+  * **⚙️ Bot-Einstellungen:** Radio Bot-Name, Worker-Status (PID, Uptime, Restarts, Start/Stop/Restart) und Token-/Invite-Konfiguration für simultane Bots.
+
+### Temporäre Musik-Kanäle & Voice-Stabilität
+* **Automatisches Cleanup (`musicChannelCleanup`):**
+  * Neu erstellte Sender-Kanäle (`📻・<Sender>`) erhalten 120 Sekunden Beitrittsfrist (`INITIAL_GRACE_MS`).
+  * Sobald alle menschlichen Nutzer den Kanal verlassen, läuft ein 60-Sekunden Countdown (`EMPTY_GRACE_MS`); danach verlässt der Bot den Talk und löscht den temporären Kanal automatisch.
+  * Reguläre Sprachkanäle werden bei Inaktivität verlassen, bleiben aber für den Server erhalten.
+  * Automatische Bereinigung verwaister temporärer Musik-Kanäle beim Bot-Start.
+* **Voice-Fix:** Behebung des sofortigen Voice-Disconnects bei Radio-Start (Verhinderung falscher Connection-Destruction beim Beenden alter Sessions).
+* **Stream-Abbruch-Handling:** Abfangen von `AbortError` und Stream-Fehlern in `Readable.fromWeb` und `killFfmpeg`, um Unhandled Rejections zu verhindern.
+* **Separater Musik-Bot Prozess (`musicbot/`):** Dedizierter Worker mit eigenem Token, damit Radio und Musik sich nicht gegenseitig blockieren.
+
+### Hinzugefügt (Musik & Radio)
+* **`/music loop`:** Wiederholung aus/Song/Queue.
+* **Now-Playing Steuer-Buttons:** ⏸️/▶️/⏭️/⏹️/🔀 direkt an der Playing-Nachricht, mit Live-Embed-Update.
+* **`MUSIC_MODE`:** Schalter `embedded`/`disabled` in `.env` (deaktiviert `/radio`, `/music` und Dashboard-Start).
+* **Radio Auto-Resume:** Gespeicherte Streams (`data/radio_state.json`) werden nach Bot-Neustart automatisch fortgesetzt.
+* **ICY-Titelanzeige:** „Was läuft gerade“ aus Icecast/Shoutcast-Metadaten (60s-Refresh) in `/radio status` und im Dashboard.
+
+### Sicherheit & Härtung
+* **Stream-URL-Validierung:** SSRF-Schutz (keine privaten/lokalen Hosts via DNS-Check) plus Erreichbarkeits-Test mit Timeout.
+
+### Hinzugefügt (Musik-Rest)
+* **Sender-Verwaltung pro Server:** Anzeigename, Stream-URL, Standard-Voice-Kanal, Nutzerlimit und Aktiv-Status in `data/radio_config.json` (Dashboard + `/radio add|remove|list`).
+* **Dashboard:** URL-Test-Button, „Erstellen & starten“ (legt `📻・<Sender>`-Kanal mit Limit an oder nutzt bestehenden), Musik-Queue mit Uploader und Soundboard-Bibliothek auf `/radio`.
+* **Voice-Kanal-Status:** Aktueller ICY-Titel wird bei Wechsel als Kanal-Status gesetzt (Rate-Limit-schonend).
+* **Soundboard-Basis:** `data/music/` (MP3/WAV/OGG/M4A, max. 25 MB), `/soundboard list|play` mit eigener Voice-Verbindung.
+* **Soundboard-Ordner:** Unterordner in `data/music/` (eine Ebene, z. B. `jingles/intro.mp3`), gruppierte `/soundboard list` und Sound-Dropdown im Musik-Panel (`sound_pick`, max. 25).
+* **Auto-Panel:** Bei neu erstelltem Musik-/Radio-Kanal wird automatisch das Musik-Panel in `#🎵・musik-steuerung` gepostet (Setup + „Erstellen & starten“).
+* **Beste Audioqualität:** Neue Musik-Kanäle mit 384 kbps (Fallback ohne, falls Server-Limit niedriger).
+* **Lokale Musik-Queue:** `/music play local:<dateiname>` spielt Sounds aus `data/music` in der Queue (ohne Cover, als 📁 markiert).
+* **MP3-Uploads:** Dashboard-Upload (`/api/radio/upload`, validiert) und DM-Upload per Einmal-Code (`MUS-XXXXXX`, 10 Min., Owner/Admins, `POST /music/upload-code`).
+* **Dashboard-Wiedergabe:** Jeder Sound hat einen Abspielen-Button (`POST /music/play-local`, Ziel-Kanal wählbar).
+* **Playlist-Importe:** `/music spotify` (Spotify-Playlist → YouTube-Suche, max. 30) und YouTube-Playlist-Links direkt in `/music play` (via Piped).
+* **Verlauf:** `/music history` + Dashboard-Bereich „Zuletzt gespielt“ (YouTube/Lokal mit Uploader).
+* **Discord-Upload:** `/music upload` mit Dateianhang (Kanal-Recht, DJ-Rolle oder Upload-Code).
+* **DJ-Rolle & eigene Playlisten:** `MUSIC_DJ_ROLE_ID` (im Economy-Shop für Coins verkaufbar) berechtigt Uploads; max. 2 eigene Playlisten pro Nutzer (Besitzer serverseitig gesetzt).
+* **Saubere Übernahme:** Radio-Start beendet Musik-Session und umgekehrt (ein Stream pro Server, kein Überlagern).
+* **`RADIO_AUTO_RESUME`:** Auto-Fortsetzung nach Neustart abschaltbar (Standard true); leere Kanäle werden nie automatisch bespielt.
+* **Radio-Lautstärke & Panel:** `volume` pro Radio-Session (live regelbar), `/radio panel` mit Sender-Dropdown + Lautstärke-Buttons, Dashboard-Lautstärke ±10 (`POST /radio/volume`).
+* **Web-Doku:** Hilfe-Seite und Changelog (`/radio panel`, lokale Wiedergabe, Soundboard, Playlisten) aktualisiert.
+* **Lautstärke merken:** Pro Channel (Fallback pro User) in `data/music_prefs.json` gespeichert, beim Start automatisch angewendet.
+* **Mini-Musik-Bot (`musicbot/`, eigener Token):** Erstellt Musik-Kategorie + Sender-Kanäle (384 kbps) automatisch, spielt alle aktiven Sender, ICY-Titel als Kanal-Status, Auto-Reconnect, Panel + `/musik`-Befehle, stellt gelöschte Kanäle wieder her. Wird vom GLGBot verwaltet (Auto-Start, Auto-Restart, Dashboard-Steuerung `GET/POST /musicbot/*`).
+* **Playlisten:** Erstellen/löschen, Sounds per Drag & Drop hineinziehen, sortieren und zwischen Playlisten verschieben, „Alle abspielen“ (`POST /music/play-playlist`).
+* **Upload/Download:** Drag-&-Drop-Mehrfach-Upload und ⬇-Download pro Sound.
+* **Musik-Panel (`/music-panel`):** Permanentes Discord-Panel mit Pause/Weiter/Skip/Stop, Lautstärke ±10 %, Loop-Umschaltung, Shuffle und Status-Refresh (Live-Embed-Update, Modul-gated).
+* **Fehler-Sichtbarkeit:** `lastError` in Radio-/Musik-Status (`/radio status`, Dashboard-Livebox, Panel-Embed) – kein stilles Schweigen mehr.
+* **Validierung:** HEAD-Fallback auf GET-Range für Streams, die HEAD ablehnen.
+* **Voice-Race-Fix:** `stop()`/`destroy()` in Radio-, Musik- und Soundboard-Service werfen nie mehr (`Cannot destroy VoiceConnection`), `start()` räumt alte Sessions best-effort auf.
+* **Audio-Diagnose:** Byte-Zähler erkennt stumme Streams (`ffmpeg lieferte keine Audiodaten`), `/radio ton` spielt 5s Testton zur Pipeline-Prüfung, `POST /radio/probe` testet URLs serverseitig auf echtes Audio (Dashboard-Button).
+* **Stream-Kompatibilität:** Browser-User-Agent für ffmpeg (manche Hoster blocken `Lavf`).
+* **Anti-Lag:** Musik-Kanäle mit bestmöglicher Bitrate (384 → 128 kbps), bestehende Kanäle werden angehoben; Jitter-Puffer (`thread_queue_size`) für schwankende Streams.
+* **Anti-Drossel:** Exponentieller Reconnect-Backoff (10s → 120s), HTTP-429 mit Retry-After respektiert (60–300s) statt 5s-Hämmern.
+* **Voice-Reconnect:** Bei Verbindungsabbruch erst Signalling-Retry, dann kompletter Neuaufbau (bis 3x, Musik setzt Song fort) in Radio, Musik und Musikbot – statt sofort aufzugeben.
+* **YouTube-Diagnose:** Browser-Header + Stream-Fehler mit echter Meldung in `lastError` (statt nur „Failed to find any playable formats“); Musik-Fehler auch im Dashboard sichtbar.
+* **YouTube-Piped-Fallback:** Wenn ytdl geblockt ist (Server-IP), werden Titel + Audio-URL über Piped-API geholt und direkt per ffmpeg abgespielt.
+* **Backup-Fix:** Unbekannte News-Feed-Typen sprengen kein Backup mehr (werden tolerant herausgefiltert statt Zod-Absturz in `captureGuildBotSettings`).
+* **Stream-URLs:** Standard-Sender nutzen `stream.laut.fm` (echtes Audio statt HTML-Seite); `laut.fm`-Seiten-URLs werden automatisch umgeschrieben.
+
+## [2.25.0] - 2026-10-14
+
+### Hinzugefügt
+* **Radio & Musik Dashboard-Seite (`/radio`):** Sender-Auswahl mit Standard- und eigenen Sendern, Live-Anzeige des laufenden Streams, Ziel-Sprachkanal-Auswahl und Bot-Steuerung (Abspielen, Pause/Fortsetzen, Stop).
+* **YouTube-Musik mit Warteschlange (`/music`):** Suche per Suchbegriff oder URL, Queue, Skip, Shuffle, Remove, Lautstärke und Now-Playing.
+* **Musik-Setup-Modul:** Legt beim Server-Setup automatisch eine „Musik“-Kategorie mit Voice-Kanal an; neues Modul „Radio & Musik“ in `/modules`.
+
+### Behoben
+* **Radio-Proxy:** Radio-Routen in der Dashboard-Bot-Schnittstelle freigegeben; falscher Pfad (`/play` → `/start`) und falsches Status-Format korrigiert.
+* **YouTube-Suche:** Suchbegriffe werden jetzt per `yt-search` aufgelöst statt ungültigem `ytsearch:`-Präfix an `ytdl-core`.
+* **Modul-Registrierung:** `music`-Modul in `BOT_MODULES` eingetragen (inkl. Queue-Buttons), damit es ein-/ausschaltbar und im Setup nutzbar ist.
+* **`POST /radio/start`:** Akzeptiert `channelId` aus dem Dashboard; Fallback auf den Voice-Kanal des anfragenden Mitglieds.
+
+## [2.24.0] - 2026-10-13
+
+### Hinzugefügt
+* **Rollen- & Rechte-Verwaltung im Dashboard (`/roles`):**
+  * Durchsuchbare Rollenliste mit Discord-Rangposition, Mitgliederanzahl, Farbe und Integrationsstatus.
+  * Rollen erstellen, umbenennen, einfärben, hervorheben, erwähnbar machen, bearbeiten und löschen.
+  * Gruppierte Rechte-Matrix für Serververwaltung, Mitglieder, Text- und Sprachkanäle.
+  * Mitglieder suchen sowie Rollen sicher vergeben oder entziehen.
+  * Getrennte Ansichten für Serverrollen und bestehende Verifikations-/Benachrichtigungs-Panels.
+
+### Sicherheit & Härtung
+* **Discord-Rollenhierarchie:** Änderungen sind auf Rollen unterhalb der eigenen und der Bot-Rolle beschränkt; verwaltete Rollen sind geschützt.
+* **Schutz sensibler Rechte:** Administrator- und Serververwaltungsrechte können nur Owner und Administratoren vergeben.
+* **Rollen-API:** Jede Aktion prüft serverseitig die Discord-Berechtigung „Rollen verwalten“ und die Position des Akteurs.
+
+### Behoben
+* **Game-News-Kategoriefilter:** Treiber-/Software-, NAS- und Technik-Feeds werden jetzt über getrennte Quelllisten gefiltert; Technikartikel erscheinen nicht mehr im Treiber-Reiter.
+
 ## [2.23.0] - 2026-10-12
 
 ### Hinzugefügt
