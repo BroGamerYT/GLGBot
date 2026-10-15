@@ -319,7 +319,16 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
   * Grafische Begrüßung neuer Mitglieder mit Avatar, Name und Mitgliederzahl.
   * Eigenes Hintergrundbild per Bild-URL; ein dunkler Filter hält Text und Avatar lesbar. Live-Vorschau und Test-Button im Dashboard.
 
-### 14. 📻 Radio- & Musik-Zentrale, Soundboard & Auto-Cleanup
+### 14. 📻 Radio- & Musik-Zentrale, Soundboard, Audio-Ducking & Auto-Cleanup
+* **Intelligentes Audio-Ducking (`voiceDuckingService`):**
+  * Sobald Personen im Sprachkanal sprechen, wird die Lautstärke des Radios oder der Musik automatisch auf 35 % abgesenkt (-65 %), damit Stimmen klar verständlich bleiben.
+  * Sobald alle aufhören zu sprechen, wird die Lautstärke nach 800 ms sanft wieder auf den regulären Wert angehoben.
+* **Dedizierte Steuerpanel-Textkanäle (`#📻・radio-steuerung` & `#🎵・musik-steuerung`):**
+  * Interaktive Steuerpanels mit Sender-Auswahl (Standard- & eigene Web-Streams), Soundboard-Dropdown, Play/Pause/Stop, Status und Lautstärkereglern (`🔉 -10%`, `🔊 +10%`).
+  * Kann per `/radio panel` bzw. `/music panel` eingerichtet oder automatisch via `/setup music` erstellt werden.
+* **Auto-Cleanup & In-Place Updates:**
+  * Klicks auf Panel-Buttons aktualisieren das Embed direkt *in-place*, ohne temporäre Pop-up-Nachrichten („Es läuft gerade keine Musik“) zu erzeugen.
+  * Alle regulären Chatnachrichten in Panel-Kanälen werden nach 2,5 Sekunden automatisch gelöscht, sodass der Kanal dauerhaft aufgeräumt bleibt.
 * **Persistenter Web-Player (`/radio`):**
   * Live-Status des aktuellen Streams (Titel, ICY-Metadaten, Sender-URL, aktiver Kanal).
   * Ziel-Sprachkanal-Wahl, Play/Pause, Stop und interaktive Lautstärkeregelung (`−`, `+` in 10%-Schritten).
@@ -342,12 +351,12 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 |---|---|---|
 | `/help` | Übersicht aller Befehle mit Link zum Dashboard. | Alle |
 | `/radio start <url> \| stop \| pause \| resume \| status \| ton` | Web-Radio-Stream im Voice-Kanal abspielen; `ton` spielt 5s Test-Audio. | Alle |
-| `/radio panel` | Radio-Steuerpanel mit Sender-Dropdown und Lautstärke-Buttons posten. | Kanäle verwalten |
+| `/radio panel [kanal]` | Richtet `#📻・radio-steuerung` ein oder postet das Radio-Panel. | Kanäle verwalten |
 | `/radio add <name> <url> \| remove \| list` | Eigene Radio-Streams speichern, löschen und verwalten. | Kanäle verwalten |
 | `/music play <titel\|url\|local:name> \| skip \| queue \| pause \| resume \| stop \| loop \| volume \| shuffle \| history` | YouTube- & lokale Musik mit Warteschlange, Lautstärke und Loop-Modus. | Alle |
 | `/music spotify <link>` | Importiert Spotify-Playlisten (bis 30 Tracks) als YouTube-Suche. | Alle |
 | `/music upload <datei> [code]` | Eigene Audio-Dateien (MP3/WAV/OGG/M4A) per Chat hochladen (DJ-Rolle, Recht oder Code). | Alle |
-| `/music-panel` | Permanentes Discord-Musik-Panel mit Buttons für Steuerung, Lautstärke und Loop. | Kanäle verwalten |
+| `/music panel [kanal]` | Richtet `#🎵・musik-steuerung` ein oder postet das Musik-Panel. | Kanäle verwalten |
 | `/soundboard list \| play <sound>` | Soundboard-Audio aus `data/music/` direkt im Voice abspielen. | Alle |
 | `/ping` | Zeigt die Latenz des Bots (im Chat auch `!ping`). | Alle |
 | `/rank [mitglied]` | Grafische Canvas-Rangkarte mit Level, Badges, Rang, Fortschritt, XP-Herkunft und Daily-Serie. | Alle |

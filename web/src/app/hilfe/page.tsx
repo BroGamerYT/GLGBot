@@ -582,10 +582,16 @@ export default function HelpPage() {
                 <strong className="text-white">🎛️ Persistenter Mini-Player:</strong> Die obere Player-Leiste zeigt immer den Live-Status (🟢 Läuft / ⏸️ Pausiert / ⚪ Bereit), ICY-Titel („Was läuft gerade“), den aktuellen Sprachkanal, Play/Pause/Stop und Lautstärke-Tasten (±10%).
               </li>
               <li>
+                <strong className="text-white">🎙️ Intelligentes Audio-Ducking:</strong> Redet jemand im Sprachkanal, wird der Stream automatisch auf 35 % geduckt (-65 % Lautstärke). Nach dem Sprechen kehrt die Musik nach 800 ms sanft zur Originallautstärke zurück.
+              </li>
+              <li>
+                <strong className="text-white">📻 Steuerpanel-Textkanäle & Auto-Cleanup:</strong> Mit <Cmd>/radio panel</Cmd> wird der Textkanal <Cmd>#📻・radio-steuerung</Cmd> und mit <Cmd>/music panel</Cmd> der Kanal <Cmd>#🎵・musik-steuerung</Cmd> bereitgestellt. Alle Klicks aktualisieren das Panel direkt im Embed ohne Pop-ups. Beliebige Textnachrichten in diesen Kanälen werden nach 2,5 Sekunden automatisch gelöscht, sodass der Kanal dauerhaft aufgeräumt bleibt.
+              </li>
+              <li>
                 <strong className="text-white">⚡ Temporäre Sender-Kanäle & Auto-Cleanup:</strong> Klickst du im Dashboard auf <em>„+ Temp-Kanal“</em>, legt der Bot einen temporären Sprachkanal (<Cmd>📻・&lt;Sender&gt;</Cmd>) mit 120s Beitrittsfrist an. Wenn alle Personen den Kanal verlassen, läuft ein 60s Countdown ab, nach dem der Bot sich trennt und den Kanal automatisch wieder löscht.
               </li>
               <li>
-                <strong className="text-white">💬 Discord-Befehle:</strong> <Cmd>/radio start</Cmd>, <Cmd>/radio panel</Cmd>, <Cmd>/music play &lt;suche|url|local:name&gt;</Cmd>, <Cmd>/music-panel</Cmd> und <Cmd>/soundboard play &lt;sound&gt;</Cmd>.
+                <strong className="text-white">💬 Discord-Befehle:</strong> <Cmd>/radio start</Cmd>, <Cmd>/radio panel</Cmd>, <Cmd>/music play &lt;suche|url|local:name&gt;</Cmd>, <Cmd>/music panel</Cmd> und <Cmd>/soundboard play &lt;sound&gt;</Cmd>.
               </li>
             </ul>
           </Section>

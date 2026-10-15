@@ -4,6 +4,29 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und folgt [Semantic Versioning](https://semver.org/).
 
+## [2.27.0] - 2026-10-15
+
+### Audio-Ducking (Auto-Lautstärke beim Sprechen)
+* **Intelligentes Audio-Ducking (`voiceDuckingService`):**
+  * Sobald Personen im Sprachkanal reden, wird die Lautstärke des Radio- oder Musik-Streams automatisch auf 35 % geduckt (Reduzierung um ca. 65 %), damit Stimmen klar verständlich bleiben.
+  * Sobald alle aufhören zu sprechen, wird die Lautstärke nach 800 ms sanft wieder auf den regulären Wert angehoben.
+  * Unterstützt sowohl den Web-Radio-Stream als auch den Musik-Player.
+
+### Radio & Musik Steuerpanel-Textkanäle
+* **Dedizierter Textkanal `#📻・radio-steuerung` (`postRadioPanel`):**
+  * Interaktives Radio-Steuerpanel mit Sender-Dropdown (Standard- + eigene Web-Streams), Play/Pause/Stop, Status und Lautstärke-Buttons (`🔉 -10%`, `🔊 +10%`).
+  * `/radio panel` erstellt automatisch den Kanal `#📻・radio-steuerung` (oder postet in einen Zielkanal).
+* **Dedizierter Textkanal `#🎵・musik-steuerung` (`postMusicPanel`):**
+  * `/music panel` erstellt automatisch den Kanal `#🎵・musik-steuerung` (oder postet in einen Zielkanal).
+  * Enthält Now-Playing-Status, Queue-Länge, Soundboard-Dropdown und Playback-Buttons.
+* **Auto-Setup:** `/setup music` richtet automatisch beide Steuerkanäle in der Musik-Kategorie ein.
+
+### Auto-Cleanup & In-Place Updates für Panel-Kanäle
+* **Keine störenden Pop-up-Meldungen mehr:** Bei Klicks auf Buttons wie Pause/Stop im Steuerpanel, während nichts läuft, wird das Panel-Embed direkt *in-place* aktualisiert, anstatt eine temporäre Textnachricht („Es läuft gerade keine Musik“) unter dem Panel anzuzeigen.
+* **Automatisches Bereinigen von Fremdnachrichten (`panelChannelService`):**
+  * Normale Chatnachrichten in Panel-Kanälen werden nach 2,5 Sekunden automatisch gelöscht, sodass der Kanal dauerhaft aufgeräumt bleibt.
+  * `cleanOldMessages` bereinigt alte und verwaiste Nachrichten bei Panel-Erstellung oder Refresh, sodass nur das Steuerpanel im Kanal verbleibt.
+
 ---
 
 ## [2.26.0] - 2026-10-15

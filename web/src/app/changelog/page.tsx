@@ -57,10 +57,35 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.26.0",
+    version: "v2.27.0",
     date: "15. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Audio-Ducking, Radio-Steuerpanel Textkanal & Panel-Auto-Cleanup",
+    description: "Automatisches Audio-Ducking (Lautstärke sinkt beim Reden auf 35 % und kehrt nach Sprechende zurück), dedizierter Textkanal #📻・radio-steuerung mit interaktivem Steuerpanel sowie Auto-Löschung aller störenden Chatnachrichten in Panel-Kanälen und In-Place Updates ohne Pop-up-Meldungen.",
+    highlights: [
+      {
+        icon: Mic,
+        title: "Intelligentes Audio-Ducking",
+        description: "Sobald Mitglieder im Sprachkanal sprechen, wird die Musik- bzw. Radio-Lautstärke sanft um 65 % geduckt, damit Gespräche glasklar bleiben, und nach 800 ms Release-Pause wiederhergestellt.",
+      },
+      {
+        icon: Radio,
+        title: "Dedizierter Textkanal #📻・radio-steuerung",
+        description: "Mit /radio panel wird ein persistenter Steuerkanal mit Sender-Auswahl (Standard & Eigene), Play/Pause/Stop, Status und Lautstärkereglern bereitgestellt.",
+      },
+      {
+        icon: Sparkles,
+        title: "Auto-Cleanup & In-Place Updates",
+        description: "Keine lästigen Pop-ups mehr beim Klick auf Buttons im Panel. Fremdnachrichten in Panel-Kanälen werden nach 2,5s automatisch gelöscht, sodass der Kanal dauerhaft sauber bleibt.",
+      },
+    ],
+  },
+  {
+    version: "v2.26.0",
+    date: "15. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Radio & Web-Zentrale Redesign, Auto-Cleanup & Stabilität",
     description: "Komplett neu gestaltetes Radio- & Musik-Dashboard mit persistentem Top-Player, 4 strukturierten Tabs (Sender, Soundboard, Playlisten/Queue, Einstellungen), temporären Musik-Kanälen mit automatischer Löschung und Voice-Stabilitätsfixes.",
     highlights: [

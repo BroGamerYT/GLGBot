@@ -3,13 +3,18 @@ import {
   ButtonBuilder,
   ButtonInteraction,
   ButtonStyle,
+  ChannelType,
   EmbedBuilder,
+  Guild,
   GuildMember,
+  PermissionFlagsBits,
   StringSelectMenuBuilder,
   StringSelectMenuInteraction,
+  TextChannel,
 } from "discord.js";
 import { radioService } from "../services/radioService";
 import { radioStationService } from "../services/radioStationService";
+import { panelChannelService } from "../services/panelChannelService";
 
 export interface PanelStation {
   id: string;
@@ -20,6 +25,48 @@ export interface PanelStation {
 /** Sender aus Dashboard-Config (Standard + eigene). */
 export function getPanelStations(guildId: string): PanelStation[] {
   return radioStationService.listAll(guildId);
+}
+
+/**
+ * Sucht oder erstellt den Steuerungs-Textkanal für Radio (#📻・radio-steuerung) und postet das Radio-Panel.
+ */
+export async function postRadioPanel(guild: Guild, parentId?: string): Promise<TextChannel> {
+  const existing = guild.channels.cache.find(
+    (c) =>
+      c.type === ChannelType.GuildText &&
+      /radio-steuerung|radio-panel/i.test(c.name) &&
+      (!parentId || c.parentId === parentId),
+  ) as TextChannel | undefined;
+
+  const channel =
+    existing ||
+    (await guild.channels.create({
+      name: "📻・radio-steuerung",
+      type: ChannelType.GuildText,
+      parent: parentId,
+      topic: "Radio-Steuerpanel: Sender wählen, Play/Pause, Lautstärke",
+      permissionOverwrites: [
+        { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.AddReactions] },
+        ...(guild.members.me?.id || guild.client.user?.id
+          ? [
+              {
+                id: (guild.members.me?.id || guild.client.user?.id)!,
+                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks],
+              },
+            ]
+          : []),
+      ],
+      reason: "GLGBot: Radio-Steuerpanel",
+    }));
+
+  const stations = getPanelStations(guild.id);
+  const msg = await channel.send({
+    embeds: [buildRadioPanelEmbed(guild.id, stations)],
+    components: createRadioPanelRows(stations),
+  });
+
+  await panelChannelService.cleanOldMessages(channel, msg.id).catch(() => null);
+  return channel;
 }
 
 export function createRadioPanelRows(stations: PanelStation[]): Array<ActionRowBuilder<ButtonBuilder> | ActionRowBuilder<StringSelectMenuBuilder>> {
@@ -126,26 +173,20 @@ export async function handleRadioButton(interaction: ButtonInteraction): Promise
   const id = interaction.customId;
 
   if (id === "radio_pause" || id === "radio_resume" || id === "radio_stop" || id === "radio_refresh") {
-    let ok = true;
-    if (id === "radio_pause") ok = radioService.pause(guildId);
-    else if (id === "radio_resume") ok = radioService.resume(guildId);
-    else if (id === "radio_stop") ok = await radioService.stop(guildId);
-    if (!ok && id !== "radio_refresh") {
-      await interaction.reply({ content: "ℹ️ Es läuft gerade kein Radio.", ephemeral: true });
-      return;
-    }
+    if (id === "radio_pause") radioService.pause(guildId);
+    else if (id === "radio_resume") radioService.resume(guildId);
+    else if (id === "radio_stop") await radioService.stop(guildId);
     await refreshPanel(interaction, guildId);
     return;
   }
 
   if (id === "radio_vol_down" || id === "radio_vol_up") {
     const status = radioService.getStatus(guildId);
-    if (!status) {
-      await interaction.reply({ content: "ℹ️ Es läuft gerade kein Radio.", ephemeral: true });
-      return;
+    if (status) {
+      const member = interaction.member as GuildMember;
+      radioService.setVolume(guildId, status.volume + (id === "radio_vol_up" ? 10 : -10), member?.voice?.channel?.id, interaction.user.id);
     }
-    const member = interaction.member as GuildMember;
-    radioService.setVolume(guildId, status.volume + (id === "radio_vol_up" ? 10 : -10), member?.voice?.channel?.id, interaction.user.id);
     await refreshPanel(interaction, guildId);
+    return;
   }
 }

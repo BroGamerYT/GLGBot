@@ -10,10 +10,15 @@ import { clipService } from "../services/clipService";
 import { economyService } from "../services/economyService";
 import { directMessageService } from "../services/directMessageService";
 import { musicUploadService } from "../services/musicUploadService";
+import { panelChannelService } from "../services/panelChannelService";
 
 const messageCreateEvent: BotEvent<Events.MessageCreate> = {
   name: Events.MessageCreate,
   execute: async (client, message: Message) => {
+    // Auto-Cleanup in Panel-Kanälen (#🎵・musik-steuerung, #📻・radio-steuerung etc.)
+    const cleaned = await panelChannelService.handleMessage(message).catch(() => false);
+    if (cleaned) return;
+
     // Ignoriere Nachrichten von Bots
     if (message.author.bot) return;
 

@@ -10,7 +10,7 @@ import { Command } from "../../types";
 import { isMusicEnabled } from "../../config/env";
 import { radioService } from "../../services/radioService";
 import { radioStationService } from "../../services/radioStationService";
-import { buildRadioPanelEmbed, createRadioPanelRows, getPanelStations } from "../../handlers/radioPanelHandler";
+import { buildRadioPanelEmbed, createRadioPanelRows, getPanelStations, postRadioPanel } from "../../handlers/radioPanelHandler";
 
 const radioCommand: Command = {
   data: new SlashCommandBuilder()
@@ -36,9 +36,9 @@ const radioCommand: Command = {
     .addSubcommand((sub) =>
       sub
         .setName("panel")
-        .setDescription("Postet das Radio-Panel (Senderwahl + Lautstärke).")
+        .setDescription("Richtet den Steuerungs-Textkanal #📻・radio-steuerung ein oder postet das Panel.")
         .addChannelOption((opt) =>
-          opt.setName("kanal").setDescription("Ziel-Textkanal (Standard: aktueller Kanal)").setRequired(false),
+          opt.setName("kanal").setDescription("Ziel-Textkanal (Standard: #📻・radio-steuerung anlegen)").setRequired(false),
         ),
     )
     .addSubcommand((sub) =>
@@ -130,19 +130,26 @@ const radioCommand: Command = {
       }
 
       if (sub === "panel") {
-        const target = interaction.options.getChannel("kanal") || interaction.channel;
-        if (!target || !("send" in target)) {
-          await interaction.reply({ content: "❌ Kein gültiger Textkanal.", flags: MessageFlags.Ephemeral });
-          return;
-        }
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
         try {
-          const stations = getPanelStations(guildId);
-          await (target as import("discord.js").TextChannel).send({
-            embeds: [buildRadioPanelEmbed(guildId, stations)],
-            components: createRadioPanelRows(stations),
-          });
-          await interaction.editReply({ content: `✅ Radio-Panel in ${target} gepostet.` });
+          const kanalOption = interaction.options.getChannel("kanal");
+          if (!kanalOption) {
+            const channel = await postRadioPanel(interaction.guild);
+            await interaction.editReply({ content: `✅ Radio-Steuerpanel in ${channel} bereitgestellt.` });
+          } else {
+            if (!("send" in kanalOption)) {
+              await interaction.editReply({ content: "❌ Kein gültiger Textkanal." });
+              return;
+            }
+            const stations = getPanelStations(guildId);
+            const msg = await (kanalOption as import("discord.js").TextChannel).send({
+              embeds: [buildRadioPanelEmbed(guildId, stations)],
+              components: createRadioPanelRows(stations),
+            });
+            const { panelChannelService } = await import("../../services/panelChannelService");
+            await panelChannelService.cleanOldMessages(kanalOption as import("discord.js").TextChannel, msg.id).catch(() => null);
+            await interaction.editReply({ content: `✅ Radio-Panel in ${kanalOption} gepostet.` });
+          }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : "Konnte Panel nicht senden.";
           await interaction.editReply({ content: `❌ ${msg}` });

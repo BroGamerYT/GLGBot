@@ -94,7 +94,9 @@ export async function postMusicPanel(guild: Guild, parentId?: string): Promise<T
       ],
       reason: "GLGBot: Musik-Panel",
     }));
-  await channel.send({ embeds: [buildPanelEmbed(guild.id)], components: createMusicPanelRows() });
+  const msg = await channel.send({ embeds: [buildPanelEmbed(guild.id)], components: createMusicPanelRows() });
+  const { panelChannelService } = await import("../services/panelChannelService");
+  await panelChannelService.cleanOldMessages(channel, msg.id).catch(() => null);
   return channel;
 }
 
@@ -219,12 +221,18 @@ export async function handleMusicButton(interaction: ButtonInteraction): Promise
       return;
   }
 
+  const isPanel = (interaction.message?.components?.length || 0) > 1;
+
   if (reply) {
+    if (isPanel) {
+      try {
+        await interaction.update({ embeds: [buildPanelEmbed(guildId)], components: createMusicPanelRows() });
+      } catch {}
+      return;
+    }
     await interaction.reply({ content: reply, ephemeral: true });
     return;
   }
-
-  const isPanel = (interaction.message?.components?.length || 0) > 1;
   const embed = isPanel ? buildPanelEmbed(guildId) : statusEmbed(guildId);
   const components = isPanel ? createMusicPanelRows() : [createMusicControlRow()];
   try {

@@ -313,6 +313,34 @@ const musicCommand: Command = {
           await interaction.reply({ embeds: [embed], components: [createMusicControlRow()] });
           break;
         }
+
+        case "panel": {
+          await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+          try {
+            const { postMusicPanel, buildPanelEmbed, createMusicPanelRows } = await import("../../handlers/musicControlHandler");
+            const kanalOption = interaction.options.getChannel("kanal");
+            if (!kanalOption) {
+              const channel = await postMusicPanel(interaction.guild!);
+              await interaction.editReply({ content: `✅ Musik-Steuerpanel in ${channel} bereitgestellt.` });
+            } else {
+              if (!("send" in kanalOption)) {
+                await interaction.editReply({ content: "❌ Kein gültiger Textkanal." });
+                return;
+              }
+              const msg = await (kanalOption as import("discord.js").TextChannel).send({
+                embeds: [buildPanelEmbed(guildId)],
+                components: createMusicPanelRows(),
+              });
+              const { panelChannelService } = await import("../../services/panelChannelService");
+              await panelChannelService.cleanOldMessages(kanalOption as import("discord.js").TextChannel, msg.id).catch(() => null);
+              await interaction.editReply({ content: `✅ Musik-Panel in ${kanalOption} gepostet.` });
+            }
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : "Konnte Panel nicht senden.";
+            await interaction.editReply({ content: `❌ ${msg}` });
+          }
+          break;
+        }
       }
     } catch (error: any) {
       const message = error?.message ?? "Ein unbekannter Fehler ist aufgetreten.";
@@ -385,6 +413,14 @@ musicCommand.data = new SlashCommandBuilder()
   )
   .addSubcommand((sub) => sub.setName("nowplaying").setDescription("Zeigt den aktuellen Song."))
   .addSubcommand((sub) => sub.setName("history").setDescription("Zeigt die zuletzt gespielten Songs."))
+  .addSubcommand((sub) =>
+    sub
+      .setName("panel")
+      .setDescription("Richtet den Steuerungs-Textkanal #🎵・musik-steuerung ein oder postet das Panel.")
+      .addChannelOption((opt) =>
+        opt.setName("kanal").setDescription("Ziel-Textkanal (Standard: #🎵・musik-steuerung anlegen)").setRequired(false),
+      ),
+  )
   .addSubcommand((sub) =>
     sub
       .setName("upload")

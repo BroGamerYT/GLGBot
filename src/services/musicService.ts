@@ -14,6 +14,7 @@ import {
 import fs from "fs";
 import path from "path";
 import { writeJsonAtomic } from "../utils/jsonFile";
+import { voiceDuckingService } from "./voiceDuckingService";
 
 const HISTORY_DIR = path.join(__dirname, "../../data");
 const HISTORY_FILE = path.join(HISTORY_DIR, "music_history.json");
@@ -323,6 +324,7 @@ export class MusicService {
   stop(guildId: string): boolean {
     const s = this.sessions.get(guildId);
     if (!s) return false;
+    voiceDuckingService.detach(guildId);
     s.queue = [];
     s.current = null;
     try {
@@ -364,8 +366,12 @@ export class MusicService {
     if (!s) return false;
     s.volume = Math.max(0, Math.min(100, percent));
     try {
-      s.liveVolume?.setVolume(s.volume / 100);
-    } catch {}
+      voiceDuckingService.onVolumeChange(guildId, s.volume);
+    } catch {
+      try {
+        s.liveVolume?.setVolume(s.volume / 100);
+      } catch {}
+    }
     // Merken: expliziter Kanal gewinnt, sonst User
     try {
       const { musicPrefsService } = require("./musicPrefsService") as typeof import("./musicPrefsService");
@@ -388,7 +394,7 @@ export class MusicService {
       channelId: channel.id,
       guildId: channel.guild.id,
       adapterCreator: channel.guild.voiceAdapterCreator,
-      selfDeaf: true,
+      selfDeaf: false,
     });
 
     try {
@@ -461,7 +467,7 @@ export class MusicService {
             channelId: session.channelId,
             guildId: session.guildId,
             adapterCreator: guild.voiceAdapterCreator,
-            selfDeaf: true,
+            selfDeaf: false,
           });
           await entersState(fresh, VoiceConnectionStatus.Ready, 15_000);
           fresh.subscribe(session.player);
@@ -506,6 +512,7 @@ export class MusicService {
     } else {
       session.current = null;
       session.isPaused = false;
+      voiceDuckingService.detach(session.guildId);
     }
   }
 
@@ -634,6 +641,16 @@ export class MusicService {
       session.current = item;
       session.isPaused = false;
       this.recordHistory(session.guildId, item);
+
+      voiceDuckingService.attach({
+        guildId: session.guildId,
+        connection: session.connection,
+        clientUserId: session.voiceChannel.guild.members.me?.id || session.voiceChannel.client.user?.id,
+        getBaseVolume: () => session.volume,
+        setLiveVolume: (fraction) => {
+          session.liveVolume?.setVolume(fraction);
+        },
+      });
     } catch (error) {
       session.lastError = `Abspielen: ${(error as Error)?.message || "unbekannt"}`.slice(0, 200);
       console.error(`[Music] Fehler beim Abspielen von "${item.title}":`, error);

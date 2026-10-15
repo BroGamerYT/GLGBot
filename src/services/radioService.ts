@@ -19,6 +19,7 @@ import net from "net";
 import fs from "fs";
 import path from "path";
 import { writeJsonAtomic } from "../utils/jsonFile";
+import { voiceDuckingService } from "./voiceDuckingService";
 
 const DATA_DIR = path.join(__dirname, "../../data");
 const STATE_FILE = path.join(DATA_DIR, "radio_state.json");
@@ -239,7 +240,7 @@ export class RadioService {
       channelId: channel.id,
       guildId: channel.guild.id,
       adapterCreator: channel.guild.voiceAdapterCreator,
-      selfDeaf: true,
+      selfDeaf: false,
     });
 
     try {
@@ -352,7 +353,7 @@ export class RadioService {
             channelId: session.channelId,
             guildId: session.guildId,
             adapterCreator: guild.voiceAdapterCreator,
-            selfDeaf: true,
+            selfDeaf: false,
           });
           await entersState(fresh, VoiceConnectionStatus.Ready, 15_000);
           fresh.subscribe(session.player);
@@ -448,6 +449,16 @@ export class RadioService {
     resource.volume?.setVolume(session.volume / 100);
     session.liveVolume = resource.volume || null;
     session.player.play(resource);
+
+    voiceDuckingService.attach({
+      guildId: session.guildId,
+      connection: session.connection,
+      clientUserId: session.voiceChannel.guild.members.me?.id || session.voiceChannel.client.user?.id,
+      getBaseVolume: () => session.volume,
+      setLiveVolume: (fraction) => {
+        session.liveVolume?.setVolume(fraction);
+      },
+    });
   }
 
   setVolume(guildId: string, percent: number, channelId?: string | null, userId?: string | null): boolean {
@@ -455,8 +466,12 @@ export class RadioService {
     if (!s) return false;
     s.volume = Math.max(0, Math.min(100, percent));
     try {
-      s.liveVolume?.setVolume(s.volume / 100);
-    } catch {}
+      voiceDuckingService.onVolumeChange(guildId, s.volume);
+    } catch {
+      try {
+        s.liveVolume?.setVolume(s.volume / 100);
+      } catch {}
+    }
     try {
       const { musicPrefsService } = require("./musicPrefsService") as typeof import("./musicPrefsService");
       musicPrefsService.setVolume(guildId, s.volume, channelId || s.channelId, userId);
@@ -543,6 +558,7 @@ export class RadioService {
   async stop(guildId: string): Promise<boolean> {
     const s = this.sessions.get(guildId);
     if (!s) return false;
+    voiceDuckingService.detach(guildId);
     s.stopped = true;
     this.sessions.delete(guildId);
     this.stopMetaPolling(s);

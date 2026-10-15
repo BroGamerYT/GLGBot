@@ -360,6 +360,19 @@ class SetupService {
         }
         add(`🔊 ${voiceChannel.name}`, voiceCreated);
         if (voiceCreated) trackMusicChannel(guild.id, voiceChannel.id, voiceChannel.name, stationName, guild);
+
+        try {
+          const { postRadioPanel } = await import("../handlers/radioPanelHandler");
+          const radioPanelCh = await postRadioPanel(guild, category.id);
+          add(`#${radioPanelCh.name}`, true);
+        } catch {}
+
+        try {
+          const { postMusicPanel } = await import("../handlers/musicControlHandler");
+          const musicPanelCh = await postMusicPanel(guild, category.id);
+          add(`#${musicPanelCh.name}`, true);
+        } catch {}
+
         return;
       }
 
