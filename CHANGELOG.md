@@ -4,6 +4,25 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und folgt [Semantic Versioning](https://semver.org/).
 
+## [2.28.0] - 2026-10-16
+
+### Sicherheit (bitte zeitnah einspielen)
+* **Login-Code deutlich verstärkt:** Der Code aus `/web-login` war vierstellig (9.000 Möglichkeiten) und wurde mit `Math.random()` erzeugt - ohne jede Versuchsbremse ließ er sich in Minuten durchprobieren und ergab eine 24-Stunden-Admin-Sitzung. Jetzt: 6 Zeichen aus `crypto.randomBytes` (rund 729 Millionen Möglichkeiten, ohne verwechselbare Zeichen wie 0/O und 1/I), Format `GLG-K7P2WD`.
+* **Versuchsbremse beim Code-Login:** Höchstens 10 Fehlversuche pro IP in 15 Minuten, danach HTTP 429. Die Sperre gilt bewusst nur pro IP, damit niemand durch absichtliche Fehlversuche alle aussperren kann. Auffälliges Raten wird zusätzlich im System-Log gemeldet.
+* **Rechte-Eskalation über Backups geschlossen:** Wer nur „Server verwalten“ hatte, konnte ein selbst gebautes Backup hochladen, in dem `@everyone` Administrator ist, und sich per Wiederherstellung selbst zum Administrator machen. Admin- und Moderationsrechte aus einer Backup-Datei übernimmt jetzt nur noch der Server-Inhaber oder ein Administrator; sonst werden sie herausgefiltert und das Ergebnis weist darauf hin.
+* **Offene Weiterleitung abgedichtet:** `/s/<server>?to=//fremde-seite.de` leitete auf eine fremde Domain weiter - damit ließen sich Phishing-Links mit der echten Dashboard-Adresse bauen. Es werden nur noch interne Pfade akzeptiert (neue Hilfsfunktion `web/src/lib/safePath.ts`).
+* **Doppelkauf im Shop verhindert:** Zwischen Guthaben-Prüfung und Abbuchung lag die Rollenvergabe bei Discord. Zwei gleichzeitige Käufe kamen beide durch, das Guthaben konnte ins Minus rutschen. Jetzt gilt eine Sperre je Mitglied, das Guthaben wird vorab reserviert und bei Fehlern zurückgebucht.
+* **Kleinere Härtungen:** Die Rollenliste des Servers wird auf der öffentlichen Wirtschafts-Seite nur noch Eingeloggten gezeigt; beim Speichern des Musicbot-Tokens werden Zeilenumbrüche abgewiesen (keine fremden `.env`-Einträge mehr); die CSRF-Prüfung greift jetzt auch, wenn der `Origin`-Header fehlt (Ersatzprüfung über `Referer`).
+
+### Behoben
+* **Bot blieb für immer im leeren Sprachkanal:** Die Leer-Erkennung im Musik-Player fragte `connection.joinConfig.guild` ab - diese Eigenschaft gibt es in `@discordjs/voice` gar nicht, der Block lief also nie. Jetzt wird der echte Sprachkanal geprüft; nach zwei leeren Durchläufen (ca. 60 Sekunden) beendet der Bot die Wiedergabe. Die kurze Wartezeit sorgt dafür, dass bei einem Verbindungsabriss die Warteschlange erhalten bleibt.
+* **Timer-Leck im Musik-Player:** Der Prüf-Timer wurde bei jedem Verbindungsaufbau neu gestartet und nie beendet - er lief bis zum Bot-Neustart weiter. Jetzt läuft genau ein Timer je Sitzung, der beim Stoppen sauber beendet wird.
+* **Modul-Schalter für Radio & Musik:** Über das Dashboard ließ sich die Wiedergabe auch bei ausgeschaltetem Modul starten. Der Schalter wird jetzt auch im Dienst selbst geprüft.
+* **Versionsnummern zusammengeführt:** `package.json` stand auf 2.25.0, die Lock-Dateien auf 2.24.0 bzw. 2.18.2, während der Changelog bereits 2.27.0 dokumentierte. Alle vier Dateien stehen jetzt gemeinsam auf 2.28.0.
+
+### Technisch
+* Neue Tests unter `tests/security.test.ts` (`npm test`): Weiterleitungs-Ziele, Rechte-Filter beim Restore sowie Format, Einmal-Nutzung und Abweisung der Login-Codes. Insgesamt laufen jetzt 16 Tests.
+
 ## [2.27.0] - 2026-10-15
 
 ### Audio-Ducking (Auto-Lautstärke beim Sprechen)

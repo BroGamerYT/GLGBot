@@ -14,8 +14,17 @@ export async function middleware(req: NextRequest) {
   if (isApi && req.method !== "GET" && req.method !== "HEAD") {
     const origin = req.headers.get("origin");
     const expected = process.env.DASHBOARD_URL?.replace(/\/+$/, "") || req.nextUrl.origin;
-    if (origin && origin !== expected) {
-      return NextResponse.json({ error: "Ungültige Herkunft der Anfrage." }, { status: 403 });
+    if (origin) {
+      if (origin !== expected) {
+        return NextResponse.json({ error: "Ungültige Herkunft der Anfrage." }, { status: 403 });
+      }
+    } else {
+      // Kein Origin-Header: Browser senden ihn bei schreibenden Anfragen immer mit.
+      // Ersatzweise den Referer prüfen, damit die Lücke nicht offen bleibt.
+      const referer = req.headers.get("referer") || "";
+      if (referer && !referer.startsWith(expected)) {
+        return NextResponse.json({ error: "Ungültige Herkunft der Anfrage." }, { status: 403 });
+      }
     }
   }
 

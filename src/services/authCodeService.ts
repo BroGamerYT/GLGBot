@@ -25,13 +25,55 @@ export interface VerifyAuthCodeResult {
   };
 }
 
+/**
+ * Zeichenvorrat ohne verwechselbare Zeichen (kein 0/O, kein 1/I/L).
+ * 30 Zeichen hoch 6 = rund 729 Millionen Möglichkeiten - Raten ist damit aussichtslos.
+ */
+const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const CODE_LENGTH = 6;
+
 class AuthCodeService {
   private codes = new Map<string, ActiveAuthCode>();
   private readonly CODE_TTL_MS = 30 * 60 * 1000; // 30 Minuten Gültigkeit
+  /** Fehlversuche im laufenden Zeitfenster (nur für die Warnung im Log) */
+  private failWindow = { count: 0, since: Date.now() };
 
   constructor() {
     // Alle 5 Minuten abgelaufene Codes bereinigen
-    setInterval(() => this.cleanupExpired(), 5 * 60 * 1000);
+    setInterval(() => this.cleanupExpired(), 5 * 60 * 1000).unref?.();
+  }
+
+  /** Kryptografisch sicherer Code, z. B. GLG-K7P2WD */
+  private randomCode(): string {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const bytes = crypto.randomBytes(CODE_LENGTH);
+      let out = "";
+      for (let i = 0; i < CODE_LENGTH; i++) {
+        out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
+      }
+      const code = `GLG-${out}`;
+      if (!this.codes.has(code)) return code;
+    }
+    // Praktisch unerreichbar - zur Sicherheit mit Zeitstempel eindeutig machen
+    return `GLG-${crypto.randomBytes(6).toString("hex").toUpperCase()}`;
+  }
+
+  /**
+   * Zählt Fehlversuche und meldet auffälliges Raten im Log (sichtbar im System-Manager).
+   * Bewusst keine harte Sperre: sonst könnte jemand durch absichtliche Fehlversuche
+   * den Login für alle blockieren. Die eigentliche Bremse sitzt pro IP im Dashboard.
+   */
+  private noteFailure() {
+    const now = Date.now();
+    if (now - this.failWindow.since > 10 * 60 * 1000) {
+      this.failWindow = { count: 0, since: now };
+    }
+    this.failWindow.count++;
+    if (this.failWindow.count === 20) {
+      console.warn(
+        `🚨 [Auth] ${this.failWindow.count} fehlgeschlagene Login-Codes in den letzten 10 Minuten - möglicher Rateversuch.`
+      );
+    }
   }
 
   private cleanupExpired() {
@@ -60,9 +102,7 @@ class AuthCodeService {
       }
     }
 
-    // 4-stellige Zufallszahl mit Präfix GLG- (z. B. GLG-4819)
-    const randomDigits = Math.floor(1000 + Math.random() * 9000);
-    const code = `GLG-${randomDigits}`;
+    const code = this.randomCode();
     const expiresAt = Date.now() + this.CODE_TTL_MS;
 
     const entry: ActiveAuthCode = {
@@ -90,18 +130,19 @@ class AuthCodeService {
   public async verifyCode(inputCode: string, client: Client): Promise<VerifyAuthCodeResult> {
     this.cleanupExpired();
 
-    let formatted = inputCode.trim().toUpperCase();
-    if (/^\d{4}$/.test(formatted)) {
-      formatted = `GLG-${formatted}`;
-    }
+    // Eingabe vereinheitlichen: Leerzeichen raus, groß, "GLG-" ergänzen falls weggelassen
+    let formatted = inputCode.trim().toUpperCase().replace(/\s+/g, "");
+    if (!formatted.startsWith("GLG-")) formatted = `GLG-${formatted.replace(/^GLG/, "")}`;
 
     const entry = this.codes.get(formatted);
     if (!entry) {
+      this.noteFailure();
       return { valid: false, error: "Der eingegebene Code ist ungültig oder abgelaufen." };
     }
 
     if (entry.expiresAt <= Date.now()) {
       this.codes.delete(formatted);
+      this.noteFailure();
       return { valid: false, error: "Dieser Login-Code ist bereits abgelaufen (Gültigkeit: 30 Minuten)." };
     }
 

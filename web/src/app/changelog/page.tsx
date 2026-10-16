@@ -34,6 +34,7 @@ import {
   Cpu,
   RotateCcw,
   HardDrive,
+  ExternalLink as ExternalLinkIcon,
 } from "lucide-react";
 
 export const metadata = {
@@ -57,10 +58,45 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.27.0",
-    date: "15. Oktober 2026",
+    version: "v2.28.0",
+    date: "16. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "Sicherheits-Update & Musik-Korrekturen",
+    description:
+      "Eine Sicherheitsprüfung des gesamten Projekts hat mehrere Lücken aufgedeckt - alle sind geschlossen. Dazu zwei hartnäckige Fehler im Musik-Player, die bisher unbemerkt blieben.",
+    highlights: [
+      {
+        icon: Lock,
+        title: "Login-Code nicht mehr erratbar",
+        description:
+          "Der Code aus /web-login hatte nur 4 Ziffern und keine Versuchsbremse - er war in Minuten durchprobierbar. Jetzt 6 zufällige Zeichen (GLG-K7P2WD) und maximal 10 Fehlversuche pro Viertelstunde.",
+      },
+      {
+        icon: Shield,
+        title: "Keine Admin-Rechte mehr über Backups",
+        description:
+          "Aus hochgeladenen Backup-Dateien übernimmt nur noch der Server-Inhaber oder ein Administrator Admin- und Moderationsrechte. Zuvor konnte sich jeder mit „Server verwalten“ darüber selbst hochstufen.",
+      },
+      {
+        icon: ExternalLinkIcon,
+        title: "Weiterleitung & Shop abgesichert",
+        description:
+          "Server-Kurzlinks führen nur noch auf eigene Seiten (kein Phishing über die echte Adresse mehr), und im Shop kann nicht mehr zweimal gleichzeitig vom selben Guthaben gekauft werden.",
+      },
+      {
+        icon: Mic,
+        title: "Bot verlässt leere Sprachkanäle",
+        description:
+          "Die Leer-Erkennung im Musik-Player hat nie funktioniert - der Bot blieb dauerhaft im leeren Kanal. Jetzt beendet er die Wiedergabe nach etwa einer Minute ohne Zuhörer, die Warteschlange übersteht kurze Verbindungsabrisse.",
+      },
+    ],
+  },
+  {
+    version: "v2.27.0",
+    date: "15. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Audio-Ducking, Radio-Steuerpanel Textkanal & Panel-Auto-Cleanup",
     description: "Automatisches Audio-Ducking (Lautstärke sinkt beim Reden auf 35 % und kehrt nach Sprechende zurück), dedizierter Textkanal #📻・radio-steuerung mit interaktivem Steuerpanel sowie Auto-Löschung aller störenden Chatnachrichten in Panel-Kanälen und In-Place Updates ohne Pop-up-Meldungen.",
     highlights: [

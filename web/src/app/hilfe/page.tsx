@@ -363,7 +363,9 @@ export default function HelpPage() {
               <li>
                 <strong className="text-white">🔑 30-Minuten Code-Login:</strong> Keine Lust auf Discord-OAuth? Gib einfach{" "}
                 <Cmd>/web-login</Cmd> oder <Cmd>/shop code</Cmd> in Discord ein, erhalte einen 30 Minuten gültigen Code und
-                einen 1-Klick-Link, der dich sofort im Shop anmeldet!
+                einen 1-Klick-Link, der dich sofort im Shop anmeldet! Der Code sieht aus wie <Cmd>GLG-K7P2WD</Cmd>, gilt nur
+                für dich und nur ein einziges Mal. Gib ihn niemals weiter - wer ihn hat, kommt in deinen Zugang. Nach zehn
+                Fehlversuchen wird die Eingabe für 15 Minuten gesperrt.
               </li>
             </ul>
             <div className="flex gap-2 pt-1">

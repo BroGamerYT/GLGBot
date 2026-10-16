@@ -99,6 +99,8 @@ class EconomyService {
   /** guildId -> GuildEconomyStore */
   private stores: Record<string, GuildEconomyStore> = {};
   private saveTimeout: NodeJS.Timeout | null = null;
+  /** Laufende Käufe je Server+Nutzer - verhindert Doppelkäufe (siehe buyShopItem) */
+  private buyLocks = new Set<string>();
 
   constructor() {
     this.ensureDataDir();
@@ -498,6 +500,31 @@ class EconomyService {
     item?: ShopItem;
     newBalance?: number;
   }> {
+    // Doppelkauf-Sperre: Zwischen Guthaben-Prüfung und Abbuchung liegt ein Aufruf zu Discord
+    // (Rolle vergeben). Ohne diese Sperre könnten zwei gleichzeitige Käufe beide durchkommen
+    // und das Guthaben ins Minus ziehen.
+    const lockKey = `${guild.id}:${member.id}`;
+    if (this.buyLocks.has(lockKey)) {
+      return { success: false, error: "Dein letzter Kauf wird noch bearbeitet - bitte einen Moment warten." };
+    }
+    this.buyLocks.add(lockKey);
+    try {
+      return await this.buyShopItemInternal(guild, member, itemId);
+    } finally {
+      this.buyLocks.delete(lockKey);
+    }
+  }
+
+  private async buyShopItemInternal(
+    guild: Guild,
+    member: GuildMember,
+    itemId: string
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    item?: ShopItem;
+    newBalance?: number;
+  }> {
     const store = this.getOrCreateGuildStore(guild.id);
     const item = store.shopItems.find((i) => i.id === itemId);
     if (!item || !item.enabled) {
@@ -539,6 +566,10 @@ class EconomyService {
         return { success: false, error: "Du besitzt diese Rolle bereits!" };
       }
 
+      // Guthaben vorab reservieren: Falls die Rollenvergabe scheitert, wird unten
+      // wieder gutgeschrieben. So kann zwischendurch nichts doppelt ausgegeben werden.
+      wallet.balance -= item.price;
+
       // Bei Farbrollen: Vorherige Farbrollen entfernen, damit die neue Farbe sofort sichtbar ist
       if (item.type === "color") {
         const colorRoleIds = store.shopItems
@@ -554,15 +585,19 @@ class EconomyService {
       try {
         await member.roles.add(role, `Kauf im GLGBot Belohnungs-Shop (${item.name})`);
       } catch (err: any) {
+        // Reservierung rückgängig machen - der Kauf hat nicht stattgefunden
+        wallet.balance += item.price;
+        this.scheduleSave();
         return {
           success: false,
           error: `Fehler beim Zuweisen der Rolle: Der Bot hat möglicherweise keine ausreichenden Rechte für diese Rolle.`,
         };
       }
+    } else {
+      // Artikel ohne Rolle: hier gibt es keinen Zwischenschritt, direkt abbuchen
+      wallet.balance -= item.price;
     }
 
-    // Guthaben abziehen
-    wallet.balance -= item.price;
     wallet.totalSpent += item.price;
     wallet.updatedAt = new Date().toISOString();
 

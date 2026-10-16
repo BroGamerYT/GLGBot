@@ -110,7 +110,7 @@ export default function LoginPage() {
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="z. B. GLG-4819"
+              placeholder="z. B. GLG-K7P2WD"
               disabled={loading}
               className="flex-1 bg-discord-dark border border-discord-border focus:border-discord-blurple text-white font-mono text-center tracking-wider text-base rounded-lg px-3 py-2 outline-none uppercase transition-all disabled:opacity-50"
             />

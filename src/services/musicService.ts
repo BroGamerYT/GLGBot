@@ -14,6 +14,7 @@ import {
 import fs from "fs";
 import path from "path";
 import { writeJsonAtomic } from "../utils/jsonFile";
+import { moduleService } from "./moduleService";
 import { voiceDuckingService } from "./voiceDuckingService";
 
 const HISTORY_DIR = path.join(__dirname, "../../data");
@@ -34,7 +35,6 @@ function loadHistory(): Record<string, HistoryEntry[]> {
   return {};
 }
 import {
-  Collection,
   VoiceBasedChannel,
   GuildMember,
   EmbedBuilder,
@@ -138,6 +138,10 @@ interface GuildSession {
   loop: LoopMode;
   lastError: string | null;
   liveVolume: { setVolume(n: number): void } | null;
+  /** Timer, der prüft, ob noch jemand zuhört (siehe startEmptyCheck) */
+  emptyTimer: NodeJS.Timeout | null;
+  /** Zähler für aufeinanderfolgende leere Durchläufe */
+  emptyTicks: number;
 }
 
 export class MusicService {
@@ -268,6 +272,10 @@ export class MusicService {
   }
 
   async play(channel: VoiceBasedChannel, query: string, requester: User): Promise<{ status: "started" | "queued" | "limit"; item?: QueueItem; position?: number }> {
+    // Modul-Schalter auch hier prüfen - das Dashboard ruft diese Funktion direkt auf
+    if (!moduleService.isEnabled(channel.guild.id, "music")) {
+      throw new Error("Das Modul „Radio & Musik“ ist auf diesem Server ausgeschaltet.");
+    }
     // Radio-Session sauber beenden (ein Bot = ein Voice-Stream pro Server)
     try {
       const { radioService } = await import("./radioService");
@@ -324,6 +332,7 @@ export class MusicService {
   stop(guildId: string): boolean {
     const s = this.sessions.get(guildId);
     if (!s) return false;
+    this.stopEmptyCheck(s);
     voiceDuckingService.detach(guildId);
     s.queue = [];
     s.current = null;
@@ -422,6 +431,8 @@ export class MusicService {
       loop: "off",
       lastError: null,
       liveVolume: null,
+      emptyTimer: null,
+      emptyTicks: 0,
     };
 
     player.on(AudioPlayerStatus.Idle, () => {
@@ -516,21 +527,48 @@ export class MusicService {
     }
   }
 
+  /**
+   * Verlässt den Sprachkanal, sobald niemand mehr zuhört.
+   *
+   * Wichtig: Es darf nur EIN Timer je Sitzung laufen. Die Verbindung meldet "Ready"
+   * auch nach jeder Neuverbindung erneut - ohne diese Prüfung bliebe bei jedem Mal
+   * ein weiterer Timer bis zum Bot-Neustart zurück.
+   */
   private startEmptyCheck(session: GuildSession) {
-    setInterval(() => {
-      if (!this.sessions.has(session.guildId)) return;
-      const channel = session.connection.joinConfig.channelId;
-      if (!channel) return;
-      // @ts-expect-error - voiceAdapterCreator gibt Kanal-Info
-      const voiceChannel = session.connection.joinConfig.guild?.channels?.cache?.get(channel);
-      if (voiceChannel && "members" in voiceChannel) {
-        const members = (voiceChannel as { members: Collection<string, GuildMember> }).members;
-        const humanMembers = members.filter((m: GuildMember) => !m.user.bot);
-        if (humanMembers.size === 0 && session.queue.length === 0) {
-          this.stop(session.guildId);
-        }
+    if (session.emptyTimer) return;
+    session.emptyTimer = setInterval(() => {
+      const current = this.sessions.get(session.guildId);
+      if (current !== session) {
+        this.stopEmptyCheck(session);
+        return;
       }
-    }, 30_000).unref();
+      // Immer den aktuellen Kanal aus der Sitzung nehmen - der Bot kann verschoben worden sein
+      const channelId = session.connection.joinConfig.channelId || session.voiceChannel.id;
+      const guild = session.voiceChannel.guild;
+      const channel = guild.channels.cache.get(channelId);
+      if (!channel || !channel.isVoiceBased()) return;
+
+      const listeners = channel.members.filter((m: GuildMember) => !m.user.bot);
+      if (listeners.size > 0) {
+        session.emptyTicks = 0;
+        return;
+      }
+      // Erst nach zwei leeren Durchläufen (ca. 60 s) beenden - bei kurzem
+      // Verbindungsabriss bleibt die Warteschlange so erhalten.
+      session.emptyTicks = (session.emptyTicks || 0) + 1;
+      if (session.emptyTicks >= 2) {
+        console.log(`🎵 [Musik] Niemand mehr in ${channel.name} (${guild.name}) - Wiedergabe beendet.`);
+        this.stop(session.guildId);
+      }
+    }, 30_000);
+    session.emptyTimer.unref?.();
+  }
+
+  private stopEmptyCheck(session: GuildSession) {
+    if (session.emptyTimer) {
+      clearInterval(session.emptyTimer);
+      session.emptyTimer = null;
+    }
   }
 
   private async playNext(session: GuildSession): Promise<void> {

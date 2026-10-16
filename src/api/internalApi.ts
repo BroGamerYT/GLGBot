@@ -644,10 +644,14 @@ export function startInternalApi(client: Client) {
           const userInventory = actorId ? economyService.getUserInventory(guild.id, actorId) : [];
           const userProfile = actorId ? statsService.getUserProfile(guild.id, actorId) : null;
 
-          const roles = guild.roles.cache
-            .filter((r) => r.id !== guild.id && !r.managed)
-            .sort((a, b) => b.position - a.position)
-            .map((r) => ({ id: r.id, name: r.name, color: r.hexColor }));
+          // Rollen nur für Eingeloggte: die Seite ist ohne Login erreichbar,
+          // die interne Rollenstruktur des Servers geht Fremde nichts an.
+          const roles = isLoggedIn
+            ? guild.roles.cache
+                .filter((r) => r.id !== guild.id && !r.managed)
+                .sort((a, b) => b.position - a.position)
+                .map((r) => ({ id: r.id, name: r.name, color: r.hexColor }))
+            : [];
 
           return send(res, 200, {
             config,
@@ -1501,8 +1505,16 @@ export function startInternalApi(client: Client) {
           if (body.options?.wipeFirst && actorId !== guild.ownerId) {
             return send(res, 403, { error: "Die Wipe-Option darf nur der Server-Inhaber ausführen." });
           }
+          // Admin-/Moderationsrechte aus einem Backup darf nur Inhaber oder Administrator wiederherstellen.
+          // Sonst könnte man sich über eine hochgeladene Backup-Datei selbst höhere Rechte verschaffen.
+          const restoreActor = await getActor();
+          const mayRestorePermissions =
+            !!restoreActor && (restoreActor.id === guild.ownerId || restoreActor.permissions.has(PermissionFlagsBits.Administrator));
           try {
-            const result = await backupService.restoreBackup(guild, body.backupId, body.options);
+            const result = await backupService.restoreBackup(guild, body.backupId, {
+              ...(body.options || {}),
+              allowDangerousPermissions: mayRestorePermissions,
+            });
             return send(res, 200, { ok: true, result });
           } catch (e: any) {
             return send(res, 400, { error: e.message || "Wiederherstellung fehlgeschlagen." });

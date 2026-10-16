@@ -3,14 +3,10 @@ import { fetchBotGuilds } from "@/lib/guilds";
 import { ACTIVE_GUILD_COOKIE } from "@/lib/activeGuild";
 import { resolveGuildFromSlug } from "@/lib/serverSlugs";
 import { getBaseUrl, isSecureUrl, verifySessionToken, SESSION_COOKIE } from "@/lib/auth";
+import { safeInternalPath } from "@/lib/safePath";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Server-Kurz-URL Weiterleitung:
- * z. B. /s/bot1, /s/bot2, /s/germany-langame
- * Setzt den aktiven Server (Cookie) und leitet direkt weiter.
- */
 export async function GET(
   req: NextRequest,
   { params }: { params: { slug: string } }
@@ -26,15 +22,12 @@ export async function GET(
   }
 
   // Zielpfad bestimmen (Query-Parameter ?to=... oder Standard)
-  const toParam = req.nextUrl.searchParams.get("to");
-  let destination = toParam || "";
+  let destination = safeInternalPath(req.nextUrl.searchParams.get("to"));
 
   if (!destination) {
     const session = await verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);
     destination = session?.isAdmin ? "/" : "/economy";
   }
-
-  if (!destination.startsWith("/")) destination = `/${destination}`;
 
   const res = NextResponse.redirect(new URL(destination, baseUrl));
   res.cookies.set(ACTIVE_GUILD_COOKIE, matched.guild.id, {

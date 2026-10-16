@@ -31,6 +31,12 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    // Zeilenumbrüche würden zusätzliche Zeilen in die .env schreiben (fremde Variablen)
+    for (const [feld, wert] of Object.entries(body)) {
+      if (typeof wert === "string" && /[\r\n\0]/.test(wert)) {
+        return NextResponse.json({ error: `Ungültiges Zeichen im Feld "${feld}".` }, { status: 400 });
+      }
+    }
     const lines: string[] = fs.existsSync(ENV_FILE)
       ? fs.readFileSync(ENV_FILE, "utf-8").split("\n")
       : [];

@@ -2,7 +2,7 @@
 
 Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen für den GLGBot und das Web-Dashboard.
 
-**Aktueller Stand:** v2.25.0 (siehe History ganz unten)
+**Aktueller Stand:** v2.28.0 (siehe History ganz unten)
 
 > ✅ **Grundsatz-Entscheidung getroffen (11.10.2026):** Ein Bot bedient **mehrere Server, maximal 5**, und nur Server auf einer **Freigabe-Liste** (Details: Punkt 16). Das Open-Source-Modell bleibt parallel bestehen – jeder kann den Bot weiterhin selbst hosten.
 > 👉 **Neue Features ab jetzt immer mit `guildId` bauen** (Einstellungen pro Server speichern, nie `GUILD_ID` fest verwenden), damit sie beim Umbau nicht nochmal angefasst werden müssen.
@@ -503,6 +503,9 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 * [ ] **Twitch- & YouTube-Erkennung** läuft über inoffizielle Wege (Twitch-GQL, YouTube-Seite) und kann bei Änderungen kaputtgehen → langfristig offizielle Twitch-API (Client-ID/Secret) als Option.
 * [x] **„ping“-Auto-Antwort** *(v2.9.0: nur noch `!ping`)* reagierte in jedem Kanal → auf bestimmte Kanäle beschränken oder abschaltbar machen.
 * [ ] **AMD- & Intel-Treiber-News** sind Beta (Seiten-Auslesen) und können ausfallen.
+* [x] **Sicherheitsprüfung durchgeführt** *(v2.28.0)*: Login-Code, Backup-Restore, Server-Kurzlinks, Shop-Käufe und Musik-Timer abgesichert.
+* [ ] **Musik-Dateien gelten serverübergreifend** (`data/music` ist gemeinsam): Bei mehreren Discord-Servern sieht jeder Server die Uploads der anderen. Vor weiteren Servern auf Ordner je `guildId` umstellen.
+* [ ] **Versuchsbremse beim Code-Login liegt im Arbeitsspeicher**: Beim Neustart des Dashboards ist der Zähler wieder leer. Für ein verschärftes Limit müsste er mit auf die Festplatte.
 * [ ] **Öffentliches GitHub-Repo** (`BroGamerYT/GLGBot`) wird nicht automatisch aktualisiert: neue Versionen vor dem Hochladen auf private Daten prüfen (Domain, IPs, IDs, Namen).
 * [x] **Automatische Tests / Build-Check** *(v2.9.0: GitHub Actions `.github/workflows/build.yml`)* (z. B. GitHub Actions: `tsc` + `next build` bei jedem Push), damit Fehler vor dem Hochladen auffallen.
 
@@ -510,7 +513,21 @@ Zentrale Übersicht aller geplanten Features, Verbesserungen und Erweiterungen f
 
 ## 📊 Abgeschlossene Meilensteine (History)
 
-* [x] **v2.23.0 (Aktuell):**
+* [x] **v2.28.0 (Aktuell):**
+  * [x] Sicherheitsprüfung des Gesamtprojekts: Login-Code auf 6 zufällige Zeichen (`crypto`) umgestellt und Versuchsbremse (10 pro IP / 15 Min) ergänzt.
+  * [x] Rechte-Eskalation über hochgeladene Backups geschlossen (Admin-/Moderationsrechte nur noch für Inhaber & Administratoren).
+  * [x] Offene Weiterleitung in den Server-Kurzlinks abgedichtet, Doppelkauf im Shop verhindert.
+  * [x] Musik-Player: Bot verlässt jetzt tatsächlich leere Sprachkanäle, Timer-Leck behoben, Modul-Schalter greift auch über das Dashboard.
+  * [x] Versionsnummern in allen vier Dateien zusammengeführt, neue Tests unter `tests/security.test.ts`.
+* [x] **v2.27.0:**
+  * [x] Audio-Ducking: Musik/Radio wird leiser, sobald jemand spricht; eigener Radio-Steuerungs-Kanal mit Auto-Aufräumen.
+* [x] **v2.26.0:**
+  * [x] Radio-Dashboard neu gestaltet (dauerhafter Player, Reiter), Auto-Aufräumen temporärer Musik-Kanäle.
+* [x] **v2.25.0:**
+  * [x] Radio- & Musik-Dashboard (`/radio`), YouTube-Musik mit Warteschlange (`/music`), Musik-Setup-Modul.
+* [x] **v2.24.0:**
+  * [x] Rollen- & Rechte-Verwaltung im Dashboard (`/roles`) samt Hierarchie-Schutz für sensible Rechte.
+* [x] **v2.23.0:**
   * [x] System-Manager & Live-Prozess-Logkonsole (`/system-logs`) mit Volltextsuche, Auto-Scroll, Log-Level-Filtern und 1-Klick Neustart-Steuerung (Bot, Web, All mit Countdown).
   * [x] Großes Sicherheits- & Stabilitäts-Audit: Command-Injection Schutz via `spawn` mit Argument-Whitelist, API-Token Mindestlängen-Schutz (32 Zeichen), Multi-Guild IDOR-Prävention, Wirtschafts-Obergrenze `MAX_BALANCE` (1 Mrd.) & atomare JSON-Dateisystem-Schreiboperationen (`writeJsonAtomic`).
 * [x] **v2.22.0:**

@@ -275,6 +275,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 * **30-Minuten Schnell-Login per Code (`/web-login` & `/shop code`):**
   * Schneller Login ohne Discord-OAuth: `/web-login` in Discord ausführen und den Code auf der Webseite eingeben oder direkt auf den Link klicken.
   * Auch reguläre Server-Mitglieder können sich anmelden und im Shop einkaufen.
+  * **Sicherheit:** Der Code besteht aus 6 zufälligen Zeichen (`GLG-K7P2WD`, erzeugt mit `crypto.randomBytes`), gilt 30 Minuten und nur einmal. Nach 10 Fehlversuchen wird die Eingabe pro IP 15 Minuten gesperrt; auffälliges Raten landet im System-Log.
 * **Server-Währung (Coins):**
   * Konfigurierbarer Währungsname (z. B. *Coins*, *Credits*) und Symbol (`🪙`).
   * Einnahmequellen: Chat-Nachrichten, Voice-Aktivität und täglicher Bonus via `/daily` mit Streak-Bonus.

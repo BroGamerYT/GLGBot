@@ -162,6 +162,46 @@ export interface BackupRestorePreview {
 }
 
 const BACKUPS_DIR = path.join(__dirname, "../../data/backups");
+
+/**
+ * Rechte, die beim Wiederherstellen NICHT aus einer Backup-Datei übernommen werden,
+ * solange der Ausführende nicht Server-Inhaber oder Administrator ist.
+ *
+ * Hintergrund: Backups lassen sich als JSON hochladen. Ohne diesen Filter könnte jemand
+ * mit "Server verwalten" ein Backup bauen, in dem @everyone Administrator ist, es
+ * wiederherstellen - und wäre damit selbst Administrator.
+ */
+export const DANGEROUS_PERMISSIONS =
+  PermissionFlagsBits.Administrator |
+  PermissionFlagsBits.ManageGuild |
+  PermissionFlagsBits.ManageRoles |
+  PermissionFlagsBits.ManageChannels |
+  PermissionFlagsBits.ManageWebhooks |
+  PermissionFlagsBits.ManageGuildExpressions |
+  PermissionFlagsBits.BanMembers |
+  PermissionFlagsBits.KickMembers |
+  PermissionFlagsBits.ModerateMembers |
+  PermissionFlagsBits.ManageMessages |
+  PermissionFlagsBits.MentionEveryone |
+  PermissionFlagsBits.ManageNicknames |
+  PermissionFlagsBits.ViewAuditLog |
+  PermissionFlagsBits.ManageEvents;
+
+/**
+ * Entfernt gefährliche Rechte-Bits aus einem Backup-Wert.
+ * Gibt zusätzlich zurück, ob etwas entfernt wurde (für die Warnung im Ergebnis).
+ */
+export function safePermissions(raw: string, allowDangerous: boolean): { value: bigint; stripped: boolean } {
+  let bits: bigint;
+  try {
+    bits = BigInt(raw);
+  } catch {
+    return { value: BigInt(0), stripped: true };
+  }
+  if (allowDangerous) return { value: bits, stripped: false };
+  const cleaned = bits & ~DANGEROUS_PERMISSIONS;
+  return { value: cleaned, stripped: cleaned !== bits };
+}
 const MAX_BACKUP_BYTES = 15 * 1024 * 1024;
 const MAX_ARCHIVE_MESSAGES = 2000;
 const MAX_ARCHIVE_ATTACHMENT_BYTES = 1024 * 1024;
@@ -921,6 +961,8 @@ class BackupService {
       wipeFirst?: boolean;
       restoreChatArchive?: boolean;
       idMappings?: Record<string, string>;
+      /** Nur für Server-Inhaber/Administratoren: Admin- und Moderationsrechte mit übernehmen */
+      allowDangerousPermissions?: boolean;
     } = {}
   ): Promise<{
     rolesCreated: number;
@@ -955,6 +997,8 @@ class BackupService {
       errors: [] as string[],
     };
     const entityIdMap = new Map<string, string>();
+    const allowDangerous = options.allowDangerousPermissions === true;
+    let strippedRoles = 0;
 
     // Wipe bestehende Kanäle falls gewünscht
     if (options.wipeFirst && !options.rolesOnly) {
@@ -983,7 +1027,9 @@ class BackupService {
         if (rData.isEveryone) {
           // @everyone Berechtigungen aktualisieren
           try {
-            await guild.roles.everyone.setPermissions(BigInt(rData.permissions));
+            const perms = safePermissions(rData.permissions, allowDangerous);
+            if (perms.stripped) strippedRoles++;
+            await guild.roles.everyone.setPermissions(perms.value);
           } catch (e: any) {
             result.errors.push(`@everyone Update fehlgeschlagen: ${e.message}`);
           }
@@ -1004,11 +1050,13 @@ class BackupService {
         const existing = matches[0];
         if (existing) {
           try {
+            const perms = safePermissions(rData.permissions, allowDangerous);
+            if (perms.stripped) strippedRoles++;
             await existing.edit({
               color: rData.color,
               hoist: rData.hoist,
               mentionable: rData.mentionable,
-              permissions: BigInt(rData.permissions),
+              permissions: perms.value,
             });
             result.rolesUpdated++;
           } catch (e: any) {
@@ -1018,12 +1066,14 @@ class BackupService {
           entityIdMap.set(rData.id, existing.id);
         } else {
           try {
+            const perms = safePermissions(rData.permissions, allowDangerous);
+            if (perms.stripped) strippedRoles++;
             const created = await guild.roles.create({
               name: rData.name,
               color: rData.color,
               hoist: rData.hoist,
               mentionable: rData.mentionable,
-              permissions: BigInt(rData.permissions),
+              permissions: perms.value,
               reason: `Wiederhergestellt aus Backup ${backup.id}`,
             });
             roleMap.set(rData.id, created);
@@ -1241,6 +1291,12 @@ class BackupService {
       }
     } catch (e: any) {
       result.errors.push(`Regel-Sperre konnte nicht erneut aktiviert werden: ${e?.message || e}`);
+    }
+
+    if (strippedRoles > 0) {
+      const hinweis = `Sicherheitshinweis: Bei ${strippedRoles} Rolle(n) wurden Admin- und Moderationsrechte aus dem Backup NICHT übernommen. Nur der Server-Inhaber oder ein Administrator darf solche Rechte wiederherstellen - vergib sie anschließend von Hand.`;
+      result.errors.push(hinweis);
+      console.warn(`[BackupService] ${hinweis}`);
     }
 
     return result;

@@ -40,7 +40,8 @@ const webLoginCommand: Command = {
         `Mit diesem Code kannst du dich sofort im **Web-Dashboard** und im **Shop** anmelden – ganz ohne Passwort oder Discord-OAuth-Bestätigung!\n\n` +
           `### Dein Einmal-Code:\n` +
           `# \`\`\`${code}\`\`\`\n` +
-          `⏱️ **Gültig für:** <t:${expiresSec}:R> (30 Minuten)\n` +
+          `⏱️ **Gültig für:** <t:${expiresSec}:R> (30 Minuten, nur einmal nutzbar)\n` +
+          `🔒 **Nicht weitergeben** - wer den Code hat, kommt in deinen Zugang.\n` +
           `👤 **Konto:** <@${interaction.user.id}> (${interaction.user.tag})\n\n` +
           `👉 Klicke unten auf den Button, um dich direkt im Browser einzuloggen, oder tippe den Code im Dashboard unter **„Mit Code einloggen“** ein.`
       )

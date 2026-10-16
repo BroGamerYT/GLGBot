@@ -19,6 +19,7 @@ import net from "net";
 import fs from "fs";
 import path from "path";
 import { writeJsonAtomic } from "../utils/jsonFile";
+import { moduleService } from "./moduleService";
 import { voiceDuckingService } from "./voiceDuckingService";
 
 const DATA_DIR = path.join(__dirname, "../../data");
@@ -219,6 +220,10 @@ export class RadioService {
   }
 
   async start(channel: VoiceBasedChannel, rawUrl: string, name = "Web-Radio", userId?: string): Promise<RadioStatus> {
+    // Modul-Schalter auch hier prüfen - das Dashboard ruft diese Funktion direkt auf
+    if (!moduleService.isEnabled(channel.guild.id, "music")) {
+      throw new Error("Das Modul „Radio & Musik“ ist auf diesem Server ausgeschaltet.");
+    }
     // laut.fm-Seiten-URLs automatisch auf den echten Stream umschreiben (Seite liefert HTML, kein Audio)
     const normalized = rawUrl.trim().replace(/^https?:\/\/(www\.)?laut\.fm\//i, "https://stream.laut.fm/");
     const url = (await validateStreamUrl(normalized)).toString();
