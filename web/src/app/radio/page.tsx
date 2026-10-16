@@ -65,6 +65,20 @@ const DEFAULT_FALLBACK_STATIONS: Station[] = [
   { id: "lautfm-house", name: "House Radio", url: "https://stream.laut.fm/house", source: "laut.fm", active: true },
   { id: "lautfm-trap", name: "Trap Radio", url: "https://stream.laut.fm/trap", source: "laut.fm", active: true },
   { id: "lautfm-hiphop", name: "Hip-Hop Radio", url: "https://stream.laut.fm/hiphop", source: "laut.fm", active: true },
+  { id: "flux-live", name: "FluxFM - Live", url: "https://channels.fluxfm.de/FluxFM/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-alternative", name: "FluxFM - Alternative", url: "https://channels.fluxfm.de/alternative/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-indiedisco", name: "FluxFM - Indie Disco", url: "https://channels.fluxfm.de/indiedisco/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-chillhop", name: "FluxFM - Chillhop", url: "https://channels.fluxfm.de/chillhop/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-chillout", name: "FluxFM - Chillout", url: "https://channels.fluxfm.de/chillout-radio/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-elektro", name: "FluxFM - Elektro-Flux", url: "https://channels.fluxfm.de/elektro-flux/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-clubsandwich", name: "FluxFM - Clubsandwich", url: "https://channels.fluxfm.de/clubsandwich/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-soundofberlin", name: "FluxFM - Sound of Berlin", url: "https://channels.fluxfm.de/sound-of-berlin/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-beachhouse", name: "FluxFM - Berlin Beach House", url: "https://channels.fluxfm.de/berlin-beach-house/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-metalfm", name: "FluxFM - Metal FM", url: "https://channels.fluxfm.de/metal-fm/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-xjazz", name: "FluxFM - X-Jazz", url: "https://channels.fluxfm.de/x-jazz/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-80er", name: "FluxFM - 80er", url: "https://channels.fluxfm.de/80s/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-90er", name: "FluxFM - 90er", url: "https://channels.fluxfm.de/90s/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-2000er", name: "FluxFM - 2000er", url: "https://channels.fluxfm.de/2000er/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
 ];
 
 export default function RadioPage() {
