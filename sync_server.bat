@@ -95,7 +95,7 @@ if errorlevel 1 (
 
 echo.
 echo [2/3] Baue Web-Dashboard...
-ssh %REMOTE% "cd %SERVER_PATH%/web && npm install && npm run build && (pm2 restart discord-web || pm2 start npm --name discord-web -- start) && pm2 save"
+ssh %REMOTE% "bash %SERVER_PATH%/scripts/deploy_web.sh %SERVER_PATH%"
 if errorlevel 1 (
     echo ❌ Fehler beim Bauen/Starten des Dashboards. Siehe Ausgabe oben.
     goto upload_end
