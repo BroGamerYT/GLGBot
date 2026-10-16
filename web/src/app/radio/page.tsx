@@ -120,6 +120,46 @@ export default function RadioPage() {
   const [myUid, setMyUid] = useState<string | null>(null);
 
   const myPlaylistCount = playlists.filter((p) => p.ownerId && p.ownerId === myUid).length;
+  const [ytInput, setYtInput] = useState("");
+  const [ytLoading, setYtLoading] = useState(false);
+
+  const playYoutube = async (query: string) => {
+    const clean = query.trim();
+    if (!clean) return;
+    setYtLoading(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/bot/music/play-youtube", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: clean, channelId: targetVoiceId || undefined }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.isPlaylist) {
+          setMessage({
+            text: `🎶 Playlist „${data.name}“ hinzugefügt: ${data.added} Songs in Queue${data.failed > 0 ? ` (${data.failed} übersprungen)` : ""}.`,
+            type: "success",
+          });
+        } else {
+          setMessage({
+            text: data.result?.status === "started"
+              ? `▶️ Spielt jetzt: ${data.result?.title || clean}`
+              : `➕ Zur Queue hinzugefügt (#${data.result?.position}): ${data.result?.title || clean}`,
+            type: "success",
+          });
+        }
+        setYtInput("");
+        await refreshStatus();
+      } else {
+        setMessage({ text: `❌ ${data.error || "Konnte YouTube-Titel nicht abspielen."}`, type: "error" });
+      }
+    } catch (e: any) {
+      setMessage({ text: `❌ ${e.message}`, type: "error" });
+    } finally {
+      setYtLoading(false);
+    }
+  };
 
   const controlWorker = async (action: "start" | "stop" | "restart") => {
     setMessage(null);
@@ -1371,9 +1411,37 @@ export default function RadioPage() {
           <div className="bg-discord-card border border-discord-border rounded-2xl p-5 md:p-6 space-y-4 shadow-xl">
             <div className="flex items-center justify-between border-b border-discord-border/50 pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Music className="w-4 h-4 text-discord-blurple" /> Discord Warteschlange
+                <Music className="w-4 h-4 text-discord-blurple" /> Discord Warteschlange & YouTube
               </h3>
               <span className="text-xs text-gray-400 font-mono">/music play</span>
+            </div>
+
+            {/* YouTube Search / URL Input */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="YouTube-Link (Video/Playlist) oder Suchbegriff …"
+                value={ytInput}
+                onChange={(e) => setYtInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !ytLoading) void playYoutube(ytInput); }}
+                disabled={ytLoading}
+                className="flex-1 bg-discord-dark border border-discord-border rounded-xl px-3.5 py-2 text-white text-xs md:text-sm focus:outline-none focus:border-discord-blurple"
+              />
+              <button
+                onClick={() => void playYoutube(ytInput)}
+                disabled={!ytInput.trim() || ytLoading}
+                className="px-4 py-2 rounded-xl bg-discord-blurple hover:bg-discord-blurple/90 text-white font-bold text-xs flex items-center gap-1.5 disabled:opacity-50 transition-all shadow shrink-0"
+              >
+                {ytLoading ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Lädt …
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 fill-current" /> Abspielen
+                  </>
+                )}
+              </button>
             </div>
 
             {!musicQueue?.current && (!musicQueue?.queue || musicQueue.queue.length === 0) ? (

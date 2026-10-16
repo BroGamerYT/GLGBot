@@ -133,6 +133,7 @@ const ALLOWED = new Set([
   "POST music/upload-code",
   "POST music/play-local",
   "POST music/play-playlist",
+  "POST music/play-youtube",
   "GET musicbot/status",
   "POST musicbot/start",
   "POST musicbot/stop",

@@ -22,3 +22,5 @@ _backups/
 # Lokale Artefakte
 DiscordBot.zip
 .vscode/
+bin/
+*.exe

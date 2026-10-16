@@ -85,11 +85,17 @@ const musicCommand: Command = {
                 .setTitle("🎶 Playlist hinzugefügt")
                 .setDescription(`**${imp.name}**\n✅ ${imp.added} Songs in Queue${imp.failed > 0 ? `\n❌ ${imp.failed} übersprungen` : ""}`);
               await interaction.editReply({ embeds: [embed] });
+              break;
             } catch (e: unknown) {
-              const msg = e instanceof Error ? e.message : "Import fehlgeschlagen.";
-              await interaction.editReply({ content: `❌ ${msg}` });
+              const { extractVideoId } = await import("../../utils/ytDlpService");
+              const vid = extractVideoId(query);
+              if (!vid) {
+                const msg = e instanceof Error ? e.message : "Import fehlgeschlagen.";
+                await interaction.editReply({ content: `❌ ${msg}` });
+                break;
+              }
+              // Hat eine Video-ID -> spiele Einzelvideo als Fallback ab
             }
-            break;
           }
 
           const result = await musicService.play(channel, query, interaction.user);

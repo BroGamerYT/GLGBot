@@ -21,6 +21,7 @@ import path from "path";
 import { writeJsonAtomic } from "../utils/jsonFile";
 import { moduleService } from "./moduleService";
 import { voiceDuckingService } from "./voiceDuckingService";
+import { isYouTubeUrl, resolveVideo } from "../utils/ytDlpService";
 
 const DATA_DIR = path.join(__dirname, "../../data");
 const STATE_FILE = path.join(DATA_DIR, "radio_state.json");
@@ -226,7 +227,15 @@ export class RadioService {
     }
     // laut.fm-Seiten-URLs automatisch auf den echten Stream umschreiben (Seite liefert HTML, kein Audio)
     const normalized = rawUrl.trim().replace(/^https?:\/\/(www\.)?laut\.fm\//i, "https://stream.laut.fm/");
-    const url = (await validateStreamUrl(normalized)).toString();
+    let url: string;
+    let stationName = name;
+    if (isYouTubeUrl(normalized)) {
+      const yt = await resolveVideo(normalized);
+      url = yt.url;
+      if (stationName === "Web-Radio") stationName = yt.title;
+    } else {
+      url = (await validateStreamUrl(normalized)).toString();
+    }
     // Gespeicherte Lautstärke (Kanal gewinnt, sonst User)
     let startVolume = 100;
     try {
@@ -268,7 +277,7 @@ export class RadioService {
       guildId: channel.guild.id,
       channelId: channel.id,
       url,
-      name,
+      name: stationName,
       player,
       connection,
       voiceChannel: channel,

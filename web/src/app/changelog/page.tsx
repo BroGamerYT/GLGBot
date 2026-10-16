@@ -58,10 +58,45 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
-    version: "v2.28.0",
+    version: "v2.29.0",
     date: "16. Oktober 2026",
     badge: "Aktuell",
     badgeColor: "bg-discord-green/10 text-discord-green border-discord-green/30",
+    title: "YouTube Einzelvideos & Playlisten Integration (yt-dlp)",
+    description:
+      "Vollständige Unterstützung für YouTube-Links (Einzelvideos, Playlisten, Shorts, YouTube Music) über die moderne yt-dlp Streaming-Engine – direkt in Discord (/music play, /radio start) und im Web-Dashboard.",
+    highlights: [
+      {
+        icon: Radio,
+        title: "YouTube Playlisten-Import in Sekunden",
+        description:
+          "Ganze Playlisten (bis zu 50 Tracks) werden blitzschnell mit Original-Titeln, Laufzeiten und hochauflösenden Covern in die Warteschlange geladen. Das erste Lied startet sofort ohne Wartezeit.",
+      },
+      {
+        icon: Mic,
+        title: "Einzelvideo & Algorithmen-Mix Support",
+        description:
+          "Unterstützt alle Video-Formate (watch, youtu.be, shorts, music). Bei dynamischen YouTube-Mix-Links (&list=RD...) oder fehlerhaften Playlisten wird automatisch das Einzelvideo weitergespielt.",
+      },
+      {
+        icon: Globe,
+        title: "YouTube-Steuerung im Web-Dashboard",
+        description:
+          "Neues Eingabefeld im Dashboard unter „Playlisten & Queue“: Einfach YouTube-Link oder Suchbegriff eingeben und per Klick in den Sprachkanal streamen oder in die Queue einreihen.",
+      },
+      {
+        icon: Blocks,
+        title: "Moderne yt-dlp Engine",
+        description:
+          "Ersetzt veraltete Bibliotheken durch eine native yt-dlp Audio-Pipeline mit direktem Opus-Transcoding via ffmpeg – stabil gegen IP-Blocks, Format-Änderungen und Bot-Sperren.",
+      },
+    ],
+  },
+  {
+    version: "v2.28.0",
+    date: "16. Oktober 2026",
+    badge: "Feature-Update",
+    badgeColor: "bg-discord-blurple/10 text-discord-blurple border-discord-blurple/30",
     title: "Sicherheits-Update & Musik-Korrekturen",
     description:
       "Eine Sicherheitsprüfung des gesamten Projekts hat mehrere Lücken aufgedeckt - alle sind geschlossen. Dazu zwei hartnäckige Fehler im Musik-Player, die bisher unbemerkt blieben.",

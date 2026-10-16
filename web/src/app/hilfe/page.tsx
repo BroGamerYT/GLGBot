@@ -581,6 +581,9 @@ export default function HelpPage() {
                 </ul>
               </li>
               <li>
+                <strong className="text-white">▶️ YouTube Einzelvideos & Playlisten (yt-dlp):</strong> Mit <Cmd>/music play &lt;url|playlist|suche&gt;</Cmd> oder direkt im Web-Dashboard unter <em>„Playlisten & Queue“</em> können beliebige YouTube-Links eingefügt werden. Ganze Playlisten (bis 50 Songs) werden mit Cover und Titeln in Sekunden geladen. Einzelne Videos, Shorts, YouTube Music und Video-Mix-Links (<Cmd>&amp;list=RD...</Cmd>) werden nahtlos unterstützt.
+              </li>
+              <li>
                 <strong className="text-white">🎛️ Persistenter Mini-Player:</strong> Die obere Player-Leiste zeigt immer den Live-Status (🟢 Läuft / ⏸️ Pausiert / ⚪ Bereit), ICY-Titel („Was läuft gerade“), den aktuellen Sprachkanal, Play/Pause/Stop und Lautstärke-Tasten (±10%).
               </li>
               <li>

@@ -41,6 +41,14 @@ import {
   User,
 } from "discord.js";
 import ytdl from "@distube/ytdl-core";
+import {
+  resolveVideo,
+  resolvePlaylist,
+  isYouTubeUrl,
+  isYouTubePlaylistUrl,
+  extractPlaylistId as extractYtPlaylistId,
+  extractVideoId,
+} from "../utils/ytDlpService";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const yts = require("yt-search") as (query: string) => Promise<{
   videos: Array<{ videoId: string; url: string; title: string; image: string; timestamp: string }>;
@@ -55,7 +63,9 @@ export interface QueueItem {
   duration: string;
   requestedBy: User;
   source: "youtube" | "local";
-  /** Direkte Audio-URL (Piped-Fallback) statt ytdl-Stream */
+  /** Direkte Audio-URL (Pre-Resolve / Piped) */
+  streamUrl?: string;
+  /** Direkte Audio-URL statt ytdl-Stream */
   directAudio?: boolean;
 }
 
@@ -173,19 +183,25 @@ export class MusicService {
     return all.slice(-Math.max(1, limit)).reverse();
   }
 
-  /** Extrahiert die YouTube-Playlist-ID aus einer URL (list=...). */
+  /** Extrahiert die YouTube-Playlist-ID aus einer URL (list=...). Ignoriert Mix/Radio-Listen (RD...). */
   extractPlaylistId(url: string): string | null {
-    try {
-      const u = new URL(url);
-      if (!/^(www\.)?(youtube\.com|youtu\.be)$/i.test(u.hostname)) return null;
-      return u.searchParams.get("list");
-    } catch {
-      return null;
-    }
+    return extractYtPlaylistId(url);
   }
 
-  /** Liest Video-IDs + Name einer YouTube-Playlist über Piped (max. `limit`). */
-  private async fetchYouTubePlaylist(listId: string, limit = 30): Promise<{ name: string; videoIds: string[] }> {
+  /** Liest Video-IDs + Name einer YouTube-Playlist über yt-dlp (max. `limit`), Fallback Piped. */
+  private async fetchYouTubePlaylist(listId: string, limit = 50): Promise<{ name: string; videoIds: string[] }> {
+    try {
+      const pl = await resolvePlaylist(listId, limit);
+      if (pl.items.length > 0) {
+        return {
+          name: pl.title || "YouTube-Playlist",
+          videoIds: pl.items.map((i) => i.id),
+        };
+      }
+    } catch (e: any) {
+      console.warn(`[Music] yt-dlp Playlist ${listId} fehlgeschlagen (${e?.message}), versuche Piped...`);
+    }
+
     for (const base of PIPED_API) {
       try {
         const ctrl = new AbortController();
@@ -212,25 +228,73 @@ export class MusicService {
     throw new Error("Playlist konnte nicht gelesen werden (privat/gelöscht oder API blockiert).");
   }
 
-  /** Importiert eine YouTube-Playlist in die Queue. Gibt {name, added, failed} zurück. */
+  /** Importiert eine YouTube-Playlist blitzschnell in die Queue. Gibt {name, added, failed} zurück. */
   async importYouTubePlaylist(
     channel: VoiceBasedChannel,
     listId: string,
     requester: User,
   ): Promise<{ name: string; added: number; failed: number }> {
-    const { name, videoIds } = await this.fetchYouTubePlaylist(listId);
-    let added = 0;
-    let failed = 0;
-    for (const id of videoIds) {
-      try {
-        await this.play(channel, `https://www.youtube.com/watch?v=${id}`, requester);
-        added++;
-      } catch {
-        failed++;
-      }
+    if (!moduleService.isEnabled(channel.guild.id, "music")) {
+      throw new Error("Das Modul „Radio & Musik“ ist auf diesem Server ausgeschaltet.");
     }
-    if (added === 0) throw new Error("Kein Song der Playlist konnte hinzugefügt werden.");
-    return { name, added, failed };
+    try {
+      const { radioService } = await import("./radioService");
+      if (radioService.getStatus(channel.guild.id)) await radioService.stop(channel.guild.id);
+    } catch {}
+
+    const session = await this.ensureSession(channel);
+    try {
+      const { musicPrefsService } = await import("./musicPrefsService");
+      session.volume = musicPrefsService.getVolume(channel.guild.id, channel.id, requester.id);
+    } catch {}
+
+    let playlistTitle = "YouTube-Playlist";
+    let playlistItems: Array<{ id: string; title: string; duration: string; url: string }> = [];
+
+    try {
+      const pl = await resolvePlaylist(listId, 50);
+      if (pl.items.length > 0) {
+        playlistTitle = pl.title || "YouTube-Playlist";
+        playlistItems = pl.items;
+      }
+    } catch (e: any) {
+      console.warn(`[Music] yt-dlp Playlist ${listId} fehlgeschlagen (${e?.message}), versuche Fallback...`);
+    }
+
+    if (playlistItems.length === 0) {
+      const fb = await this.fetchYouTubePlaylist(listId, 50);
+      playlistTitle = fb.name;
+      playlistItems = fb.videoIds.map((id) => ({
+        id,
+        title: `YouTube Track (${id})`,
+        duration: "Live",
+        url: `https://www.youtube.com/watch?v=${id}`,
+      }));
+    }
+
+    let added = 0;
+    for (const item of playlistItems) {
+      if (session.queue.length >= MAX_QUEUE_SIZE) break;
+      const qItem: QueueItem = {
+        title: item.title,
+        url: item.url,
+        thumbnail: `https://i.ytimg.com/vi/${item.id}/hqdefault.jpg`,
+        duration: item.duration || "Live",
+        requestedBy: requester,
+        source: "youtube",
+        directAudio: true,
+      };
+      session.queue.push(qItem);
+      added++;
+    }
+
+    if (added === 0) throw new Error("Kein Song der Playlist konnte hinzugefügt werden (Queue voll oder Playlist leer).");
+
+    if (session.player.state.status === AudioPlayerStatus.Idle || session.player.state.status === AudioPlayerStatus.Paused) {
+      await this.playNext(session);
+    }
+
+    return { name: playlistTitle, added, failed: Math.max(0, playlistItems.length - added) };
   }
 
   /** Importiert eine Spotify-Playlist (Titel → YouTube-Suche) in die Queue. */
@@ -300,6 +364,7 @@ export class MusicService {
       duration: info.duration,
       requestedBy: requester,
       source: info.source,
+      streamUrl: info.streamUrl,
       directAudio: info.directAudio,
     };
 
@@ -596,80 +661,109 @@ export class MusicService {
         );
         // Raw-PCM braucht expliziten Typ – die Auto-Erkennung scheitert ohne Container-Header
         resource = createAudioResource(ffmpeg.stdout!, { inputType: StreamType.Raw, inlineVolume: true });
-      } else if (item.directAudio) {
-        // Piped-Fallback: direkte Audio-URL per ffmpeg laden (Node-Pipe umgeht UA/TLS-Probleme)
-        const ctrl = new AbortController();
-        const res = await fetch(item.url, {
-          signal: ctrl.signal,
-          redirect: "follow",
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
-          },
-        });
-        if (!res.ok || !res.body) throw new Error(`Audio-URL antwortet mit HTTP ${res.status}.`);
-        const ffmpeg = spawn(
-          ffmpegPath,
-          ["-thread_queue_size", "1024", "-i", "pipe:0", "-vn", "-f", "s16le", "-ar", "48000", "-ac", "2", "pipe:1"],
-          { stdio: ["pipe", "pipe", "pipe"] },
-        );
-        const reader = res.body.getReader();
-        const pump = (async () => {
-          try {
-            for (;;) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              if (!value || ffmpeg.killed) break;
-              try {
-                if (!ffmpeg.stdin!.write(value)) {
-                  await new Promise<void>((r) => ffmpeg.stdin!.once("drain", () => r()));
-                }
-              } catch {
-                break;
-              }
-            }
-          } catch {} finally {
-            try {
-              await reader.cancel();
-            } catch {}
-            try {
-              ctrl.abort();
-            } catch {}
-          }
-        })();
-        pump.catch(() => null);
-        ffmpeg.stdin?.on("error", () => null);
-        ffmpeg.on("error", (e: Error) => {
-          session.lastError = `ffmpeg: ${e.message}`.slice(0, 200);
-        });
-        // Pump bei Songwechsel/Skip abbrechen
-        const stopPump = () => {
-          try {
-            ctrl.abort();
-          } catch {}
-          try {
-            ffmpeg.stdin?.destroy();
-          } catch {}
-        };
-        session.player.once(AudioPlayerStatus.Idle, stopPump);
-        resource = createAudioResource(ffmpeg.stdout!, { inputType: StreamType.Raw, inlineVolume: true });
       } else {
-        const stream = ytdl(item.url, {
-          filter: "audioonly",
-          quality: "highestaudio",
-          highWaterMark: 1 << 25,
-          requestOptions: {
+        // YouTube-Audioquelle ermitteln (yt-dlp -> Piped -> ytdl)
+        let audioStreamUrl = item.streamUrl || null;
+
+        // Wenn noch keine direkte Stream-URL vorhanden ist, frisch auflösen:
+        if (!audioStreamUrl && isYouTubeUrl(item.url)) {
+          try {
+            const yt = await resolveVideo(item.url);
+            audioStreamUrl = yt.url;
+            if (!item.title || item.title.startsWith("YouTube Track")) item.title = yt.title;
+            if (!item.thumbnail) item.thumbnail = yt.thumbnail;
+            if (yt.duration && item.duration === "Live") item.duration = yt.duration;
+          } catch (ytErr: any) {
+            console.warn(`[Music] yt-dlp Video-Auflösung für ${item.url} fehlgeschlagen:`, ytErr?.message);
+          }
+        }
+
+        // Fallback: Piped Lookup
+        if (!audioStreamUrl) {
+          const vid = extractVideoId(item.url);
+          if (vid) {
+            const piped = await pipedLookup(vid);
+            if (piped) audioStreamUrl = piped.audioUrl;
+          }
+        }
+
+        if (audioStreamUrl) {
+          const ctrl = new AbortController();
+          const res = await fetch(audioStreamUrl, {
+            signal: ctrl.signal,
+            redirect: "follow",
             headers: {
               "User-Agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
-              "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
             },
-          },
-        });
-        stream.on("error", (e: Error) => {
-          session.lastError = `YouTube: ${e.message}`.slice(0, 200);
-          console.error(`[Music] Stream-Fehler bei "${item.title}":`, e.message);
-        });
-        resource = createAudioResource(stream, { inlineVolume: true });
+          });
+          if (!res.ok || !res.body) throw new Error(`Audio-URL antwortet mit HTTP ${res.status}.`);
+
+          const ffmpeg = spawn(
+            ffmpegPath,
+            ["-thread_queue_size", "1024", "-i", "pipe:0", "-vn", "-f", "s16le", "-ar", "48000", "-ac", "2", "pipe:1"],
+            { stdio: ["pipe", "pipe", "pipe"] },
+          );
+          const reader = res.body.getReader();
+          const pump = (async () => {
+            try {
+              for (;;) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                if (!value || ffmpeg.killed) break;
+                try {
+                  if (!ffmpeg.stdin!.write(value)) {
+                    await new Promise<void>((r) => ffmpeg.stdin!.once("drain", () => r()));
+                  }
+                } catch {
+                  break;
+                }
+              }
+            } catch {} finally {
+              try {
+                await reader.cancel();
+              } catch {}
+              try {
+                ctrl.abort();
+              } catch {}
+            }
+          })();
+          pump.catch(() => null);
+          ffmpeg.stdin?.on("error", () => null);
+          ffmpeg.on("error", (e: Error) => {
+            session.lastError = `ffmpeg: ${e.message}`.slice(0, 200);
+          });
+          // Pump bei Songwechsel/Skip abbrechen
+          const stopPump = () => {
+            try {
+              ctrl.abort();
+            } catch {}
+            try {
+              ffmpeg.stdin?.destroy();
+            } catch {}
+          };
+          session.player.once(AudioPlayerStatus.Idle, stopPump);
+          resource = createAudioResource(ffmpeg.stdout!, { inputType: StreamType.Raw, inlineVolume: true });
+        } else {
+          // Letzter Not-Fallback: ytdl
+          const stream = ytdl(item.url, {
+            filter: "audioonly",
+            quality: "highestaudio",
+            highWaterMark: 1 << 25,
+            requestOptions: {
+              headers: {
+                "User-Agent":
+                  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+                "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+              },
+            },
+          });
+          stream.on("error", (e: Error) => {
+            session.lastError = `YouTube: ${e.message}`.slice(0, 200);
+            console.error(`[Music] Stream-Fehler bei "${item.title}":`, e.message);
+          });
+          resource = createAudioResource(stream, { inlineVolume: true });
+        }
       }
 
       resource.volume?.setVolume(session.volume / 100);
@@ -696,7 +790,15 @@ export class MusicService {
     }
   }
 
-  private async resolve(query: string): Promise<{ title: string; url: string; thumbnail: string; duration: string; source: "youtube" | "local"; directAudio?: boolean }> {
+  private async resolve(query: string): Promise<{
+    title: string;
+    url: string;
+    thumbnail: string;
+    duration: string;
+    source: "youtube" | "local";
+    streamUrl?: string;
+    directAudio?: boolean;
+  }> {
     const trimmed = query.trim();
     if (!trimmed) throw new Error("Bitte einen Suchbegriff oder eine YouTube-URL angeben.");
     if (/^local:/i.test(trimmed)) {
@@ -711,14 +813,25 @@ export class MusicService {
       }
       return { title: hit.name, url: `local:${hit.file}`, thumbnail: "", duration: "Lokal", source: "local" };
     }
-    const isUrl = /^https?:\/\//i.test(trimmed);
 
-    try {
-      if (isUrl) {
-        if (!ytdl.validateURL(trimmed)) {
-          throw new Error("Diese URL ist kein gültiges YouTube-Video (Playlists werden nicht unterstützt – Einzelvideo nutzen).");
-        }
-        try {
+    if (isYouTubeUrl(trimmed)) {
+      try {
+        const yt = await resolveVideo(trimmed);
+        return {
+          title: yt.title,
+          url: yt.webpageUrl,
+          thumbnail: yt.thumbnail,
+          duration: yt.duration,
+          source: "youtube",
+          streamUrl: yt.url,
+          directAudio: true,
+        };
+      } catch (ytErr: any) {
+        console.warn(`[Music] yt-dlp Video-Auflösung für ${trimmed} fehlgeschlagen, versuche Fallbacks:`, ytErr?.message);
+      }
+
+      try {
+        if (ytdl.validateURL(trimmed)) {
           const info = await ytdl.getInfo(trimmed);
           const videoDetails = info.videoDetails;
           return {
@@ -728,29 +841,28 @@ export class MusicService {
             duration: this.formatDuration(Number(videoDetails.lengthSeconds) || 0),
             source: "youtube",
           };
-        } catch {
-          // ytdl geblockt (Server-IP) -> Piped-Fallback
-          let videoId: string | null = null;
-          try {
-            videoId = ytdl.getURLVideoID(trimmed);
-          } catch {}
-          if (videoId) {
-            const piped = await pipedLookup(videoId);
-            if (piped) {
-              return {
-                title: piped.title,
-                url: piped.audioUrl,
-                thumbnail: piped.thumbnail,
-                duration: piped.duration,
-                source: "youtube",
-                directAudio: true,
-              };
-            }
-          }
-          throw new Error("YouTube blockt diesen Server. Alternative: Radio oder MP3-Upload nutzen.");
+        }
+      } catch {}
+
+      const videoId = extractVideoId(trimmed);
+      if (videoId) {
+        const piped = await pipedLookup(videoId);
+        if (piped) {
+          return {
+            title: piped.title,
+            url: `https://www.youtube.com/watch?v=${videoId}`,
+            thumbnail: piped.thumbnail,
+            duration: piped.duration,
+            source: "youtube",
+            streamUrl: piped.audioUrl,
+            directAudio: true,
+          };
         }
       }
+      throw new Error("YouTube-Video konnte nicht geladen werden.");
+    }
 
+    try {
       const result = await yts(trimmed);
       const first = result.videos?.[0];
       if (!first) {
@@ -762,6 +874,7 @@ export class MusicService {
         thumbnail: first.image ?? "",
         duration: first.timestamp || "Live",
         source: "youtube",
+        directAudio: true,
       };
     } catch (e: any) {
       if (e?.message) throw e;

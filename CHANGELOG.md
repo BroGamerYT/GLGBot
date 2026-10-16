@@ -4,6 +4,19 @@ Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokument
 
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und folgt [Semantic Versioning](https://semver.org/).
 
+## [2.29.0] - 2026-10-16
+
+### YouTube Einzelvideos & Playlisten (yt-dlp Engine)
+* **Vollständige YouTube-Integration:**
+  * **Einzelvideos:** `/music play <url>` unterstützt Standard-URLs (`watch?v=...`), Kurzlinks (`youtu.be/...`), Shorts (`/shorts/...`) und YouTube Music (`music.youtube.com/...`).
+  * **Playlisten-Import:** `/music play <playlist-url>` erkennt Playlisten automatisch und liest bis zu 50 Tracks blitzschnell mit Video-Titel, Laufzeit und Cover ein. Das erste Lied beginnt sofort zu spielen.
+  * **Robuste Fallbacks:** Dynamische YouTube-Mixe (`&list=RD...` / `&list=UL...`) oder fehlerhafte Playlisten brechen nicht mehr ab, sondern spielen das Einzelvideo nahtlos ab.
+  * **Radio-Integration:** `/radio start <youtube-url>` unterstützt YouTube 24/7-Livestreams (z. B. Lofi Hip Hop) als Dauer-Stream.
+* **Web-Dashboard YouTube-Steuerung:**
+  * Im Tab „Playlisten & Queue“ (`/radio`) gibt es ein direktes Eingabefeld für YouTube-Links oder Suchbegriffe mit Sofort-Feedback und Einreihung in den Ziel-Sprachkanal.
+* **Moderne yt-dlp Audio-Pipeline:**
+  * Verwendet die standalone `yt-dlp` Binärdatei mit direktem Opus/WebM-Transcoding via ffmpeg – immun gegen die Player-Script-Sperren von YouTube.
+
 ## [2.28.0] - 2026-10-16
 
 ### Sicherheit (bitte zeitnah einspielen)

@@ -2267,6 +2267,73 @@ export function startInternalApi(client: Client) {
           return send(res, 200, { ok: true, added, failed });
         }
 
+        case "POST /music/play-youtube": {
+          if ((process.env.MUSIC_MODE || "embedded") === "disabled") {
+            return send(res, 503, { error: "Musik ist deaktiviert (MUSIC_MODE=disabled)." });
+          }
+          const body = await readBody(req);
+          const { query, channelId } = body;
+          const cleanQuery = String(query || "").trim();
+          if (!cleanQuery) return send(res, 400, { error: "query erforderlich (YouTube-Link oder Suchbegriff)." });
+
+          let channel = null as import("discord.js").VoiceBasedChannel | null;
+          if (channelId) {
+            const fetched = await guild.channels.fetch(String(channelId)).catch(() => null);
+            if (!fetched || !fetched.isVoiceBased()) {
+              return send(res, 400, { error: "Der gewählte Kanal ist kein Sprachkanal." });
+            }
+            channel = fetched;
+          } else {
+            const member = actorId ? await guild.members.fetch(actorId).catch(() => null) : null;
+            channel = member?.voice?.channel ?? null;
+          }
+          if (!channel) return send(res, 400, { error: "Kein Sprachkanal gefunden. Wähle im Dashboard einen Ziel-Sprachkanal oder betrete einen Voice-Kanal." });
+
+          const requester =
+            (actorId && (await client.users.fetch(actorId).catch(() => null))) ||
+            client.user;
+          if (!requester) return send(res, 500, { error: "Anfragender Nutzer unbekannt." });
+
+          // YouTube-Playlist?
+          const listId = musicService.extractPlaylistId(cleanQuery);
+          if (listId) {
+            try {
+              const imp = await musicService.importYouTubePlaylist(channel, listId, requester);
+              return send(res, 200, {
+                ok: true,
+                isPlaylist: true,
+                name: imp.name,
+                added: imp.added,
+                failed: imp.failed,
+              });
+            } catch (plErr: any) {
+              const { extractVideoId } = await import("../utils/ytDlpService");
+              const vid = extractVideoId(cleanQuery);
+              if (!vid) {
+                return send(res, 400, { error: plErr?.message || "Playlist-Import fehlgeschlagen." });
+              }
+              // Hat Video-ID -> Fall-Through als Einzelvideo
+            }
+          }
+
+          try {
+            const result = await musicService.play(channel, cleanQuery, requester);
+            return send(res, 200, {
+              ok: true,
+              isPlaylist: false,
+              result: {
+                status: result.status,
+                title: result.item?.title,
+                duration: result.item?.duration,
+                thumbnail: result.item?.thumbnail,
+                position: result.position,
+              },
+            });
+          } catch (e: any) {
+            return send(res, 400, { error: e?.message || "Konnte Song nicht abspielen." });
+          }
+        }
+
         case "POST /radio/setup-channel": {
           if ((process.env.MUSIC_MODE || "embedded") === "disabled") {
             return send(res, 503, { error: "Musik ist deaktiviert (MUSIC_MODE=disabled)." });

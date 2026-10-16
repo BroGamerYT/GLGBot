@@ -321,6 +321,9 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
   * Eigenes Hintergrundbild per Bild-URL; ein dunkler Filter hält Text und Avatar lesbar. Live-Vorschau und Test-Button im Dashboard.
 
 ### 14. 📻 Radio- & Musik-Zentrale, Soundboard, Audio-Ducking & Auto-Cleanup
+* **YouTube Einzelvideos & Playlisten (yt-dlp):**
+  * Unterstützt beliebige YouTube-Links in `/music play`, `/radio start` und im Dashboard: Einzelvideos, Shorts, YouTube Music und vollständige Playlisten (bis 50 Songs in Sekunden mit Cover und Titel eingereiht).
+  * Dynamische YouTube-Mixe (`&list=RD...`) und fehlerhafte Playlisten fallen automatisch auf das Einzelvideo zurück.
 * **Intelligentes Audio-Ducking (`voiceDuckingService`):**
   * Sobald Personen im Sprachkanal sprechen, wird die Lautstärke des Radios oder der Musik automatisch auf 35 % abgesenkt (-65 %), damit Stimmen klar verständlich bleiben.
   * Sobald alle aufhören zu sprechen, wird die Lautstärke nach 800 ms sanft wieder auf den regulären Wert angehoben.
@@ -337,7 +340,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
   * **📻 Radio-Sender:** Sofortsuche, Kategorie-Filter (*SUNSHINE LIVE*, *SomaFM*, *laut.fm*, *Eigene*), URL-Probe-Test, Sofort-Abspielen und `+ Temp-Kanal`.
   * **🎵 Soundboard & Musik:** Suchleiste für alle lokalen Audio-Dateien, Ordner-Pills, Direkt-Wiedergabe, Download-Button (`⬇`) und Drag & Drop in Playlisten.
   * **📤 Uploads:** Integrierter Drag & Drop Uploader (ganze Ordner werden automatisch als Playlist angelegt!) und Discord DM-Upload-Code Generator.
-  * **📜 Playlisten & Queue:** Eigene Playlisten per Drag & Drop sortieren und abspielen; parallele Anzeige der Live-YouTube-Warteschlange.
+  * **📜 Playlisten & Queue:** Eigene Playlisten verwalten; direktes Eingabefeld für YouTube-Links oder Suche zum Abspielen/Einreihen; Live-Anzeige der Warteschlange.
   * **⚙️ Bot-Einstellungen:** Radio Bot-Name, Worker-Status (PID, Uptime, Restarts, Start/Stop/Restart) und Token-/Invite-Konfiguration für simultane Bots.
 * **Auto-Cleanup für temporäre Musikkanäle:**
   * Sender-Kanäle (`📻・<Sender>`) erhalten beim Erstellen eine 2-minütige Beitrittsfrist (`120s Grace`).
