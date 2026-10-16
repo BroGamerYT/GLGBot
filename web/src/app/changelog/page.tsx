@@ -71,8 +71,8 @@ const RELEASES: Release[] = [
       },
       {
         icon: Radio,
-        title: "Dedizierter Textkanal #📻・radio-steuerung",
-        description: "Mit /radio panel wird ein persistenter Steuerkanal mit Sender-Auswahl (Standard & Eigene), Play/Pause/Stop, Status und Lautstärkereglern bereitgestellt.",
+        title: "Radio-Steuerkanal & Lautstärke-Befehle",
+        description: "Mit /radio panel wird ein persistenter Steuerkanal #📻・radio-steuerung bereitgestellt. Mit /radio volume (oder /radio volumen) lässt sich die Stream-Lautstärke direkt im Chat regeln.",
       },
       {
         icon: Sparkles,

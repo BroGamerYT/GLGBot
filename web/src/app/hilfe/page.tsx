@@ -591,7 +591,7 @@ export default function HelpPage() {
                 <strong className="text-white">⚡ Temporäre Sender-Kanäle & Auto-Cleanup:</strong> Klickst du im Dashboard auf <em>„+ Temp-Kanal“</em>, legt der Bot einen temporären Sprachkanal (<Cmd>📻・&lt;Sender&gt;</Cmd>) mit 120s Beitrittsfrist an. Wenn alle Personen den Kanal verlassen, läuft ein 60s Countdown ab, nach dem der Bot sich trennt und den Kanal automatisch wieder löscht.
               </li>
               <li>
-                <strong className="text-white">💬 Discord-Befehle:</strong> <Cmd>/radio start</Cmd>, <Cmd>/radio panel</Cmd>, <Cmd>/music play &lt;suche|url|local:name&gt;</Cmd>, <Cmd>/music panel</Cmd> und <Cmd>/soundboard play &lt;sound&gt;</Cmd>.
+                <strong className="text-white">💬 Discord-Befehle:</strong> <Cmd>/radio start</Cmd>, <Cmd>/radio volume [prozent]</Cmd> (auch <Cmd>/radio volumen</Cmd>), <Cmd>/radio panel</Cmd>, <Cmd>/music play &lt;suche|url|local:name&gt;</Cmd>, <Cmd>/music panel</Cmd> und <Cmd>/soundboard play &lt;sound&gt;</Cmd>.
               </li>
             </ul>
           </Section>

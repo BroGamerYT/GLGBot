@@ -91,7 +91,7 @@ const interactionCreateEvent: BotEvent<Events.InteractionCreate> = {
         await handleSoundSelect(interaction);
         return;
       }
-      if (interaction.customId === "radio_station_pick") {
+      if (interaction.customId === "radio_station_pick" || interaction.customId.startsWith("radio_station_pick_")) {
         await handleRadioSelect(interaction);
         return;
       }

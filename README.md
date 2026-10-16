@@ -350,7 +350,7 @@ Die Ordner `config/` und `data/` sowie die `.env` sind **nicht** im Git-Repo –
 | Befehl | Beschreibung | Berechtigung |
 |---|---|---|
 | `/help` | Übersicht aller Befehle mit Link zum Dashboard. | Alle |
-| `/radio start <url> \| stop \| pause \| resume \| status \| ton` | Web-Radio-Stream im Voice-Kanal abspielen; `ton` spielt 5s Test-Audio. | Alle |
+| `/radio start <url> \| stop \| pause \| resume \| volume [prozent] \| status \| ton` | Web-Radio-Stream im Voice-Kanal abspielen, Lautstärke anpassen (auch `/radio volumen`); `ton` spielt 5s Test-Audio. | Alle |
 | `/radio panel [kanal]` | Richtet `#📻・radio-steuerung` ein oder postet das Radio-Panel. | Kanäle verwalten |
 | `/radio add <name> <url> \| remove \| list` | Eigene Radio-Streams speichern, löschen und verwalten. | Kanäle verwalten |
 | `/music play <titel\|url\|local:name> \| skip \| queue \| pause \| resume \| stop \| loop \| volume \| shuffle \| history` | YouTube- & lokale Musik mit Warteschlange, Lautstärke und Loop-Modus. | Alle |

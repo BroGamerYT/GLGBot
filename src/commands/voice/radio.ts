@@ -32,6 +32,32 @@ const radioCommand: Command = {
     .addSubcommand((sub) => sub.setName("stop").setDescription("Stoppt das Radio und verlaesst den Kanal."))
     .addSubcommand((sub) => sub.setName("pause").setDescription("Pausiert das Radio."))
     .addSubcommand((sub) => sub.setName("resume").setDescription("Setzt das Radio fort."))
+    .addSubcommand((sub) =>
+      sub
+        .setName("volume")
+        .setDescription("Zeigt oder ändert die Lautstärke des Web-Radios (0-100%).")
+        .addIntegerOption((opt) =>
+          opt
+            .setName("prozent")
+            .setDescription("Neue Lautstärke in % (0-100). Leer lassen für aktuellen Status.")
+            .setRequired(false)
+            .setMinValue(0)
+            .setMaxValue(100),
+        ),
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("volumen")
+        .setDescription("Zeigt oder ändert die Lautstärke des Web-Radios (0-100%).")
+        .addIntegerOption((opt) =>
+          opt
+            .setName("prozent")
+            .setDescription("Neue Lautstärke in % (0-100). Leer lassen für aktuellen Status.")
+            .setRequired(false)
+            .setMinValue(0)
+            .setMaxValue(100),
+        ),
+    )
     .addSubcommand((sub) => sub.setName("status").setDescription("Zeigt den aktuellen Radio-Status."))
     .addSubcommand((sub) =>
       sub
@@ -126,6 +152,36 @@ const radioCommand: Command = {
             (status.lastError ? `\n⚠️ **Letzter Fehler:** ${status.lastError}` : ""),
           );
         await interaction.reply({ embeds: [embed] });
+        return;
+      }
+
+      if (sub === "volume" || sub === "volumen") {
+        const percent = interaction.options.getInteger("prozent") ?? interaction.options.getInteger("percent");
+        const status = radioService.getStatus(guildId);
+        const member = interaction.member as GuildMember;
+        const channelId = member?.voice?.channel?.id;
+
+        if (percent === null || percent === undefined) {
+          const { musicPrefsService } = require("../../services/musicPrefsService") as typeof import("../../services/musicPrefsService");
+          const cur = status?.volume ?? musicPrefsService.getVolume(guildId, channelId, interaction.user.id);
+          await interaction.reply({
+            content: `🔊 Aktuelle Radio-Lautstärke: **${cur}%**${status ? "" : " *(gespeicherte Voreinstellung)*"}.`,
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+
+        const ok = radioService.setVolume(guildId, percent, channelId, interaction.user.id);
+        if (!ok) {
+          try {
+            const { musicPrefsService } = require("../../services/musicPrefsService") as typeof import("../../services/musicPrefsService");
+            musicPrefsService.setVolume(guildId, percent, channelId, interaction.user.id);
+          } catch {}
+        }
+        await interaction.reply({
+          content: `🔊 Radio-Lautstärke auf **${percent}%** gesetzt.${!ok ? " *(Wird beim nächsten Radio-Start angewendet)*" : ""}`,
+          flags: MessageFlags.Ephemeral,
+        });
         return;
       }
 

@@ -45,9 +45,12 @@ function saveAll(all: Record<string, unknown>) {
 }
 
 const BUILTIN_STATIONS: StoredStation[] = [
+  // SomaFM
   { id: "soma-groove", name: "SomaFM Groove Salad (werbefrei)", url: "https://ice1.somafm.com/groovesalad-128-mp3", source: "somafm", active: true },
   { id: "soma-deep", name: "SomaFM Deep Space One (werbefrei)", url: "https://ice1.somafm.com/deepspaceone-128-mp3", source: "somafm", active: true },
   { id: "soma-defcon", name: "SomaFM DEF CON Radio (werbefrei)", url: "https://ice1.somafm.com/defcon-128-mp3", source: "somafm", active: true },
+
+  // SUNSHINE LIVE
   { id: "ssl-edm", name: "SUNSHINE LIVE - EDM", url: "https://stream.sunshine-live.de/edm/mp3-192/stream.sunshine-live.de/", source: "sunshine-live", active: true },
   { id: "ssl-festival", name: "SUNSHINE LIVE - Festival", url: "https://stream.sunshine-live.de/festival/mp3-192/stream.sunshine-live.de/", source: "sunshine-live", active: true },
   { id: "ssl-house", name: "SUNSHINE LIVE - House", url: "https://stream.sunshine-live.de/house/mp3-192/stream.sunshine-live.de/", source: "sunshine-live", active: true },
@@ -55,6 +58,29 @@ const BUILTIN_STATIONS: StoredStation[] = [
   { id: "ssl-trance", name: "SUNSHINE LIVE - Trance", url: "https://stream.sunshine-live.de/trance/mp3-192/stream.sunshine-live.de/", source: "sunshine-live", active: true },
   { id: "ssl-lounge", name: "SUNSHINE LIVE - Lounge", url: "https://stream.sunshine-live.de/lounge/mp3-192/stream.sunshine-live.de/", source: "sunshine-live", active: true },
   { id: "ssl-techno", name: "SUNSHINE LIVE - Techno", url: "https://stream.sunshine-live.de/techno/mp3-192/stream.sunshine-live.de/", source: "sunshine-live", active: true },
+
+  // Laut.fm
+  { id: "lautfm-hardtekk", name: "Hardtekk Radio", url: "https://stream.laut.fm/hardtekk-radio", source: "laut.fm", active: true },
+  { id: "lautfm-chillout", name: "Chillout Radio", url: "https://stream.laut.fm/chillout", source: "laut.fm", active: true },
+  { id: "lautfm-house", name: "House Radio", url: "https://stream.laut.fm/house", source: "laut.fm", active: true },
+  { id: "lautfm-trap", name: "Trap Radio", url: "https://stream.laut.fm/trap", source: "laut.fm", active: true },
+  { id: "lautfm-hiphop", name: "Hip-Hop Radio", url: "https://stream.laut.fm/hiphop", source: "laut.fm", active: true },
+
+  // FluxFM
+  { id: "flux-live", name: "FluxFM - Live", url: "https://channels.fluxfm.de/FluxFM/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-alternative", name: "FluxFM - Alternative", url: "https://channels.fluxfm.de/alternative/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-indiedisco", name: "FluxFM - Indie Disco", url: "https://channels.fluxfm.de/indiedisco/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-chillhop", name: "FluxFM - Chillhop", url: "https://channels.fluxfm.de/chillhop/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-chillout", name: "FluxFM - Chillout", url: "https://channels.fluxfm.de/chillout-radio/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-elektro", name: "FluxFM - Elektro-Flux", url: "https://channels.fluxfm.de/elektro-flux/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-clubsandwich", name: "FluxFM - Clubsandwich", url: "https://channels.fluxfm.de/clubsandwich/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-soundofberlin", name: "FluxFM - Sound of Berlin", url: "https://channels.fluxfm.de/sound-of-berlin/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-beachhouse", name: "FluxFM - Berlin Beach House", url: "https://channels.fluxfm.de/berlin-beach-house/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-metalfm", name: "FluxFM - Metal FM", url: "https://channels.fluxfm.de/metal-fm/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-xjazz", name: "FluxFM - X-Jazz", url: "https://channels.fluxfm.de/x-jazz/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-80er", name: "FluxFM - 80er", url: "https://channels.fluxfm.de/80s/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-90er", name: "FluxFM - 90er", url: "https://channels.fluxfm.de/90s/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
+  { id: "flux-2000er", name: "FluxFM - 2000er", url: "https://channels.fluxfm.de/2000er/externalembedflxhp/stream.mp3", source: "fluxfm", active: true },
 ];
 
 class RadioStationService {
@@ -72,7 +98,11 @@ class RadioStationService {
       const defaults = cfg.stations
         .map(sanitize)
         .filter((s): s is StoredStation => !!s && s.active !== false);
-      if (defaults.length > 0) return [...defaults, ...customs];
+      if (defaults.length > 0) {
+        const existingIds = new Set(defaults.map((s) => s.id));
+        const missingBuiltins = BUILTIN_STATIONS.filter((b) => !existingIds.has(b.id));
+        return [...defaults, ...missingBuiltins, ...customs];
+      }
     }
     return [...BUILTIN_STATIONS, ...customs];
   }

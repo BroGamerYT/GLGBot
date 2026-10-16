@@ -20,6 +20,7 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und 
   * `/music panel` erstellt automatisch den Kanal `#🎵・musik-steuerung` (oder postet in einen Zielkanal).
   * Enthält Now-Playing-Status, Queue-Länge, Soundboard-Dropdown und Playback-Buttons.
 * **Auto-Setup:** `/setup music` richtet automatisch beide Steuerkanäle in der Musik-Kategorie ein.
+* **`/radio volume` & `/radio volumen`:** Neuer Slash-Befehl zum Abfragen oder Einstellen der Radio-Lautstärke (0-100%). Voreinstellungen werden serverweit pro Kanal/User in `music_prefs.json` gemerkt.
 
 ### Auto-Cleanup & In-Place Updates für Panel-Kanäle
 * **Keine störenden Pop-up-Meldungen mehr:** Bei Klicks auf Buttons wie Pause/Stop im Steuerpanel, während nichts läuft, wird das Panel-Embed direkt *in-place* aktualisiert, anstatt eine temporäre Textnachricht („Es läuft gerade keine Musik“) unter dem Panel anzuzeigen.

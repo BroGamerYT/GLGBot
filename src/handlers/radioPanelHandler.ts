@@ -72,20 +72,57 @@ export async function postRadioPanel(guild: Guild, parentId?: string): Promise<T
 export function createRadioPanelRows(stations: PanelStation[]): Array<ActionRowBuilder<ButtonBuilder> | ActionRowBuilder<StringSelectMenuBuilder>> {
   const rows: Array<ActionRowBuilder<ButtonBuilder> | ActionRowBuilder<StringSelectMenuBuilder>> = [];
   if (stations.length > 0) {
-    rows.push(
-      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-        new StringSelectMenuBuilder()
-          .setCustomId("radio_station_pick")
-          .setPlaceholder("📻 Sender wählen …")
-          .addOptions(
-            stations.slice(0, 25).map((s) => ({
-              label: s.name.slice(0, 100),
-              description: "Startet den Stream in deinem Voice-Kanal".slice(0, 100),
-              value: s.id.slice(0, 100),
-            })),
+    if (stations.length <= 25) {
+      rows.push(
+        new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId("radio_station_pick")
+            .setPlaceholder("📻 Sender wählen …")
+            .addOptions(
+              stations.map((s) => ({
+                label: s.name.slice(0, 100),
+                description: "Startet den Stream in deinem Voice-Kanal".slice(0, 100),
+                value: s.id.slice(0, 100),
+              })),
+            ),
+        ),
+      );
+    } else {
+      const part1 = stations.slice(0, 25);
+      const part2 = stations.slice(25, 50);
+
+      rows.push(
+        new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId("radio_station_pick_1")
+            .setPlaceholder(`📻 Sender wählen (1 - ${part1.length}) …`)
+            .addOptions(
+              part1.map((s) => ({
+                label: s.name.slice(0, 100),
+                description: "Startet den Stream in deinem Voice-Kanal".slice(0, 100),
+                value: s.id.slice(0, 100),
+              })),
+            ),
+        ),
+      );
+
+      if (part2.length > 0) {
+        rows.push(
+          new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId("radio_station_pick_2")
+              .setPlaceholder(`📻 Weitere Sender (26 - ${stations.length}) …`)
+              .addOptions(
+                part2.map((s) => ({
+                  label: s.name.slice(0, 100),
+                  description: "Startet den Stream in deinem Voice-Kanal".slice(0, 100),
+                  value: s.id.slice(0, 100),
+                })),
+              ),
           ),
-      ),
-    );
+        );
+      }
+    }
   }
   rows.push(
     new ActionRowBuilder<ButtonBuilder>().addComponents(
