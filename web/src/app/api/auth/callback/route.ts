@@ -7,6 +7,8 @@ import {
   getBaseUrl,
   isSecureUrl,
 } from "@/lib/auth";
+import { ACTIVE_GUILD_COOKIE } from "@/lib/activeGuild";
+import { fetchBotGuilds } from "@/lib/guilds";
 import { checkDashboardAccess } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
@@ -55,22 +57,77 @@ export async function GET(req: NextRequest) {
     if (!userRes.ok) return fail("token");
     const user = await userRes.json();
 
-    // 3. Darf der Nutzer ins Dashboard?
-    const access = await checkDashboardAccess(user.id);
-    if (!access.allowed) {
-      console.warn(`[Auth] Zugriff verweigert für ${user.username} (${user.id}): ${access.reason}`);
-      return fail(access.reason);
-    }
-    console.log(`[Auth] Login: ${user.username} (${user.id}) via ${access.reason}`);
+    // 3. Auf welchen Servern des Bots existiert der Nutzer? (Gegen-Check)
+    const botToken = process.env.DISCORD_TOKEN;
+    const botGuilds = (await fetchBotGuilds()) || [];
+    const mainGuildId = (process.env.GUILD_ID || "").trim();
+    const envAllowed = (process.env.ALLOWED_GUILD_IDS || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
 
-    // 4. Session-Cookie setzen
+    // Alle aktiven Guild-IDs sammeln
+    const allGuildIds = Array.from(
+      new Set([
+        ...botGuilds.map((g) => g.id),
+        ...(mainGuildId ? [mainGuildId] : []),
+        ...envAllowed,
+      ])
+    ).filter(Boolean);
+
+    const memberGuilds: string[] = [];
+    if (botToken && allGuildIds.length > 0) {
+      await Promise.all(
+        allGuildIds.map(async (gid) => {
+          try {
+            const memRes = await fetch(`https://discord.com/api/v10/guilds/${gid}/members/${user.id}`, {
+              headers: { Authorization: `Bot ${botToken}` },
+              cache: "no-store",
+            });
+            if (memRes.ok) {
+              memberGuilds.push(gid);
+            }
+          } catch {
+            // Ignorieren falls Server nicht erreichbar
+          }
+        })
+      );
+    }
+
+    // 4. Prüfen, ob der Nutzer Admin-Rechte hat
+    const access = await checkDashboardAccess(user.id);
+    let isAdmin = false;
+    let userGuilds: string[] = [];
+
+    if (access.allowed) {
+      isAdmin = true;
+      userGuilds = access.guilds;
+      console.log(`[Auth] Admin-Login: ${user.username} (${user.id}) via ${access.reason} auf Server(n):`, userGuilds);
+    } else {
+      // Normaler Benutzer: Darf sich einloggen, wenn er Mitglied auf MINDESTENS einem Bot-Server ist
+      if (memberGuilds.length === 0) {
+        console.warn(`[Auth] Zugriff verweigert für ${user.username} (${user.id}): Auf keinem Bot-Server Mitglied.`);
+        return fail("not_member");
+      }
+
+      isAdmin = false;
+      userGuilds = memberGuilds;
+      console.log(`[Auth] Community-Mitglied Login: ${user.username} (${user.id}) für Shop/Profil auf Server(n):`, userGuilds);
+    }
+
+    // 5. Session-Cookie setzen
     const token = await createSessionToken({
       uid: user.id,
       name: user.global_name || user.username,
       avatar: user.avatar || null,
+      g: userGuilds,
+      isAdmin,
     });
 
-    const res = NextResponse.redirect(`${baseUrl}/`);
+    const activeGuild = userGuilds[0] || mainGuildId;
+    const targetUrl = isAdmin ? `${baseUrl}/` : `${baseUrl}/economy`;
+    const res = NextResponse.redirect(targetUrl);
+
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
       secure: isSecureUrl(baseUrl),
@@ -78,6 +135,17 @@ export async function GET(req: NextRequest) {
       path: "/",
       maxAge: SESSION_MAX_AGE,
     });
+
+    if (activeGuild) {
+      res.cookies.set(ACTIVE_GUILD_COOKIE, activeGuild, {
+        httpOnly: true,
+        secure: isSecureUrl(baseUrl),
+        sameSite: "lax",
+        path: "/",
+        maxAge: SESSION_MAX_AGE,
+      });
+    }
+
     res.cookies.delete({ name: STATE_COOKIE, path: "/api/auth" });
     return res;
   } catch (e) {

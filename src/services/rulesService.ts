@@ -23,7 +23,17 @@ const RULES_FILE = path.join(process.cwd(), "data", "rules.json");
 /** Eigene Standard-Regeln (nicht im Git-Repo) - ersetzen die eingebauten Beispiel-Regeln. */
 const DEFAULT_RULES_FILE = path.join(process.cwd(), "config", "rules.json");
 
-function loadDefaultRules(): RulesConfig {
+/** Haupt-Server nutzt data/rules.json (wie bisher), weitere Server data/rules/<guildId>.json */
+function rulesFile(guildId?: string): string {
+  const main = (process.env.GUILD_ID || "").trim();
+  if (!guildId || !main || guildId === main) return RULES_FILE;
+  return path.join(process.cwd(), "data", "rules", `${guildId.replace(/\D/g, "")}.json`);
+}
+
+/** Eigene Standard-Regeln aus config/rules.json gelten nur für den Haupt-Server. */
+function loadDefaultRules(guildId?: string): RulesConfig {
+  const main = (process.env.GUILD_ID || "").trim();
+  if (guildId && main && guildId !== main) return RULES;
   try {
     if (fs.existsSync(DEFAULT_RULES_FILE)) {
       const data = JSON.parse(fs.readFileSync(DEFAULT_RULES_FILE, "utf-8"));
@@ -41,27 +51,28 @@ class RulesService {
   // ---------------------------------------------------------------
   //  Regeln laden / speichern (Dashboard-Editor)
   // ---------------------------------------------------------------
-  public getRules(): RulesConfig {
+  public getRules(guildId?: string): RulesConfig {
+    const file = rulesFile(guildId);
     try {
-      if (fs.existsSync(RULES_FILE)) {
-        const data = JSON.parse(fs.readFileSync(RULES_FILE, "utf-8"));
-        if (data && Array.isArray(data.rules)) return { ...loadDefaultRules(), ...data };
+      if (fs.existsSync(file)) {
+        const data = JSON.parse(fs.readFileSync(file, "utf-8"));
+        if (data && Array.isArray(data.rules)) return { ...loadDefaultRules(guildId), ...data };
       }
     } catch (e) {
-      console.error("[Rules] data/rules.json ist ungültig - nutze Standard-Regeln:", e);
+      console.error(`[Rules] ${path.relative(process.cwd(), file)} ist ungültig - nutze Standard-Regeln:`, e);
     }
-    return loadDefaultRules();
+    return loadDefaultRules(guildId);
   }
 
-  public isCustomized(): boolean {
-    return fs.existsSync(RULES_FILE);
+  public isCustomized(guildId?: string): boolean {
+    return fs.existsSync(rulesFile(guildId));
   }
 
   /** Prüft & speichert Regeln. Gibt eine Fehlermeldung zurück oder null. */
-  public saveRules(input: any): string | null {
+  public saveRules(input: any, guildId?: string): string | null {
     const L = RULE_LIMITS;
     if (!input || typeof input !== "object" || !Array.isArray(input.rules)) return "Ungültiges Format.";
-    const RULES = loadDefaultRules();
+    const RULES = loadDefaultRules(guildId);
     const str = (v: any) => (typeof v === "string" ? v.trim() : "");
 
     const rules: RulesConfig = {
@@ -87,16 +98,18 @@ class RulesService {
       if (r.text.length > L.text) return `§${i + 1}: Text zu lang (max. ${L.text} Zeichen).`;
     }
 
-    const dir = path.dirname(RULES_FILE);
+    const file = rulesFile(guildId);
+    const dir = path.dirname(file);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(RULES_FILE + ".tmp", JSON.stringify(rules, null, 2), "utf-8");
-    fs.renameSync(RULES_FILE + ".tmp", RULES_FILE);
+    fs.writeFileSync(file + ".tmp", JSON.stringify(rules, null, 2), "utf-8");
+    fs.renameSync(file + ".tmp", file);
     return null;
   }
 
   /** Setzt die Regeln auf die Standardwerte (config/rules.json bzw. src/config/rules.ts) zurück. */
-  public resetRules() {
-    if (fs.existsSync(RULES_FILE)) fs.unlinkSync(RULES_FILE);
+  public resetRules(guildId?: string) {
+    const file = rulesFile(guildId);
+    if (fs.existsSync(file)) fs.unlinkSync(file);
   }
 
   // ---------------------------------------------------------------
@@ -107,22 +120,42 @@ class RulesService {
    * Embeds/Nachrichten verteilt (Discord: max. 4096 Zeichen pro Embed, 6000 pro Nachricht).
    * Die letzte Nachricht enthält den "Regeln akzeptieren"-Button.
    */
-  /** Löst {@name}-Platzhalter in Erwähnungen auf (Benutzername, Anzeigename oder Nickname). */
+  /** Löst {@name}- oder {@ID}-Platzhalter in Erwähnungen auf (Benutzer-ID, Benutzername, Anzeigename oder Nickname). */
   private async resolveMentions(guild: Guild): Promise<Map<string, string>> {
-    const R = this.getRules();
+    const R = this.getRules(guild.id);
     const all = [R.intro, R.consequences, R.acceptText, ...R.rules.map((r) => r.text)].join("\n");
     const names = [...new Set([...all.matchAll(/{@([^}]+)}/g)].map((m) => m[1]))];
     const result = new Map<string, string>();
 
     for (const name of names) {
-      const lower = name.toLowerCase();
-      const found = await guild.members.fetch({ query: name, limit: 10 }).catch(() => null);
-      const member = found?.find(
+      const trimmed = name.trim();
+      // Wenn direkt eine Discord Snowflake-ID eingegeben wurde: {@123456789012345678}
+      if (/^\d{17,20}$/.test(trimmed)) {
+        result.set(name, `<@${trimmed}>`);
+        continue;
+      }
+
+      const lower = trimmed.toLowerCase();
+      // Zuerst im Cache suchen (schnell)
+      let member = guild.members.cache.find(
         (m) =>
+          m.id === trimmed ||
           m.user.username.toLowerCase() === lower ||
           m.user.globalName?.toLowerCase() === lower ||
           m.nickname?.toLowerCase() === lower
-      ) || (found && found.size === 1 ? found.first() : undefined);
+      );
+
+      // Falls nicht im Cache, via fetch suchen
+      if (!member) {
+        const found = await guild.members.fetch({ query: trimmed, limit: 10 }).catch(() => null);
+        member = found?.find(
+          (m) =>
+            m.id === trimmed ||
+            m.user.username.toLowerCase() === lower ||
+            m.user.globalName?.toLowerCase() === lower ||
+            m.nickname?.toLowerCase() === lower
+        ) || (found && found.size === 1 ? found.first() : undefined);
+      }
 
       if (member) {
         result.set(name, `<@${member.id}>`);
@@ -134,9 +167,19 @@ class RulesService {
     return result;
   }
 
+  public async fillPlaceholders(guild: Guild, text: string, permissionsChannelId?: string): Promise<string> {
+    if (!text) return "";
+    const mentions = await this.resolveMentions(guild);
+    return text
+      .replace(/{@([^}]+)}/g, (_, name: string) => mentions.get(name) || `**${name}**`)
+      .replace(/{server}/g, guild.name)
+      .replace(/{owner}/g, `<@${guild.ownerId}>`)
+      .replace(/{permissions}/g, permissionsChannelId ? `<#${permissionsChannelId}>` : "**#berechtigungen**");
+  }
+
   public async createRulesMessages(guild: Guild, permissionsChannelId?: string) {
     const icon = guild.iconURL({ size: 256 }) || undefined;
-    const RULES = this.getRules();
+    const RULES = this.getRules(guild.id);
     const mentions = await this.resolveMentions(guild);
     const fill = (text: string) =>
       text
@@ -280,7 +323,8 @@ class RulesService {
     );
 
     const everyone = guild.roles.everyone.id;
-    const botId = guild.members.me!.id;
+    const botId = guild.members.me?.id || guild.client.user?.id;
+    if (!botId) throw new Error("Bot-ID konnte nicht ermittelt werden.");
 
     // #regeln: für ALLE sichtbar, aber niemand kann schreiben
     await rules.channel.permissionOverwrites.set(

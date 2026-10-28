@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { writeJsonAtomic } from "../utils/jsonFile";
 import { Message, TextChannel, EmbedBuilder } from "discord.js";
 
 interface StickyItem {
@@ -43,7 +44,7 @@ class StickyService {
   private saveData() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(STICKY_FILE, JSON.stringify(this.stickyMessages, null, 2), "utf-8");
+      writeJsonAtomic(STICKY_FILE, this.stickyMessages);
     } catch (e) {
       console.error("[StickyService] Fehler beim Speichern der Sticky Messages:", e);
     }

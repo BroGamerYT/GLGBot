@@ -26,7 +26,7 @@ async function searchTwitch(queryStr: string): Promise<StreamerSearchResult[]> {
     const res1 = await fetch("https://gql.twitch.tv/gql", {
       method: "POST",
       headers: {
-        "Client-ID": "kimne78kx3ncx6brgo4mv6wki5h1ko",
+        "Client-ID": process.env.TWITCH_CLIENT_ID || "kimne78kx3ncx6brgo4mv6wki5h1ko",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ query: q1 }),
@@ -52,7 +52,7 @@ async function searchTwitch(queryStr: string): Promise<StreamerSearchResult[]> {
     const res2 = await fetch("https://gql.twitch.tv/gql", {
       method: "POST",
       headers: {
-        "Client-ID": "kimne78kx3ncx6brgo4mv6wki5h1ko",
+        "Client-ID": process.env.TWITCH_CLIENT_ID || "kimne78kx3ncx6brgo4mv6wki5h1ko",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ query: q2 }),

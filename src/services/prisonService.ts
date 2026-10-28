@@ -5,6 +5,7 @@ import {
   GuildMember,
   Role,
   TextChannel,
+  VoiceChannel,
   ChannelType,
   PermissionsBitField,
   User,
@@ -25,6 +26,46 @@ export interface PrisonEntry {
   imprisonedBy: string;
   imprisonedById: string;
   previousRoleIds: string[];
+  durationMinutes?: number | null;
+  expiresAt?: string | null;
+}
+
+export function parseDurationToMinutes(input?: string | number | null): number | null {
+  if (input === undefined || input === null) return null;
+  if (typeof input === "number") {
+    return input > 0 ? Math.floor(input) : null;
+  }
+  const trimmed = input.trim().toLowerCase();
+  if (!trimmed || trimmed === "0" || trimmed === "unbegrenzt" || trimmed === "dauerhaft" || trimmed === "permanent") {
+    return null;
+  }
+
+  const weekMatch = trimmed.match(/^(\d+)\s*(w|woche|wochen)$/);
+  if (weekMatch) return parseInt(weekMatch[1], 10) * 7 * 24 * 60;
+
+  const dayMatch = trimmed.match(/^(\d+)\s*(d|t|tag|tage)$/);
+  if (dayMatch) return parseInt(dayMatch[1], 10) * 24 * 60;
+
+  const hourMatch = trimmed.match(/^(\d+)\s*(h|std|stunde|stunden)$/);
+  if (hourMatch) return parseInt(hourMatch[1], 10) * 60;
+
+  const minMatch = trimmed.match(/^(\d+)\s*(m|min|minute|minuten)?$/);
+  if (minMatch) return parseInt(minMatch[1], 10);
+
+  return null;
+}
+
+export function formatDurationMinutes(minutes?: number | null): string {
+  if (!minutes || minutes <= 0) return "Dauerhaft (unbegrenzt)";
+  if (minutes < 60) return `${minutes} Min.`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMins = minutes % 60;
+  if (hours < 24) {
+    return remainingMins > 0 ? `${hours} Std. ${remainingMins} Min.` : `${hours} Std.`;
+  }
+  const days = Math.floor(hours / 24);
+  const remainingHours = hours % 24;
+  return remainingHours > 0 ? `${days} Tag(e) ${remainingHours} Std.` : `${days} Tag(e)`;
 }
 
 interface PrisonStorage {
@@ -118,12 +159,61 @@ class PrisonService {
     });
   }
 
+  public async ensurePrisonVoiceChannel(guild: Guild, prisonRole: Role): Promise<VoiceChannel> {
+    const existing = guild.channels.cache.find(
+      (c) =>
+        (c.name === "🔒・gefängnis-voice" ||
+          c.name === "gefängnis-voice" ||
+          c.name === "🔒・knast-voice" ||
+          c.name === "knast-voice" ||
+          c.name === "🔒・gefängnis-talk") &&
+        c.type === ChannelType.GuildVoice
+    ) as VoiceChannel | undefined;
+
+    if (existing) return existing;
+
+    return await guild.channels.create({
+      name: "🔒・gefängnis-voice",
+      type: ChannelType.GuildVoice,
+      permissionOverwrites: [
+        {
+          id: guild.roles.everyone.id,
+          deny: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.Connect],
+        },
+        {
+          id: prisonRole.id,
+          allow: [
+            PermissionsBitField.Flags.ViewChannel,
+            PermissionsBitField.Flags.Connect,
+            PermissionsBitField.Flags.Speak,
+          ],
+        },
+        {
+          id: guild.members.me?.id || "",
+          allow: [
+            PermissionsBitField.Flags.ViewChannel,
+            PermissionsBitField.Flags.Connect,
+            PermissionsBitField.Flags.Speak,
+            PermissionsBitField.Flags.MoveMembers,
+            PermissionsBitField.Flags.ManageChannels,
+          ],
+        },
+      ],
+      reason: "Automatisches Anlegen des Gefängnis-Sprachkanals",
+    });
+  }
+
   /**
-   * Sperrt alle Kategorien und eigenständigen Kanäle für die Gefängnis-Rolle (außer dem Gefängnis-Kanal).
+   * Sperrt alle Kategorien und eigenständigen Kanäle für die Gefängnis-Rolle (außer Gefängnis-Text- und Voice-Kanal).
    * Kanäle, die mit ihrer Kategorie synchronisiert sind, erben die Sperre automatisch.
    * Wird bei jeder Inhaftierung ausgeführt, damit auch neu erstellte Kanäle gesperrt werden.
    */
-  public async applyPrisonLockdown(guild: Guild, prisonRole: Role, prisonChannelId: string) {
+  public async applyPrisonLockdown(
+    guild: Guild,
+    prisonRole: Role,
+    prisonChannelId: string,
+    prisonVoiceChannelId?: string
+  ) {
     const DENY = {
       ViewChannel: false,
       SendMessages: false,
@@ -133,7 +223,14 @@ class PrisonService {
       Speak: false,
     };
     for (const ch of guild.channels.cache.values()) {
-      if (ch.id === prisonChannelId || ch.isThread() || !("permissionOverwrites" in ch)) continue;
+      if (
+        ch.id === prisonChannelId ||
+        (prisonVoiceChannelId && ch.id === prisonVoiceChannelId) ||
+        ch.isThread() ||
+        !("permissionOverwrites" in ch)
+      ) {
+        continue;
+      }
       const isCategory = ch.type === ChannelType.GuildCategory;
       const synced = !isCategory && ch.parent && (ch as any).permissionsLocked;
       if (synced) continue; // erbt von der Kategorie
@@ -163,7 +260,8 @@ class PrisonService {
     member: GuildMember,
     reason: string,
     moderator: { id: string; tag: string; avatar?: string },
-    client?: Client
+    client?: Client,
+    durationMinutes?: number | null
   ): Promise<{ ok: boolean; error?: string; xpPenalty: number }> {
     if (this.isImprisoned(guild.id, member.id)) {
       return { ok: false, error: "Mitglied ist bereits im Gefängnis.", xpPenalty: 0 };
@@ -172,6 +270,7 @@ class PrisonService {
     try {
       const prisonRole = await this.ensurePrisonRole(guild);
       const prisonChannel = await this.ensurePrisonChannel(guild, prisonRole);
+      const prisonVoiceChannel = await this.ensurePrisonVoiceChannel(guild, prisonRole);
 
       // Speichere die aktuellen Rollen (außer @everyone, Bot-Rollen und Rollen ÜBER dem Bot -
       // die kann der Bot nicht entfernen, sonst schlägt das ganze Rollen-Update fehl)
@@ -195,13 +294,23 @@ class PrisonService {
         };
       }
 
-      // Alle anderen Kanäle für die Gefängnis-Rolle sperren & aus dem Voice werfen
-      await this.applyPrisonLockdown(guild, prisonRole, prisonChannel.id).catch((e) =>
+      // Alle anderen Kanäle für die Gefängnis-Rolle sperren
+      await this.applyPrisonLockdown(guild, prisonRole, prisonChannel.id, prisonVoiceChannel.id).catch((e) =>
         console.error("[PrisonService] Sperre der Kanäle fehlgeschlagen:", e)
       );
+
+      // Falls das Mitglied aktuell in einem Sprachkanal ist -> direkt in den Gefängnis-Voice verschieben!
       if (member.voice.channel) {
-        await member.voice.disconnect(`Inhaftiert: ${reason}`).catch(() => null);
+        await member.voice.setChannel(prisonVoiceChannel, `Inhaftiert: ${reason}`).catch(async () => {
+          // Fallback falls Verschieben nicht klappt
+          await member.voice.disconnect(`Inhaftiert: ${reason}`).catch(() => null);
+        });
       }
+
+      // Dauer berechnen (null = unbegrenzt)
+      const now = new Date();
+      const validDuration = typeof durationMinutes === "number" && durationMinutes > 0 ? Math.floor(durationMinutes) : null;
+      const expiresAt = validDuration ? new Date(now.getTime() + validDuration * 60 * 1000).toISOString() : null;
 
       // Speichere Gefängnis-Eintrag
       if (!this.prisoners[guild.id]) {
@@ -215,10 +324,12 @@ class PrisonService {
         nickname: member.nickname || undefined,
         avatar: member.user.displayAvatarURL(),
         reason: reason || "Verstoß gegen Serverregeln",
-        imprisonedAt: new Date().toISOString(),
+        imprisonedAt: now.toISOString(),
         imprisonedBy: moderator.tag,
         imprisonedById: moderator.id,
         previousRoleIds,
+        durationMinutes: validDuration,
+        expiresAt,
       };
 
       this.prisoners[guild.id][member.id] = entry;
@@ -226,16 +337,25 @@ class PrisonService {
 
       // Erstelle Mod-Case (zieht automatisch 1.000 XP ab und berechnet Minus-Level)
       const modUser = (await client?.users.fetch(moderator.id).catch(() => null)) || member.user;
-      await moderationService.createCase(guild, modUser, member.user, "PRISON", reason, { client });
+      const caseReason = validDuration
+        ? `${reason} (Dauer: ${formatDurationMinutes(validDuration)})`
+        : reason;
+      await moderationService.createCase(guild, modUser, member.user, "PRISON", caseReason, { client });
 
       // Nachricht im Gefängnis-Kanal
+      const durationField = validDuration
+        ? `⏳ **Dauer:** ${formatDurationMinutes(validDuration)} (Ablauf: <t:${Math.floor(now.getTime() / 1000 + validDuration * 60)}:R>)`
+        : `⏳ **Dauer:** Unbegrenzt (bis manuelle Entlassung)`;
+
       const prisonEmbed = new EmbedBuilder()
         .setColor(0xed4245)
         .setTitle("🔒 Mitglied inhaftiert")
         .setDescription(
           `**${member.user.tag}** (<@${member.id}>) wurde von **${moderator.tag}** ins Gefängnis überstellt.\n\n` +
             `**Grund:** ${reason}\n` +
-            `📉 **Strafe:** -1.000 XP & Entzug regulärer Kanäle`
+            `${durationField}\n` +
+            `📉 **Strafe:** -1.000 XP & Entzug regulärer Kanäle\n` +
+            `🔊 **Voice-Knast:** <#${prisonVoiceChannel.id}>`
         )
         .setThumbnail(member.user.displayAvatarURL())
         .setTimestamp();
@@ -253,7 +373,8 @@ class PrisonService {
     guild: Guild,
     member: GuildMember,
     moderator: { id: string; tag: string; avatar?: string },
-    client?: Client
+    client?: Client,
+    customReason?: string
   ): Promise<{ ok: boolean; error?: string }> {
     const entry = this.getPrisonEntry(guild.id, member.id);
     if (!entry) {
@@ -263,7 +384,7 @@ class PrisonService {
     try {
       const prisonRole = guild.roles.cache.find((r) => r.name === "🔒・Gefängnis" || r.name === "Gefängnis");
       if (prisonRole && member.roles.cache.has(prisonRole.id)) {
-        await member.roles.remove(prisonRole, "Aus Gefängnis entlassen");
+        await member.roles.remove(prisonRole, customReason || "Aus Gefängnis entlassen").catch(() => null);
       }
 
       // Alte Rollen wiederherstellen
@@ -277,6 +398,31 @@ class PrisonService {
         }
       }
 
+      // Falls Mitglied im Gefängnis-Voice ist -> in AFK-Kanal verschieben (oder trennen falls kein AFK vorhanden)
+      if (member.voice.channel) {
+        const chName = member.voice.channel.name.toLowerCase();
+        if (chName.includes("gefängnis") || chName.includes("knast")) {
+          const afkChannel =
+            guild.afkChannel ||
+            guild.channels.cache.find(
+              (c) =>
+                c.isVoiceBased() &&
+                (c.name.toLowerCase().includes("afk") ||
+                  c.name.toLowerCase().includes("nickerchen") ||
+                  c.name.toLowerCase().includes("einkaufen"))
+            );
+          if (afkChannel && afkChannel.id !== member.voice.channelId) {
+            await member.voice
+              .setChannel(afkChannel.id, "Aus Gefängnis entlassen -> in AFK-Kanal verschoben")
+              .catch(async () => {
+                await member.voice.disconnect("Aus Gefängnis entlassen").catch(() => null);
+              });
+          } else {
+            await member.voice.disconnect("Aus Gefängnis entlassen").catch(() => null);
+          }
+        }
+      }
+
       delete this.prisoners[guild.id][member.id];
       this.saveData();
 
@@ -287,7 +433,7 @@ class PrisonService {
         modUser,
         member.user,
         "UNPRISON",
-        "Regulär aus dem Gefängnis entlassen",
+        customReason || "Regulär aus dem Gefängnis entlassen",
         { client }
       );
 
@@ -301,7 +447,9 @@ class PrisonService {
           .setColor(0x57f287)
           .setTitle("🔓 Mitglied entlassen")
           .setDescription(
-            `**${member.user.tag}** (<@${member.id}>) wurde von **${moderator.tag}** aus dem Gefängnis entlassen. Die vorherigen Rollen wurden wiederhergestellt.`
+            `**${member.user.tag}** (<@${member.id}>) wurde von **${moderator.tag}** aus dem Gefängnis entlassen.${
+              customReason ? `\n*Hinweis:* ${customReason}` : ""
+            }\nDie vorherigen Rollen wurden wiederhergestellt.`
           )
           .setTimestamp();
 
@@ -312,6 +460,66 @@ class PrisonService {
     } catch (e: any) {
       console.error("[PrisonService] Fehler beim Entlassen:", e);
       return { ok: false, error: e?.message || "Fehler beim Entlassen." };
+    }
+  }
+
+  private schedulerInterval: NodeJS.Timeout | null = null;
+
+  /**
+   * Startet den automatischen Timer-Prüfer für zeitlich befristete Gefängnisstrafen.
+   */
+  public startScheduler(client: Client) {
+    if (this.schedulerInterval) return;
+
+    this.schedulerInterval = setInterval(() => {
+      this.checkExpiredPrisons(client).catch((e) =>
+        console.error("[PrisonService] Fehler beim Timer-Abgleich:", e)
+      );
+    }, 30000);
+
+    // Initial nach 5 Sekunden
+    setTimeout(() => {
+      this.checkExpiredPrisons(client).catch(() => null);
+    }, 5000);
+  }
+
+  /**
+   * Prüft alle inhaftierten Mitglieder und entlässt diejenigen, deren Strafe abgelaufen ist.
+   */
+  public async checkExpiredPrisons(client: Client) {
+    const now = Date.now();
+    for (const [guildId, entries] of Object.entries(this.prisoners)) {
+      for (const [userId, entry] of Object.entries(entries)) {
+        if (!entry.expiresAt) continue;
+
+        const expiresTime = new Date(entry.expiresAt).getTime();
+        if (expiresTime <= now) {
+          try {
+            const guild = client.guilds.cache.get(guildId) || (await client.guilds.fetch(guildId).catch(() => null));
+            if (!guild) continue;
+
+            const member = await guild.members.fetch(userId).catch(() => null);
+            if (!member) {
+              delete this.prisoners[guildId][userId];
+              this.saveData();
+              continue;
+            }
+
+            console.log(
+              `[PrisonService] Haftstrafe für ${member.user.tag} (${userId}) auf Server ${guild.name} abgelaufen. Automatische Freilassung.`
+            );
+            await this.unprison(
+              guild,
+              member,
+              { id: client.user?.id || "system", tag: "Automatischer Timer" },
+              client,
+              "Haftdauer abgelaufen (Automatischer Timer)"
+            );
+          } catch (err) {
+            console.error(`[PrisonService] Fehler beim automatischen Entlassen von ${userId}:`, err);
+          }
+        }
+      }
     }
   }
 }

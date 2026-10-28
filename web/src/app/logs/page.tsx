@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   FileText,
   RefreshCw,
@@ -20,6 +21,7 @@ import {
   UserPlus,
   UserMinus,
   Sparkles,
+  Terminal,
 } from "lucide-react";
 
 interface AuditLogEntry {
@@ -220,6 +222,13 @@ export default function AuditLogsPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Link
+            href="/system-logs"
+            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 rounded-lg text-sm transition-colors border border-emerald-500/30 font-medium"
+          >
+            <Terminal className="w-4 h-4 text-emerald-400" />
+            <span>Live-System-Logs</span>
+          </Link>
           <button
             onClick={() => setShowConfig(!showConfig)}
             className="flex items-center gap-2 px-3 py-2 bg-discord-card hover:bg-discord-border text-gray-200 rounded-lg text-sm transition-colors border border-discord-border"

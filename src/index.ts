@@ -1,3 +1,7 @@
+import { purgeRemovedGuilds } from "./utils/purgeRemovedGuilds";
+// Daten entfernter Server löschen, bevor die Dienste ihre Dateien laden
+purgeRemovedGuilds();
+
 import { BotClient } from "./client/BotClient";
 import { env, validateEnv } from "./config/env";
 import { loadCommands } from "./handlers/commandHandler";

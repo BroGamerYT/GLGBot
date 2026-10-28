@@ -3,16 +3,43 @@ import { BotEvent } from "../types";
 import { tempVoiceService } from "../services/tempVoiceService";
 import { auditLogService } from "../services/auditLogService";
 import { fetchAuditExecutor } from "../utils/auditExecutor";
+import { moduleService } from "../services/moduleService";
+import { prisonService } from "../services/prisonService";
+import { handleMusicVoiceState } from "../services/musicChannelCleanup";
 
 const voiceStateUpdateEvent: BotEvent<Events.VoiceStateUpdate> = {
   name: Events.VoiceStateUpdate,
   execute: async (client, oldState: VoiceState, newState: VoiceState) => {
-    // 1. Audit Logging für Voice-Events
-    try {
-      const member = newState.member || oldState.member;
-      const guild = newState.guild || oldState.guild;
+    const guild = newState.guild || oldState.guild;
+    const member = newState.member || oldState.member;
 
-      if (member && guild) {
+    // 0. Gefängnis Voice Enforcement (Inhaftierte dürfen nur im Gefängnis-Voice sein)
+    if (member && guild && newState.channelId && prisonService.isImprisoned(guild.id, member.id)) {
+      try {
+        const currentChannelName = (newState.channel?.name || "").toLowerCase();
+        const isPrisonVoice =
+          currentChannelName.includes("gefängnis-voice") ||
+          currentChannelName.includes("knast-voice") ||
+          currentChannelName.includes("gefängnis-talk");
+
+        if (!isPrisonVoice) {
+          const prisonRole = await prisonService.ensurePrisonRole(guild);
+          const prisonVoice = await prisonService.ensurePrisonVoiceChannel(guild, prisonRole);
+          await member.voice.setChannel(prisonVoice, "Gefangener darf reguläre Sprachkanäle nicht betreten").catch(async () => {
+            await member.voice.disconnect("Gefangener darf reguläre Sprachkanäle nicht betreten").catch(() => null);
+          });
+          return;
+        }
+      } catch (err) {
+        console.error("[VoiceStateUpdate] Fehler bei Prison Voice Enforcement:", err);
+      }
+    }
+
+    // 1. Audit Logging für Voice-Events (falls AuditLog-Modul aktiv)
+    // Eigene Bot-Joins/Leaves ausblenden (Spam durch Reconnects/Streams)
+    const isSelf = !!member && !!client.user && member.id === client.user.id;
+    try {
+      if (member && guild && !isSelf && moduleService.isEnabled(guild.id, "auditLogs")) {
         const memberInfo = {
           id: member.id,
           tag: member.user.tag,
@@ -139,11 +166,21 @@ const voiceStateUpdateEvent: BotEvent<Events.VoiceStateUpdate> = {
       console.error("[VoiceStateUpdate] Fehler beim Audit-Logging:", error);
     }
 
-    // 2. Temp-Voice & Join-to-Create Handler
-    try {
-      await tempVoiceService.handleVoiceStateUpdate(oldState, newState);
-    } catch (error) {
-      console.error("[VoiceStateUpdate Error] Fehler in handleVoiceStateUpdate:", error);
+    // 2. Temp-Voice & Join-to-Create Handler (falls Voice-Modul aktiv)
+    if (guild && moduleService.isEnabled(guild.id, "voice")) {
+      try {
+        await tempVoiceService.handleVoiceStateUpdate(oldState, newState);
+      } catch (error) {
+        console.error("[VoiceStateUpdate Error] Fehler in handleVoiceStateUpdate:", error);
+      }
+    }
+
+    // 3. Musik-Kanäle: leere, ungenutzte Kanäle nach Karenzzeit löschen (falls Musik-Modul aktiv)
+    if (guild && moduleService.isEnabled(guild.id, "music")) {
+      handleMusicVoiceState(
+        oldState.channel && oldState.channel.isVoiceBased() ? oldState.channel : null,
+        newState.channel && newState.channel.isVoiceBased() ? newState.channel : null,
+      );
     }
   },
 };

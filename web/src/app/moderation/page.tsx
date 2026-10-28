@@ -66,6 +66,8 @@ interface MemberEntry {
     imprisonedAt: string;
     imprisonedBy: string;
     previousRoleIds: string[];
+    durationMinutes?: number | null;
+    expiresAt?: string | null;
   } | null;
   isTimedOut: boolean;
   timeoutUntil?: string | null;
@@ -139,6 +141,7 @@ export default function ModerationPage() {
   const [targetMember, setTargetMember] = useState<MemberEntry | null>(null);
   const [reasonInput, setReasonInput] = useState("");
   const [timeoutDuration, setTimeoutDuration] = useState(300); // 5 min
+  const [prisonDuration, setPrisonDuration] = useState<number>(0); // 0 = unbegrenzt
   const [deleteDays, setDeleteDays] = useState(0);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -1102,6 +1105,15 @@ export default function ModerationPage() {
                         <strong className="text-gray-200">Datum:</strong>{" "}
                         {m.prisonData?.imprisonedAt ? new Date(m.prisonData.imprisonedAt).toLocaleString("de-DE") : "Unbekannt"}
                       </p>
+                      {m.prisonData?.expiresAt ? (
+                        <p className="text-amber-400 font-medium">
+                          <strong>⏳ Haftdauer:</strong> {m.prisonData.durationMinutes ? `${m.prisonData.durationMinutes} Min.` : ""} (Ablauf: {new Date(m.prisonData.expiresAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })})
+                        </p>
+                      ) : (
+                        <p className="text-gray-400">
+                          <strong className="text-gray-200">⏳ Haftdauer:</strong> Dauerhaft (bis zur manuellen Entlassung)
+                        </p>
+                      )}
                       <p className="text-gray-400">
                         <strong className="text-gray-200">Gesicherte Rollen:</strong> {m.prisonData?.previousRoleIds?.length || 0} Rollen
                       </p>
@@ -1444,9 +1456,31 @@ export default function ModerationPage() {
               Ins Gefängnis stecken: {targetMember.displayName}
             </h3>
             <p className="text-xs text-red-300">
-              Sperrt alle normalen Kanäle, weist die Gefängnis-Rolle zu, sichert alte Rollen und zieht{" "}
-              <strong>-1.000 XP (Minus-Level)</strong> ab!
+              Sperrt alle regulären Kanäle, weist die Gefängnis-Rolle zu, verschiebt in den Gefängnis-Voice (<code>#🔒・gefängnis-voice</code>),
+              sichert alte Rollen und zieht <strong>-1.000 XP (Minus-Level)</strong> ab!
             </p>
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">Haftdauer (Timer)</label>
+              <select
+                value={prisonDuration}
+                onChange={(e) => setPrisonDuration(Number(e.target.value))}
+                className="w-full px-3 py-2 rounded-xl bg-discord-dark border border-discord-border text-sm text-white focus:outline-none focus:border-red-500"
+              >
+                <option value={0}>Dauerhaft (bis zur manuellen Entlassung)</option>
+                <option value={15}>15 Minuten</option>
+                <option value={30}>30 Minuten</option>
+                <option value={60}>60 Minuten (1 Stunde)</option>
+                <option value={120}>2 Stunden</option>
+                <option value={360}>6 Stunden</option>
+                <option value={720}>12 Stunden</option>
+                <option value={1440}>24 Stunden (1 Tag)</option>
+                <option value={4320}>3 Tage</option>
+                <option value={10080}>7 Tage (1 Woche)</option>
+              </select>
+              <p className="text-[11px] text-gray-400 mt-1">
+                Nach Ablauf wird das Mitglied automatisch entlassen und erhält alle alten Rollen zurück.
+              </p>
+            </div>
             <div>
               <label className="text-xs text-gray-400 block mb-1">Begründung für die Haft</label>
               <textarea
@@ -1465,7 +1499,11 @@ export default function ModerationPage() {
                 Abbrechen
               </button>
               <button
-                onClick={() => handleExecuteAction("prison")}
+                onClick={() =>
+                  handleExecuteAction("prison", {
+                    durationMinutes: prisonDuration > 0 ? prisonDuration : null,
+                  })
+                }
                 disabled={actionLoading}
                 className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-sm shadow-md shadow-red-600/20"
               >

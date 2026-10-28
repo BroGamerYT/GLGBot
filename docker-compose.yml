@@ -1,0 +1,20 @@
+# Start:   docker compose up -d --build
+# Update:  git pull && docker compose up -d --build
+# Logs:    docker compose logs -f
+services:
+  glgbot:
+    build:
+      context: .
+      args:
+        # werden aus der .env gelesen und ins Dashboard eingebaut
+        COMMUNITY_NAME: ${COMMUNITY_NAME:-}
+        BOT_NAME: ${BOT_NAME:-}
+        DASHBOARD_URL: ${DASHBOARD_URL:-}
+    container_name: glgbot
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "3000:3000"   # Dashboard (dahinter z. B. Caddy/Nginx mit HTTPS)
+    volumes:
+      - ./data:/app/data       # Einstellungen, Level, Backups ...
+      - ./config:/app/config   # eigene Regeln & Banner

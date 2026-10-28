@@ -27,8 +27,8 @@ if %errorlevel% neq 0 (
 )
 echo.
 
-:: 3. TypeScript Build
-echo [3/4] Kompiliere TypeScript Code (npm run build)...
+:: 3. TypeScript Build (Bot)
+echo [3/5] Kompiliere Bot-Code (npm run build)...
 call npm run build
 if %errorlevel% neq 0 (
     echo [FEHLER] Kompilierung fehlgeschlagen! Bitte Fehler pruefen.
@@ -37,13 +37,33 @@ if %errorlevel% neq 0 (
 )
 echo.
 
-:: 4. Slash-Befehle aktualisieren
-echo [4/4] Aktualisiere Slash-Befehle bei Discord (deploy-commands)...
+:: 4. Dashboard bauen
+:: "npm run build" oben ist nur tsc und fasst den web-Ordner nicht an.
+:: Ohne diesen Schritt bleiben Aenderungen am Dashboard im alten Bundle.
+echo [4/5] Baue Web-Dashboard (next build)...
+pushd web
+call npm install --no-audit --no-fund
+call npm run build
+if %errorlevel% neq 0 (
+    echo [FEHLER] Dashboard-Build fehlgeschlagen! Bitte Fehler pruefen.
+    popd
+    pause
+    exit /b 1
+)
+popd
+echo.
+
+:: 5. Slash-Befehle aktualisieren
+echo [5/5] Aktualisiere Slash-Befehle bei Discord (deploy-commands)...
 call npm run deploy-commands
 echo.
 
 echo =======================================================
 echo ✅ Update erfolgreich abgeschlossen!
 echo =======================================================
+echo.
+echo HINWEIS: Das war das Update auf DIESEM PC.
+echo Die Instanz auf dem Server ist davon unberuehrt - dort:
+echo     bash scripts/update_server.sh
 echo.
 pause

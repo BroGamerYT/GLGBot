@@ -2,24 +2,25 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
+import { getActiveGuildId } from "@/lib/serverGuild";
 
-function getEnvConfig() {
+async function getEnvConfig() {
   const rootEnvPath = path.join(process.cwd(), "../.env");
   if (fs.existsSync(rootEnvPath)) {
     const parsed = dotenv.parse(fs.readFileSync(rootEnvPath));
     return {
       token: parsed.DISCORD_TOKEN || process.env.DISCORD_TOKEN || "",
-      guildId: parsed.GUILD_ID || process.env.GUILD_ID || "",
+      guildId: await getActiveGuildId(),
     };
   }
   return {
     token: process.env.DISCORD_TOKEN || "",
-    guildId: process.env.GUILD_ID || "",
+    guildId: await getActiveGuildId(),
   };
 }
 
 export async function GET() {
-  const { token, guildId } = getEnvConfig();
+  const { token, guildId } = await getEnvConfig();
 
   if (!token || !guildId) {
     return NextResponse.json(

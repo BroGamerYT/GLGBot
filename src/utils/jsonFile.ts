@@ -1,4 +1,6 @@
 import fs from "fs";
+import path from "path";
+import crypto from "crypto";
 
 /**
  * JSON sicher lesen: Ist die Datei beschädigt (z. B. Absturz mitten im Schreiben),
@@ -22,9 +24,29 @@ export function readJsonFile<T>(file: string, fallback: T): T {
   }
 }
 
-/** JSON atomar schreiben: erst Temp-Datei, dann umbenennen -> die Datei ist nie halb geschrieben. */
+/** JSON atomar schreiben: erst eindeutige Temp-Datei, dann umbenennen -> kein Dateikonflikt, keine halb geschriebene Datei. */
 export function writeJsonAtomic(file: string, data: unknown) {
-  const tmp = `${file}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(data, null, 2), "utf-8");
-  fs.renameSync(tmp, file);
+  const dir = path.dirname(file);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const rand = crypto.randomBytes(4).toString("hex");
+  const tmp = `${file}.${process.pid}.${Date.now()}.${rand}.tmp`;
+
+  try {
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2), "utf-8");
+    try {
+      fs.renameSync(tmp, file);
+    } catch (renameErr: any) {
+      if (process.platform === "win32" && (renameErr.code === "EPERM" || renameErr.code === "EBUSY")) {
+        fs.copyFileSync(tmp, file);
+        try { fs.unlinkSync(tmp); } catch {}
+      } else {
+        throw renameErr;
+      }
+    }
+  } catch (err) {
+    if (fs.existsSync(tmp)) {
+      try { fs.unlinkSync(tmp); } catch {}
+    }
+    throw err;
+  }
 }

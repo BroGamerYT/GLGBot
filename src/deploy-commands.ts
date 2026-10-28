@@ -49,11 +49,22 @@ async function deploy() {
     console.log(`🚀 Starte Registrierung von ${commands.length} Slash-Befehl(en)...`);
 
     if (env.GUILD_ID && env.GUILD_ID.trim().length > 0) {
-      await rest.put(
-        Routes.applicationGuildCommands(env.CLIENT_ID, env.GUILD_ID),
-        { body: commands }
-      );
-      console.log(`✅ Slash-Befehle erfolgreich für Test-Guild (${env.GUILD_ID}) registriert!`);
+      // Haupt-Server + alle freigegebenen Server (Multi-Guild, max. 5)
+      const ids = new Set<string>([env.GUILD_ID.trim()]);
+      for (const id of (process.env.ALLOWED_GUILD_IDS || "").split(/[,\s]+/)) if (/^\d{15,25}$/.test(id.trim())) ids.add(id.trim());
+      try {
+        const access = JSON.parse(fs.readFileSync(path.join(process.cwd(), "data", "guild_access.json"), "utf-8"));
+        for (const a of access?.allowed || []) if (a?.id) ids.add(String(a.id));
+      } catch {}
+      const max = Math.max(1, Math.min(5, Number(process.env.MAX_GUILDS || 5) || 5));
+      for (const id of [...ids].slice(0, max)) {
+        try {
+          await rest.put(Routes.applicationGuildCommands(env.CLIENT_ID, id), { body: commands });
+          console.log(`✅ Slash-Befehle für Server ${id} registriert!`);
+        } catch (e: any) {
+          console.warn(`⚠️ Server ${id}: ${e?.message || e} (ist der Bot dort schon eingeladen?)`);
+        }
+      }
     } else {
       await rest.put(
         Routes.applicationCommands(env.CLIENT_ID),
@@ -66,4 +77,9 @@ async function deploy() {
   }
 }
 
-deploy();
+deploy()
+  .then(() => setTimeout(() => process.exit(0), 100))
+  .catch((err) => {
+    console.error(err);
+    setTimeout(() => process.exit(1), 100);
+  });

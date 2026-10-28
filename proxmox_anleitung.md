@@ -25,7 +25,7 @@ Klicke in deiner Proxmox VE Web-Oberfläche oben rechts auf **„Create CT“**:
    * **Memory:** `512 MB` oder `1024 MB`
    * **Swap:** `512 MB`
 6. **Network:**
-   * **IPv4:** Statische IP (z. B. `192.168.178.50/24`) mit Gateway deines Routers oder per `DHCP`
+   * **IPv4:** Statische IP (z. B. `192.168.1.50/24`) mit Gateway deines Routers oder per `DHCP`
 7. **Confirm:**
    * Haken bei *„Start after created“* setzen und auf **Finish** klicken.
 
@@ -65,7 +65,7 @@ Du musst auf dem Server nichts manuell hochladen. Nutze einfach die neuen Werkze
 
 1. Kopiere `server_config.example.ini` zu `server_config.ini` und trage die IP deines Containers ein:
    ```ini
-   SERVER_IP=192.168.178.50
+   SERVER_IP=192.168.1.50
    SERVER_USER=root
    SERVER_PATH=/opt/discordbot
    ```

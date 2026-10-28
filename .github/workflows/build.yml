@@ -1,0 +1,35 @@
+name: Build-Check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            web/package-lock.json
+      - name: Bot - Abhängigkeiten
+        run: npm ci
+      - name: Bot - TypeScript prüfen
+        run: npx tsc --noEmit
+      - name: Dashboard - Abhängigkeiten
+        run: npm ci
+        working-directory: web
+      - name: Dashboard - Build
+        run: npm run build
+        working-directory: web
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker-Image bauen
+        run: docker build -t glgbot-test --build-arg COMMUNITY_NAME="CI Test" .

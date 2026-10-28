@@ -68,6 +68,7 @@ interface XpBreakdown {
 interface UserProfileData {
   stats: UserStatEntry;
   rank: number;
+  dailyStreak?: number;
   progress: {
     level: number;
     currentXp: number;
@@ -92,6 +93,7 @@ interface LevelingConfig {
   kickPenaltyXp: number;
   banPenaltyXp: number;
   levelUpChannelId?: string;
+  roleRewards?: Record<number, string>;
   levelUpNotifications: boolean;
   levelUpMessage?: string;
 }
@@ -135,7 +137,9 @@ export default function StatsPage() {
 
   // Settings
   const [showSettings, setShowSettings] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<"curve" | "rewards" | "penalties" | "notifications">("curve");
+  const [settingsTab, setSettingsTab] = useState<"curve" | "rewards" | "roles" | "penalties" | "notifications">("curve");
+  const [serverRoles, setServerRoles] = useState<{ id: string; name: string; color: string }[]>([]);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
@@ -192,6 +196,7 @@ export default function StatsPage() {
 
   const handleSaveConfig = async () => {
     setSavingSettings(true);
+    setSettingsError(null);
     try {
       const res = await fetch("/api/bot/stats/config", {
         method: "POST",
@@ -207,6 +212,9 @@ export default function StatsPage() {
         setShowSettings(false);
         setTimeout(() => setStatusMessage(null), 4000);
         fetchStats();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setSettingsError(err.error || "Speichern fehlgeschlagen.");
       }
     } catch (e) {
       console.error(e);
@@ -747,6 +755,12 @@ export default function StatsPage() {
                         <span>•</span>
                         <span>Rang #{userProfile.rank}</span>
                         <span>•</span>
+                        {(userProfile.dailyStreak || 0) > 0 && (
+                          <>
+                            <span className="text-orange-400 font-semibold" title="Daily-Serie">🔥 {userProfile.dailyStreak} Tag(e)</span>
+                            <span>•</span>
+                          </>
+                        )}
                         <span className="font-mono text-gray-300 font-semibold">
                           {userProfile.stats.xp.toLocaleString("de-DE")} XP
                         </span>
@@ -984,6 +998,24 @@ export default function StatsPage() {
                 }`}
               >
                 <span>✨</span> XP-Belohnungen
+              </button>
+              <button
+                onClick={() => {
+                  setSettingsTab("roles");
+                  if (serverRoles.length === 0) {
+                    fetch("/api/bot/moderation/roles")
+                      .then((r) => (r.ok ? r.json() : { roles: [] }))
+                      .then((d) => setServerRoles(d.roles || []))
+                      .catch(() => null);
+                  }
+                }}
+                className={`py-3 px-3 border-b-2 transition-all flex items-center gap-1.5 ${
+                  settingsTab === "roles"
+                    ? "border-discord-blurple text-white font-bold"
+                    : "border-transparent text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                <span>🏅</span> Rollen-Belohnungen
               </button>
               <button
                 onClick={() => setSettingsTab("penalties")}
@@ -1275,6 +1307,87 @@ export default function StatsPage() {
                 </div>
               )}
 
+              {/* Tab: Rollen-Belohnungen */}
+              {settingsTab === "roles" && (
+                <div className="space-y-4">
+                  <div className="p-3.5 bg-discord-dark rounded-xl border border-discord-border space-y-1">
+                    <div className="font-semibold text-white text-sm flex items-center gap-2">
+                      <span>🏅</span> Rollen für Level-Meilensteine
+                    </div>
+                    <p className="text-gray-400 text-xs">
+                      Erreicht ein Mitglied das Level, bekommt es die Rolle automatisch. Wer schon höher ist, bekommt sie mit{" "}
+                      <code className="text-indigo-300">/level sync-roles</code>. Die Rolle muss unter der Bot-Rolle stehen.
+                    </p>
+                  </div>
+
+                  {Object.entries(formConfig.roleRewards || {})
+                    .sort((a, b) => Number(a[0]) - Number(b[0]))
+                    .map(([lvl, roleId]) => (
+                      <div key={lvl} className="flex items-center gap-2">
+                        <span className="w-20 shrink-0 px-2 py-2 rounded-lg bg-discord-dark border border-discord-border text-center font-mono text-white">
+                          Lv. {lvl}
+                        </span>
+                        <select
+                          value={roleId}
+                          onChange={(e) =>
+                            setFormConfig({ ...formConfig, roleRewards: { ...(formConfig.roleRewards || {}), [lvl]: e.target.value } })
+                          }
+                          className="flex-1 bg-discord-dark border border-discord-border rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-discord-blurple"
+                        >
+                          <option value="">— Rolle wählen —</option>
+                          {serverRoles.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              @{r.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          title="Entfernen"
+                          onClick={() => {
+                            const next = { ...(formConfig.roleRewards || {}) };
+                            delete next[Number(lvl)];
+                            setFormConfig({ ...formConfig, roleRewards: next });
+                          }}
+                          className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+
+                  <div className="flex flex-wrap gap-2">
+                    {[5, 10, 15, 20, 25]
+                      .filter((l) => l <= formConfig.maxLevel && !(formConfig.roleRewards || {})[l])
+                      .map((l) => (
+                        <button
+                          key={l}
+                          type="button"
+                          onClick={() => setFormConfig({ ...formConfig, roleRewards: { ...(formConfig.roleRewards || {}), [l]: "" } })}
+                          className="px-3 py-1.5 rounded-lg bg-discord-dark border border-discord-border hover:border-discord-blurple text-gray-300 hover:text-white text-xs font-semibold"
+                        >
+                          + Level {l}
+                        </button>
+                      ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const raw = prompt(`Für welches Level? (1 bis ${formConfig.maxLevel})`);
+                        const l = Math.floor(Number(raw));
+                        if (!l || l < 1 || l > formConfig.maxLevel) return;
+                        setFormConfig({ ...formConfig, roleRewards: { ...(formConfig.roleRewards || {}), [l]: (formConfig.roleRewards || {})[l] || "" } });
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-discord-dark border border-dashed border-discord-border hover:border-discord-blurple text-gray-400 hover:text-white text-xs font-semibold"
+                    >
+                      + Anderes Level
+                    </button>
+                  </div>
+                  {serverRoles.length === 0 && (
+                    <p className="text-[11px] text-gray-500">Rollen werden geladen … (nur mit Login verfügbar)</p>
+                  )}
+                </div>
+              )}
+
               {/* Tab 4: Benachrichtigungen */}
               {settingsTab === "notifications" && (
                 <div className="space-y-4">
@@ -1316,6 +1429,12 @@ export default function StatsPage() {
                 </div>
               )}
             </div>
+
+            {settingsError && (
+              <div className="mx-5 mb-3 p-3 rounded-xl border bg-red-500/10 border-red-500/30 text-red-400 text-xs font-medium">
+                ❌ {settingsError}
+              </div>
+            )}
 
             {/* Footer */}
             <div className="p-4 bg-discord-dark border-t border-discord-border flex items-center justify-between">

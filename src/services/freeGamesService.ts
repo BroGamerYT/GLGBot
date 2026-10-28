@@ -11,6 +11,7 @@ import {
   TextChannel,
 } from "discord.js";
 import { rolePanelService } from "./rolePanelService";
+import { moduleService } from "./moduleService";
 
 /**
  * Gratis-Spiele-Tracker (ähnlich PatchBot).
@@ -156,7 +157,7 @@ class FreeGamesService {
   public async fetchEpic(): Promise<FreeGame[] | null> {
     try {
       const res = await fetch(
-        "https://store-site-backend-static.akamaized.net/freeGamesPromotions?locale=de-DE&country=DE&allowCountries=DE",
+        "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=de-DE&country=DE&allowCountries=DE",
         { headers: { "User-Agent": "Mozilla/5.0 GLGBot" } }
       );
       if (!res.ok) return null;
@@ -342,7 +343,7 @@ class FreeGamesService {
   // ------------------------------------------------------------------
   //  Darstellung (PatchBot-Stil)
   // ------------------------------------------------------------------
-  public buildMessage(game: FreeGame) {
+  public buildMessage(game: FreeGame, withTitle = false) {
     const info = STORE_INFO[game.store];
     const end = toUnix(game.endDate);
     const start = toUnix(game.startDate);
@@ -368,9 +369,12 @@ class FreeGamesService {
     }
 
     if (game.imageUrl && /^https?:\/\//.test(game.imageUrl)) embed.setImage(game.imageUrl);
-    embed.setFooter({ text: "GLGBot Free-Games" }).setTimestamp();
+    const base = (process.env.DASHBOARD_URL || "").replace(/\/+$/, "");
+    const host = base ? base.replace(/^https?:\/\//, "") : "";
+    const footerText = host ? `GLGBot Free-Games • ${host}/free-games` : "GLGBot Free-Games";
+    embed.setFooter({ text: footerText }).setTimestamp();
 
-    return { embeds: [embed], components: [this.buildButtons(game)] };
+    return { embeds: [embed], components: [this.buildButtons(game, withTitle)] };
   }
 
   /** Link zur Weiterleitungsseite im Dashboard, die Steam bzw. den Epic Launcher direkt öffnet. */
@@ -387,6 +391,7 @@ class FreeGamesService {
   public buildButtons(game: FreeGame, withTitle = false) {
     const row = new ActionRowBuilder<ButtonBuilder>();
     const app = this.appLink(game);
+    const base = (process.env.DASHBOARD_URL || "").replace(/\/+$/, "");
     const short = game.title.length > 40 ? game.title.slice(0, 39) + "…" : game.title;
     if (app) {
       row.addComponents(
@@ -405,6 +410,15 @@ class FreeGamesService {
           .setLabel(withTitle ? `${short} · ${label}` : label)
           .setEmoji(game.upcoming ? "👀" : "🎁")
           .setURL(game.url)
+      );
+    }
+    if (base && row.components.length < 5) {
+      row.addComponents(
+        new ButtonBuilder()
+          .setStyle(ButtonStyle.Link)
+          .setLabel("Web-Übersicht")
+          .setEmoji("📋")
+          .setURL(`${base}/free-games`)
       );
     }
     return row;
@@ -449,21 +463,27 @@ class FreeGamesService {
 
     const toPost = games.filter((g) => repostAll || !isPosted(g));
 
-    // Bis zu 5 Spiele pro Nachricht (Discord: max. 10 Embeds / 5 Button-Reihen).
-    // Nur die ERSTE Nachricht pingt und macht einen Ton - weitere gehen lautlos raus (wie @silent).
+    // Jedes Spiel wird als eigene Nachricht gesendet, damit der Store-/Launcher-Button
+    // und der Web-Übersicht-Button DIREKT unter dem jeweiligen Spiel-Beitrag stehen.
+    // Nur die ERSTE Nachricht pingt und macht einen Ton - weitere gehen lautlos raus.
     let count = 0;
     let sentMessages = 0;
     const nowFree = toPost.filter((g) => !g.upcoming);
-    for (let i = 0; i < toPost.length; i += 5) {
-      const batch = toPost.slice(i, i + 5);
+    const hasFree = nowFree.length > 0;
+
+    for (let i = 0; i < toPost.length; i++) {
+      const game = toPost[i];
       const first = sentMessages === 0;
-      const hasFree = batch.some((g) => !g.upcoming);
 
       let content: string | undefined;
       if (first && !repostAll) {
         const ping = cfg.freeGamesRoleId && hasFree ? `<@&${cfg.freeGamesRoleId}> ` : "";
         const intro =
-          nowFree.length > 1 ? `🚨 **${nowFree.length} neue Gratis-Spiele!**` : nowFree.length === 1 ? "🚨 **Neues Gratis-Spiel!**" : "🔜 **Bald kostenlos:**";
+          nowFree.length > 1
+            ? `🚨 **${nowFree.length} neue Gratis-Spiele!**`
+            : nowFree.length === 1
+              ? "🚨 **Neues Gratis-Spiel!**"
+              : "🔜 **Bald kostenlos:**";
         const rawContent = ping + intro;
         content = settings.silent ? `@silent ${rawContent}` : rawContent;
       }
@@ -471,19 +491,20 @@ class FreeGamesService {
       const flags = settings.silent || (!first || repostAll) ? MessageFlags.SuppressNotifications : undefined;
 
       try {
+        const msg = this.buildMessage(game, false);
         await (channel as TextChannel).send({
           content,
-          embeds: batch.map((g) => this.buildMessage(g).embeds[0]),
-          components: batch.map((g) => this.buildButtons(g, batch.length > 1)),
+          embeds: msg.embeds,
+          components: msg.components,
           allowedMentions: { roles: cfg.freeGamesRoleId && first && !repostAll ? [cfg.freeGamesRoleId] : [] },
           flags,
         });
-        for (const g of batch) this.posted.add(`${guild.id}:${g.key}`);
-        count += batch.length;
+        this.posted.add(`${guild.id}:${game.key}`);
+        count++;
         sentMessages++;
       } catch (e) {
         // Nicht als gepostet markieren -> wird beim nächsten Durchlauf erneut versucht
-        console.error(`[FreeGames] Konnte ${batch.length} Spiel(e) nicht posten:`, e);
+        console.error(`[FreeGames] Konnte "${game.title}" nicht posten:`, e);
       }
     }
 
@@ -506,6 +527,7 @@ class FreeGamesService {
     if (!this.running) {
       this.running = (async () => {
         for (const guild of client.guilds.cache.values()) {
+          if (!moduleService.isEnabled(guild.id, "freeGames")) continue; // Modul ausgeschaltet
           const r = await this.postFreeGames(guild).catch((e) => {
             console.error("[FreeGames] Fehler im automatischen Check:", e);
             return { count: 0 };

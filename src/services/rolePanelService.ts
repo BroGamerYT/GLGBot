@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { writeJsonAtomic } from "../utils/jsonFile";
 import { 
   ButtonInteraction, 
   EmbedBuilder, 
@@ -61,7 +62,7 @@ class RolePanelService {
   public saveConfig() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(CONFIG_FILE, JSON.stringify(this.config, null, 2), "utf-8");
+      writeJsonAtomic(CONFIG_FILE, this.config);
     } catch (e) {
       console.error("[RolePanel] Fehler beim Speichern der Konfiguration:", e);
     }

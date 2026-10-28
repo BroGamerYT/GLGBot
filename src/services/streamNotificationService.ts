@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { writeJsonAtomic } from "../utils/jsonFile";
 import { 
   Client, 
   EmbedBuilder, 
@@ -9,6 +10,7 @@ import {
   MessageFlags,
 } from "discord.js";
 import { liveStreamService } from "./liveStreamService";
+import { moduleService } from "./moduleService";
 
 export interface StreamNotification {
   id: string;
@@ -134,7 +136,7 @@ class StreamNotificationService {
   public saveNotifications() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify(this.notifications, null, 2), "utf-8");
+      writeJsonAtomic(NOTIFICATIONS_FILE, this.notifications);
     } catch (e) {
       console.error("[StreamNotification] Fehler beim Speichern:", e);
     }
@@ -148,6 +150,27 @@ class StreamNotificationService {
         const st = this.state[n.id];
         return st ? { ...n, isLive: st.isLive, lastNotified: st.lastNotified } : n;
       });
+  }
+
+  public getBackupNotifications(guildId: string): StreamNotification[] {
+    return this.notifications
+      .filter((notification) => notification.guildId === guildId)
+      .map(({ guildId: _guildId, isLive: _isLive, currentStreamId: _currentStreamId, lastNotified: _lastNotified, ...notification }) => ({ ...notification } as StreamNotification));
+  }
+
+  public setBackupNotifications(guildId: string, notifications: StreamNotification[]) {
+    const oldIds = new Set(this.notifications.filter((entry) => entry.guildId === guildId).map((entry) => entry.id));
+    this.notifications = this.notifications.filter((entry) => entry.guildId !== guildId);
+    for (const id of oldIds) delete this.state[id];
+    this.notifications.push(...notifications.map((entry) => ({
+      ...entry,
+      guildId,
+      isLive: false,
+      currentStreamId: undefined,
+      lastNotified: undefined,
+    })));
+    this.saveNotifications();
+    this.saveState();
   }
 
   // Fragt Twitch User- & Stream-Status über die Web-GQL-Schnittstelle ab
@@ -170,7 +193,7 @@ class StreamNotificationService {
       const res = await fetch("https://gql.twitch.tv/gql", {
         method: "POST",
         headers: {
-          "Client-ID": "kimne78kx3ncx6brgo4mv6wki5h1ko",
+          "Client-ID": process.env.TWITCH_CLIENT_ID || "kimne78kx3ncx6brgo4mv6wki5h1ko",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ query }),
@@ -427,6 +450,7 @@ class StreamNotificationService {
       try {
         const guild = this.client.guilds.cache.get(notif.guildId);
         if (!guild) continue;
+        if (!moduleService.isEnabled(guild.id, "live")) continue; // Modul ausgeschaltet
 
         let isNowLive = false;
         let streamData: any = null;
@@ -534,14 +558,54 @@ class StreamNotificationService {
     this.saveNotifications();
   }
 
+  /**
+   * Aktualisiert den Ziel-Kanal für alle Streamer-Benachrichtigungen eines Servers
+   * (z. B. nach Server-Setup, Template-Einrichtung oder Kanal-Neuerstellung).
+   */
+  public updateChannelForGuild(guildId: string, newChannelId: string): number {
+    this.loadNotifications();
+    let count = 0;
+    for (const notif of this.notifications) {
+      if (notif.guildId === guildId && notif.discordChannelId !== newChannelId) {
+        notif.discordChannelId = newChannelId;
+        count++;
+      }
+    }
+    if (count > 0) {
+      this.saveNotifications();
+      console.log(`[StreamNotification] ${count} Streamer-Benachrichtigung(en) für Server ${guildId} auf Kanal ${newChannelId} aktualisiert.`);
+    }
+    return count;
+  }
+
   // Sendet das stylische Stream-Alert-Embed in den Discord-Kanal
   public async sendLiveAlert(
     guild: any, 
     notif: StreamNotification, 
     streamInfo: { displayName: string; profileImageUrl: string; stream: any }
   ) {
-    const channel = guild.channels.cache.get(notif.discordChannelId);
-    if (!channel || !channel.isTextBased()) return;
+    let channel = guild.channels.cache.get(notif.discordChannelId);
+    if (!channel || !channel.isTextBased()) {
+      // Auto-Heal 1: liveStreamService announcementChannelId
+      const liveCfg = liveStreamService.getConfig(guild.id);
+      if (liveCfg?.announcementChannelId && guild.channels.cache.has(liveCfg.announcementChannelId)) {
+        channel = guild.channels.cache.get(liveCfg.announcementChannelId);
+      }
+      // Auto-Heal 2: Suche nach Textkanal mit stream-alert oder live-alert
+      if (!channel || !channel.isTextBased()) {
+        channel = guild.channels.cache.find(
+          (c: any) => c.isTextBased() && /stream[-_]?alert|live[-_]?alert/i.test(c.name)
+        );
+      }
+      if (channel && channel.isTextBased()) {
+        console.log(`[StreamNotification] Veralteter Alert-Kanal für ${notif.channelName} repariert -> #${(channel as any).name} (${channel.id})`);
+        notif.discordChannelId = channel.id;
+        this.saveNotifications();
+      } else {
+        console.warn(`[StreamNotification] Kein gültiger Textkanal für Stream-Alerts von ${notif.channelName} auf Server ${guild.name} gefunden.`);
+        return;
+      }
+    }
 
     const isYoutube = notif.platform === "youtube";
     const stream = streamInfo.stream;

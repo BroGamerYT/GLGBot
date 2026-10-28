@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { writeJsonAtomic } from "../utils/jsonFile";
 import {
   Client,
   Guild,
@@ -9,7 +10,13 @@ import {
   ActivityType,
   EmbedBuilder,
   MessageFlags,
+  PermissionFlagsBits,
+  VoiceChannel,
+  TextChannel,
 } from "discord.js";
+import { createStreamerPanelEmbed, createStreamerPanelComponents } from "../commands/stream/streamPanel";
+import { channelPasswordService } from "./channelPasswordService";
+
 
 interface GuildLiveConfig {
   liveRoleId: string;
@@ -90,6 +97,15 @@ class LiveStreamService {
     return Date.now() - ts < 15 * 60 * 1000;
   }
 
+  public getActiveEntries(guildId?: string): LiveEntry[] {
+    if (guildId) return this.entries.filter((e) => e.guildId === guildId);
+    return [...this.entries];
+  }
+
+  public getPendingData(guildId: string, userId: string): LiveData | undefined {
+    return this.pendingData.get(this.key(guildId, userId));
+  }
+
   constructor() {
     this.ensureDataDir();
     this.loadConfig();
@@ -119,7 +135,7 @@ class LiveStreamService {
   private saveConfig() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(CONFIG_FILE, JSON.stringify(this.config, null, 2), "utf-8");
+      writeJsonAtomic(CONFIG_FILE, this.config);
     } catch (e) {
       console.error("[LiveStream] Fehler beim Speichern der Konfiguration:", e);
     }
@@ -146,7 +162,7 @@ class LiveStreamService {
   private saveActive() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(ACTIVE_FILE, JSON.stringify(this.entries, null, 2), "utf-8");
+      writeJsonAtomic(ACTIVE_FILE, this.entries);
     } catch (e) {
       console.error("[LiveStream] Fehler beim Speichern der aktiven Kanäle:", e);
     }
@@ -193,6 +209,18 @@ class LiveStreamService {
 
   public getSources(guildId: string, userId: string): LiveSource[] {
     return this.getEntry(guildId, userId)?.sources || [];
+  }
+
+  public getLiveEntryByChannel(channelId: string): LiveEntry | undefined {
+    return this.entries.find((e) => e.channelId === channelId);
+  }
+
+  public getLiveEntryByUser(guildId: string, userId: string): LiveEntry | undefined {
+    return this.entries.find((e) => e.guildId === guildId && e.userId === userId);
+  }
+
+  public isLiveChannel(channelId: string): boolean {
+    return this.entries.some((e) => e.channelId === channelId);
   }
 
   // Findet oder erstellt automatisch die Kategorie '🔴 Live Streams'
@@ -326,6 +354,7 @@ class LiveStreamService {
     this.saveActive();
 
     if (!entry.channelId) return;
+    channelPasswordService.cleanChannel(entry.channelId);
     const channel = guild.channels.cache.get(entry.channelId);
     if (channel) {
       await channel.delete("Stream beendet").catch(() => null);
@@ -465,6 +494,29 @@ class LiveStreamService {
           name: `🔴・${member.displayName} ist live`.slice(0, 100),
           type: ChannelType.GuildVoice,
           parent,
+          permissionOverwrites: [
+            {
+              id: member.id,
+              allow: [
+                PermissionFlagsBits.ViewChannel,
+                PermissionFlagsBits.ManageChannels,
+                PermissionFlagsBits.ManageMessages,
+                PermissionFlagsBits.MoveMembers,
+                PermissionFlagsBits.MuteMembers,
+                PermissionFlagsBits.DeafenMembers,
+                PermissionFlagsBits.Connect,
+                PermissionFlagsBits.Speak,
+                PermissionFlagsBits.Stream,
+                PermissionFlagsBits.UseVAD,
+                PermissionFlagsBits.PrioritySpeaker,
+                PermissionFlagsBits.SendMessages,
+                PermissionFlagsBits.EmbedLinks,
+                PermissionFlagsBits.AttachFiles,
+                PermissionFlagsBits.AddReactions,
+                PermissionFlagsBits.UseApplicationCommands,
+              ],
+            },
+          ],
         });
 
         // Sprachkanal-Status setzen, falls verfügbar
@@ -473,7 +525,21 @@ class LiveStreamService {
           await (voiceChannel as any).setStatus(statusText).catch(() => null);
         }
 
+        // 1. Live-Ankündigung im Sprachkanal posten
         await voiceChannel.send({ embeds: [embed], flags: [MessageFlags.SuppressNotifications] }).catch(() => null);
+
+        // 2. Streamer Einrichtungs- & Steuerungs-Panel direkt in den Kanal senden
+        try {
+          const panelEmbed = createStreamerPanelEmbed(member, voiceChannel);
+          const panelComponents = createStreamerPanelComponents(voiceChannel);
+          await voiceChannel.send({
+            content: `👋 Willkommen in deinem persönlichen Live-Kanal, <@${member.id}>! Hier ist dein Einrichtungs- & Steuerungs-Panel (Passwort, Limit, Name usw.):`,
+            embeds: [panelEmbed],
+            components: panelComponents,
+          });
+        } catch (panelErr) {
+          console.error("[LiveStream] Konnte Streamer-Steuerungspanel nicht in Sprachkanal senden:", panelErr);
+        }
 
         entry.channelId = voiceChannel.id;
         entry.channelType = "voice";
@@ -489,6 +555,22 @@ class LiveStreamService {
           name: name || "🔴・live",
           type: ChannelType.GuildText,
           parent,
+          permissionOverwrites: [
+            {
+              id: member.id,
+              allow: [
+                PermissionFlagsBits.ViewChannel,
+                PermissionFlagsBits.ManageChannels,
+                PermissionFlagsBits.ManageMessages,
+                PermissionFlagsBits.SendMessages,
+                PermissionFlagsBits.EmbedLinks,
+                PermissionFlagsBits.AttachFiles,
+                PermissionFlagsBits.MentionEveryone,
+                PermissionFlagsBits.AddReactions,
+                PermissionFlagsBits.UseApplicationCommands,
+              ],
+            },
+          ],
         });
 
         // Kein @everyone mehr - nur der Streamer selbst wird erwähnt
@@ -500,6 +582,19 @@ class LiveStreamService {
           })
           .catch(() => null);
 
+        // Streamer Einrichtungs- & Steuerungs-Panel in Textkanal senden
+        try {
+          const panelEmbed = createStreamerPanelEmbed(member, textChannel);
+          const panelComponents = createStreamerPanelComponents(textChannel);
+          await textChannel.send({
+            content: `👋 Willkommen in deinem persönlichen Live-Kanal, <@${member.id}>! Hier ist deine Kanal-Steuerung:`,
+            embeds: [panelEmbed],
+            components: panelComponents,
+          });
+        } catch (panelErr) {
+          console.error("[LiveStream] Konnte Streamer-Steuerungspanel nicht in Textkanal senden:", panelErr);
+        }
+
         entry.channelId = textChannel.id;
         entry.channelType = "text";
         console.log(`[LiveStream] Live-Textkanal erstellt für ${member.user.tag}`);
@@ -507,11 +602,19 @@ class LiveStreamService {
 
       // Ankündigung in den konfigurierten Ankündigungskanal senden (mit anpassbarem Rollen-Ping und Silent-Einstellung)
       if (
-        cfg.announcementChannelId &&
         !this.wasRecentlyAnnounced(member.guild.id, member.id) &&
         !this.isLinkedStreamer(member.guild.id, member.id) // sonst doppelt: Stream-Alert + Live-Ankündigung
       ) {
-        const announceChannel = member.guild.channels.cache.get(cfg.announcementChannelId);
+        let announceChannel = cfg.announcementChannelId ? member.guild.channels.cache.get(cfg.announcementChannelId) : undefined;
+        if (!announceChannel || !announceChannel.isTextBased()) {
+          announceChannel = member.guild.channels.cache.find(
+            (c: any) => c.isTextBased() && /stream[-_]?alert|live[-_]?alert/i.test(c.name)
+          );
+          if (announceChannel) {
+            cfg.announcementChannelId = announceChannel.id;
+            this.saveConfig();
+          }
+        }
         if (announceChannel && announceChannel.isTextBased()) {
           const rolesCfgPath = path.join(DATA_DIR, "role_panel_config.json");
           let pingRoleId = cfg.pingRoleId;
@@ -610,6 +713,22 @@ class LiveStreamService {
         await this.clearLive(member, "all");
       } else {
         await this.ensureLiveChannel(member, cfg);
+        if (entry.channelId) {
+          const ch = guild.channels.cache.get(entry.channelId);
+          if (ch && "permissionOverwrites" in ch) {
+            await (ch as VoiceChannel | TextChannel).permissionOverwrites.edit(member.id, {
+              ViewChannel: true,
+              ManageChannels: true,
+              ManageMessages: true,
+              Connect: true,
+              Speak: true,
+              Stream: true,
+              MoveMembers: true,
+              MuteMembers: true,
+              DeafenMembers: true,
+            }).catch(() => null);
+          }
+        }
       }
     }
     this.saveActive();

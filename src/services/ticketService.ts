@@ -96,6 +96,11 @@ class TicketService {
     return this.config[guildId];
   }
 
+  public getBackupConfig(guildId: string): TicketConfig | null {
+    const config = this.config[guildId];
+    return config ? { ...config } : null;
+  }
+
   public setConfig(guildId: string, patch: Partial<TicketConfig>): TicketConfig {
     this.config[guildId] = { ...(this.config[guildId] || {}), ...patch };
     this.saveData();
@@ -190,8 +195,12 @@ class TicketService {
           PermissionFlagsBits.ReadMessageHistory,
         ],
       },
-      {
-        id: client.user!.id,
+    ];
+
+    const botId = client.user?.id || guild.members.me?.id;
+    if (botId) {
+      permissionOverwrites.push({
+        id: botId,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
@@ -199,8 +208,8 @@ class TicketService {
           PermissionFlagsBits.EmbedLinks,
           PermissionFlagsBits.AttachFiles,
         ],
-      },
-    ];
+      });
+    }
 
     // Support-Rolle hinzufügen falls konfiguriert
     if (cfg.supportRoleId) {

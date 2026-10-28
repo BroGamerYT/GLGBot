@@ -55,6 +55,18 @@ export function createVoicePanelComponents() {
         emoji: "💬",
       },
       {
+        label: "Passwort festlegen / ändern",
+        description: "Schütze deine Lobby mit einem geheimen Passwort",
+        value: "pw_set",
+        emoji: "🔑",
+      },
+      {
+        label: "Passwort entfernen",
+        description: "Löscht den Passwort-Schutz",
+        value: "pw_remove",
+        emoji: "🔓",
+      },
+      {
         label: "Kanalbesitz übernehmen",
         description: "Übernimm den Raum, falls der Ersteller gegangen ist",
         value: "claim",
@@ -94,6 +106,12 @@ export function createVoicePanelComponents() {
     ]);
 
   // 3. Action Buttons
+  const enterPwButton = new ButtonBuilder()
+    .setCustomId("voice_btn_enter_pw")
+    .setLabel("Passwort eingeben")
+    .setEmoji("🔑")
+    .setStyle(ButtonStyle.Success);
+
   const refreshButton = new ButtonBuilder()
     .setCustomId("voice_btn_refresh")
     .setLabel("Status & Info")
@@ -104,7 +122,7 @@ export function createVoicePanelComponents() {
 
   const row1 = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(settingsSelect);
   const row2 = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(permissionsSelect);
-  const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(refreshButton);
+  const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(enterPwButton, refreshButton);
   if (dashboardUrl) {
     row3.addComponents(new ButtonBuilder().setLabel("Web-Dashboard").setEmoji("🌐").setStyle(ButtonStyle.Link).setURL(dashboardUrl));
   }

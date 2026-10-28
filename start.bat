@@ -4,7 +4,7 @@ title Discord Bot - All-in-One Kontrollzentrum
 cd /d "%~dp0"
 
 :load_config
-set "SERVER_IP=192.168.178.50"
+set "SERVER_IP=192.168.1.50"
 set "SERVER_USER=root"
 set "SERVER_PATH=/opt/discordbot"
 

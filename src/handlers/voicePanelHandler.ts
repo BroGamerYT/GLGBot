@@ -13,6 +13,8 @@ import {
   ActivityType
 } from "discord.js";
 import { tempVoiceService } from "../services/tempVoiceService";
+import { liveStreamService } from "../services/liveStreamService";
+import { channelPasswordService } from "../services/channelPasswordService";
 import { renameSafely, RENAME_LIMIT_HINT } from "../utils/rename";
 
 export async function handleVoiceSelectMenu(interaction: StringSelectMenuInteraction) {
@@ -27,15 +29,18 @@ export async function handleVoiceSelectMenu(interaction: StringSelectMenuInterac
     return;
   }
 
-  if (!tempVoiceService.isTempChannel(voiceChannel.id)) {
+  const isTemp = tempVoiceService.isTempChannel(voiceChannel.id);
+  const liveEntry = liveStreamService.getLiveEntryByChannel(voiceChannel.id);
+
+  if (!isTemp && !liveEntry) {
     await interaction.reply({
-      content: "❌ Dieser Sprachkanal ist kein temporärer 'Join to Create'-Kanal.",
+      content: "❌ Dieser Sprachkanal ist kein temporärer 'Join to Create'- oder aktiver Streamer-Kanal.",
       ephemeral: true,
     });
     return;
   }
 
-  const ownerId = tempVoiceService.getChannelOwner(voiceChannel.id);
+  const ownerId = liveEntry ? liveEntry.userId : tempVoiceService.getChannelOwner(voiceChannel.id);
   const isOwner = ownerId === interaction.user.id;
   const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
 
@@ -170,6 +175,38 @@ export async function handleVoiceSelectMenu(interaction: StringSelectMenuInterac
     return;
   }
 
+  if (selected === "pw_set") {
+    const currentPw = channelPasswordService.getPassword(voiceChannel.id) || "";
+    const modal = new ModalBuilder()
+      .setCustomId("modal_voice_pw_set")
+      .setTitle("Lobby-Passwort festlegen");
+
+    const input = new TextInputBuilder()
+      .setCustomId("voice_pw_input")
+      .setLabel("Passwort für diese Lobby")
+      .setStyle(TextInputStyle.Short)
+      .setValue(currentPw)
+      .setMaxLength(30)
+      .setRequired(true);
+
+    modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(input));
+    await interaction.showModal(modal);
+    return;
+  }
+
+  if (selected === "pw_remove") {
+    channelPasswordService.removePassword(voiceChannel.id);
+    const everyoneRole = interaction.guild?.roles.everyone;
+    if (everyoneRole) {
+      await voiceChannel.permissionOverwrites.edit(everyoneRole, { Connect: null }).catch(() => null);
+    }
+    await interaction.reply({
+      content: "🔓 **Passwort entfernt!** Die Lobby ist wieder für alle geöffnet.",
+      ephemeral: true,
+    });
+    return;
+  }
+
   // --- BERECHTIGUNGEN ---
   const everyoneRole = interaction.guild?.roles.everyone;
 
@@ -210,7 +247,7 @@ export async function handleVoiceModalSubmit(interaction: ModalSubmitInteraction
   const member = interaction.guild?.members.cache.get(interaction.user.id);
   const voiceChannel = (member?.voice.channel || (interaction.channel?.type === ChannelType.GuildVoice ? interaction.channel : null)) as VoiceChannel | null;
 
-  if (!voiceChannel || !tempVoiceService.isTempChannel(voiceChannel.id)) {
+  if (!voiceChannel) {
     await interaction.reply({
       content: "❌ Du musst dich in deinem temporären Kanal befinden.",
       ephemeral: true,
@@ -218,10 +255,84 @@ export async function handleVoiceModalSubmit(interaction: ModalSubmitInteraction
     return;
   }
 
-  // Auch beim Absenden prüfen: Besitzer oder Admin (man könnte zwischen Öffnen und Absenden den Kanal wechseln)
-  const modalOwner = tempVoiceService.getChannelOwner(voiceChannel.id);
+  const isTemp = tempVoiceService.isTempChannel(voiceChannel.id);
+  const liveEntry = liveStreamService.getLiveEntryByChannel(voiceChannel.id);
+
+  if (!isTemp && !liveEntry) {
+    await interaction.reply({
+      content: "❌ Dieser Kanal ist kein verwalteter Sprachkanal.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  // A. Passwort eingeben (jeder darf)
+  if (interaction.customId === "modal_voice_pw_enter") {
+    const inputPw = interaction.fields.getTextInputValue("voice_pw_enter_input").trim();
+    const isCorrect = channelPasswordService.verifyPassword(voiceChannel.id, inputPw);
+
+    if (!isCorrect) {
+      await interaction.reply({
+        content: "❌ **Falsches Passwort!** Bitte überprüfe deine Eingabe.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await voiceChannel.permissionOverwrites.edit(interaction.user.id, {
+      Connect: true,
+      ViewChannel: true,
+      Speak: true,
+    });
+
+    if (member?.voice.channelId) {
+      await member.voice.setChannel(voiceChannel).catch(() => null);
+    }
+
+    await interaction.reply({
+      content: `✅ **Passwort korrekt!** Du darfst der Lobby **${voiceChannel.name}** jetzt beitreten.`,
+      ephemeral: true,
+    });
+    return;
+  }
+
+  // Für alle anderen Modals: Besitzer oder Admin
+  const modalOwner = liveEntry ? liveEntry.userId : tempVoiceService.getChannelOwner(voiceChannel.id);
   if (modalOwner !== interaction.user.id && !interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
     await interaction.reply({ content: "❌ Nur der Ersteller dieser Lobby kann die Einstellungen anpassen.", ephemeral: true });
+    return;
+  }
+
+  if (interaction.customId === "modal_voice_pw_set") {
+    const rawPw = interaction.fields.getTextInputValue("voice_pw_input").trim();
+    if (!rawPw) {
+      channelPasswordService.removePassword(voiceChannel.id);
+      const everyoneRole = voiceChannel.guild.roles.everyone;
+      if (everyoneRole) {
+        await voiceChannel.permissionOverwrites.edit(everyoneRole, { Connect: null }).catch(() => null);
+      }
+      await interaction.reply({ content: "🔓 Passwort wurde entfernt und der Raum für alle geöffnet.", ephemeral: true });
+      return;
+    }
+
+    channelPasswordService.setPassword(voiceChannel.id, rawPw);
+    const everyoneRole = voiceChannel.guild.roles.everyone;
+    if (everyoneRole) {
+      await voiceChannel.permissionOverwrites.edit(everyoneRole, { Connect: false }).catch(() => null);
+    }
+    await voiceChannel.permissionOverwrites.edit(interaction.user.id, {
+      Connect: true,
+      ViewChannel: true,
+    }).catch(() => null);
+
+    for (const [memberId] of voiceChannel.members) {
+      await voiceChannel.permissionOverwrites.edit(memberId, { Connect: true }).catch(() => null);
+    }
+
+    await interaction.reply({
+      content: `🔐 **Passwort erfolgreich festgelegt:** \`${rawPw}\`\nDer Raum wurde für @everyone gesperrt. Andere können mit **"Passwort eingeben"** beitreten!`,
+      ephemeral: true,
+    });
     return;
   }
 
@@ -260,29 +371,77 @@ export async function handleVoiceModalSubmit(interaction: ModalSubmitInteraction
 }
 
 export async function handleVoiceButton(interaction: ButtonInteraction) {
-  if (interaction.customId === "voice_btn_refresh") {
-    const member = interaction.guild?.members.cache.get(interaction.user.id);
-    const voiceChannel = (member?.voice.channel || (interaction.channel?.type === ChannelType.GuildVoice ? interaction.channel : null)) as VoiceChannel | null;
+  const member = interaction.guild?.members.cache.get(interaction.user.id);
+  const voiceChannel = (member?.voice.channel || (interaction.channel?.type === ChannelType.GuildVoice ? interaction.channel : null)) as VoiceChannel | null;
 
-    if (!voiceChannel || !tempVoiceService.isTempChannel(voiceChannel.id)) {
+  if (!voiceChannel) {
+    await interaction.reply({
+      content: "ℹ️ Du befindest dich aktuell in keinem verwalteten Sprachkanal.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const isTemp = tempVoiceService.isTempChannel(voiceChannel.id);
+  const liveEntry = liveStreamService.getLiveEntryByChannel(voiceChannel.id);
+
+  if (!isTemp && !liveEntry) {
+    await interaction.reply({
+      content: "ℹ️ Dieser Sprachkanal ist kein verwalteter Sprachkanal.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  // 1. Passwort eingeben Button (jeder darf)
+  if (interaction.customId === "voice_btn_enter_pw") {
+    if (!channelPasswordService.hasPassword(voiceChannel.id)) {
       await interaction.reply({
-        content: "ℹ️ Du befindest dich aktuell in keinem temporären Sprachkanal.",
+        content: "ℹ️ Für diese Lobby ist aktuell kein Passwort eingerichtet. Du kannst direkt beitreten!",
         ephemeral: true,
       });
       return;
     }
 
-    const ownerId = tempVoiceService.getChannelOwner(voiceChannel.id);
+    const modal = new ModalBuilder()
+      .setCustomId("modal_voice_pw_enter")
+      .setTitle("Lobby-Passwort eingeben");
+
+    const input = new TextInputBuilder()
+      .setCustomId("voice_pw_enter_input")
+      .setLabel("Passwort für diesen Raum eingeben")
+      .setStyle(TextInputStyle.Short)
+      .setMaxLength(30)
+      .setRequired(true);
+
+    modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(input));
+    await interaction.showModal(modal);
+    return;
+  }
+
+  // 2. Refresh Button
+  if (interaction.customId === "voice_btn_refresh") {
+    const ownerId = liveEntry ? liveEntry.userId : tempVoiceService.getChannelOwner(voiceChannel.id);
+    const isOwnerOrAdmin = ownerId === interaction.user.id || !!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+    const hasPw = channelPasswordService.hasPassword(voiceChannel.id);
+    const actualPw = hasPw && isOwnerOrAdmin ? channelPasswordService.getPassword(voiceChannel.id) : null;
+
     const embed = new EmbedBuilder()
       .setColor(0x5865f2)
       .setTitle(`🎙️ Status: ${voiceChannel.name}`)
       .addFields(
         { name: "👑 Besitzer", value: ownerId ? `<@${ownerId}>` : "*Niemand*", inline: true },
         { name: "👥 Mitglieder", value: `${voiceChannel.members.size} / ${voiceChannel.userLimit || "∞"}`, inline: true },
-        { name: "📶 Bitrate", value: `${Math.round(voiceChannel.bitrate / 1000)} kbps`, inline: true }
+        { name: "📶 Bitrate", value: `${Math.round(voiceChannel.bitrate / 1000)} kbps`, inline: true },
+        {
+          name: "🔑 Passwort-Schutz",
+          value: hasPw ? (actualPw ? `Aktiv (\`${actualPw}\`) 🔐` : "Aktiv 🔐") : "Keiner (Frei)",
+          inline: true,
+        }
       )
       .setTimestamp();
 
     await interaction.reply({ embeds: [embed], ephemeral: true });
+    return;
   }
 }

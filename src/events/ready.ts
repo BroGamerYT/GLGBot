@@ -8,6 +8,21 @@ import { startInternalApi } from "../api/internalApi";
 import { gameNewsService } from "../services/gameNewsService";
 import { ticketService } from "../services/ticketService";
 import { statsService } from "../services/statsService";
+import { giveawayService } from "../services/giveawayService";
+import { guildAccessService } from "../services/guildAccessService";
+import { dataSnapshotService } from "../services/dataSnapshotService";
+import { statsChannelsService } from "../services/statsChannelsService";
+import { birthdayService } from "../services/birthdayService";
+import { announcementService } from "../services/announcementService";
+import { customCommandService } from "../services/customCommandService";
+import { lfgService } from "../services/lfgService";
+import { gameServerService } from "../services/gameServerService";
+import { clipService } from "../services/clipService";
+import { releaseService } from "../services/releaseService";
+import { prisonService } from "../services/prisonService";
+import { radioService } from "../services/radioService";
+import { musicBotManager } from "../services/musicBotManager";
+import { reconcileMusicChannels } from "../services/musicChannelCleanup";
 
 const readyEvent: BotEvent<Events.ClientReady> = {
   name: Events.ClientReady,
@@ -25,8 +40,33 @@ const readyEvent: BotEvent<Events.ClientReady> = {
       status: "online",
     });
 
+    // Discord Application-Besitzer abrufen (für automatische Bot-Owner Erkennung)
+    client.application?.fetch()
+      .then((app) => {
+        const ownerTag = (app.owner as any)?.tag || (app.owner as any)?.name || app.owner?.id;
+        console.log(`👑 Bot-Besitzer erkannt: ${ownerTag} (${app.owner?.id})`);
+      })
+      .catch((e) => console.warn("[Ready] Konnte Application-Info nicht abrufen:", e));
+
+    // Eingebaute Befehlsnamen (inkl. deutscher Namen) dürfen eigene Befehle nicht überschreiben
+    customCommandService.setReserved(
+      [...client.commands.values()].flatMap((c: any) => {
+        const json = c.data.toJSON();
+        return [json.name, ...Object.values(json.name_localizations || {})] as string[];
+      })
+    );
+
+    // Server-Freigabe (max. 5): nicht freigegebene Server verlassen, Befehle für weitere Server registrieren
+    guildAccessService
+      .enforce(client)
+      .then(() => console.log(`🔐 Freigegebene Server: ${guildAccessService.getAllowedIds().length}/${guildAccessService.maxGuilds}`))
+      .catch((e) => console.error("[GuildAccess] Fehler beim Abgleich:", e));
+
     // Automatischer Benachrichtigungsdienst für Gratis-Spiele
     freeGamesService.startAutoChecker(client);
+
+    // Tägliche Sicherung aller Bot-Daten (data/_snapshots, 7 Tage)
+    dataSnapshotService.start();
 
     // Automatischer Snapshot-Scheduler für Server-Backups
     backupService.startAutoBackupSchedule(client);
@@ -36,6 +76,15 @@ const readyEvent: BotEvent<Events.ClientReady> = {
 
     // Live-Rollen & Temp-Kanäle nach dem Neustart abgleichen
     liveStreamService.reconcile(client).catch((e) => console.error("[LiveStream] Fehler beim Abgleich:", e));
+
+    // Gespeicherte Radio-Streams nach dem Neustart wiederherstellen
+    radioService.restoreAll(client).catch((e) => console.error("[Radio] Fehler bei Wiederherstellung:", e));
+
+    // Ungenutzte temporäre Musik-Kanäle prüfen und aufräumen
+    reconcileMusicChannels(client).catch((e) => console.error("[MusicCleanup] Fehler beim Abgleich:", e));
+
+    // Separaten Musik-Bot (eigener Token) automatisch mitstarten und überwachen
+    musicBotManager.autostart();
 
     // Game-News (Spiel-Updates & Treiber)
     gameNewsService.startAutoChecker(client);
@@ -52,6 +101,23 @@ const readyEvent: BotEvent<Events.ClientReady> = {
 
     // Voice- & Talk-Partner Tracker starten
     statsService.startVoiceTracker(client);
+
+    // Statistik-Kanäle, Geburtstage & geplante Ankündigungen
+    statsChannelsService.start(client);
+    birthdayService.start(client);
+    announcementService.start(client);
+    lfgService.start(client);
+    gameServerService.start(client);
+    clipService.start(client);
+
+    // Giveaway Scheduler starten
+    giveawayService.startScheduler(client);
+
+    // Game-Release-Kalender Scheduler starten
+    releaseService.startWeeklyScheduler(client);
+
+    // Automatischer Scheduler für zeitlich befristete Gefängnisstrafen
+    prisonService.startScheduler(client);
   },
 };
 

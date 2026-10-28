@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { writeJsonAtomic } from "../utils/jsonFile";
 import {
   Guild,
   User,
@@ -56,7 +57,7 @@ class SuggestionService {
   private saveSuggestions() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(SUGGESTIONS_FILE, JSON.stringify(this.suggestions, null, 2), "utf-8");
+      writeJsonAtomic(SUGGESTIONS_FILE, this.suggestions);
     } catch (e) {
       console.error("[SuggestionService] Fehler beim Speichern der Vorschläge:", e);
     }

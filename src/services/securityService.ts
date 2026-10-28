@@ -1,9 +1,11 @@
 import fs from "fs";
 import path from "path";
+import { writeJsonAtomic } from "../utils/jsonFile";
 import { Guild, GuildMember, Message, Client, EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import { auditLogService } from "./auditLogService";
 
 interface ActionRecord {
+  guildId?: string;
   userId: string;
   timestamp: number;
 }
@@ -67,7 +69,8 @@ class SecurityService {
   private channelDeletes: ActionRecord[] = [];
   private roleDeletes: ActionRecord[] = [];
   private bans: ActionRecord[] = [];
-  private recentJoins: number[] = [];
+  /** Beitritte der letzten Sekunden - pro Server getrennt */
+  private recentJoinsByGuild = new Map<string, number[]>();
 
   constructor() {
     this.ensureDataDir();
@@ -98,7 +101,7 @@ class SecurityService {
     this.config = { ...this.config, ...patch };
     try {
       this.ensureDataDir();
-      fs.writeFileSync(CONFIG_FILE, JSON.stringify(this.config, null, 2), "utf-8");
+      writeJsonAtomic(CONFIG_FILE, this.config);
     } catch (e) {
       console.error("[SecurityService] Fehler beim Speichern der Security-Config:", e);
     }
@@ -127,19 +130,19 @@ class SecurityService {
     let threshold: number;
 
     if (action === "CHANNEL_DELETE") {
-      this.channelDeletes.push({ userId, timestamp: now });
+      this.channelDeletes.push({ guildId: guild.id, userId, timestamp: now });
       this.channelDeletes = this.channelDeletes.filter((r) => r.timestamp > oneMinAgo);
-      targetArray = this.channelDeletes.filter((r) => r.userId === userId);
+      targetArray = this.channelDeletes.filter((r) => r.userId === userId && r.guildId === guild.id);
       threshold = this.config.antiNuke.maxChannelDeletesPerMin;
     } else if (action === "ROLE_DELETE") {
-      this.roleDeletes.push({ userId, timestamp: now });
+      this.roleDeletes.push({ guildId: guild.id, userId, timestamp: now });
       this.roleDeletes = this.roleDeletes.filter((r) => r.timestamp > oneMinAgo);
-      targetArray = this.roleDeletes.filter((r) => r.userId === userId);
+      targetArray = this.roleDeletes.filter((r) => r.userId === userId && r.guildId === guild.id);
       threshold = this.config.antiNuke.maxRoleDeletesPerMin;
     } else {
-      this.bans.push({ userId, timestamp: now });
+      this.bans.push({ guildId: guild.id, userId, timestamp: now });
       this.bans = this.bans.filter((r) => r.timestamp > oneMinAgo);
-      targetArray = this.bans.filter((r) => r.userId === userId);
+      targetArray = this.bans.filter((r) => r.userId === userId && r.guildId === guild.id);
       threshold = this.config.antiNuke.maxBansPerMin;
     }
 
@@ -285,17 +288,73 @@ class SecurityService {
     }
   }
 
+  // --- MASS-MENTION PRÜFUNG (>5 Mentions) ---
+  public async handleMassMention(message: Message, client: Client): Promise<boolean> {
+    if (message.author.bot || !message.guild) return false;
+    if (this.isWhitelisted(message.guild, message.author.id)) return false;
+
+    const userMentions = message.mentions.users.size;
+    const roleMentions = message.mentions.roles.size;
+    const hasEveryone = message.mentions.everyone ? 1 : 0;
+    const totalMentions = userMentions + roleMentions + hasEveryone;
+
+    if (totalMentions <= 5) return false;
+
+    try {
+      await message.delete().catch(() => {});
+
+      const member = message.member || (await message.guild.members.fetch(message.author.id).catch(() => null));
+      if (member && member.moderatable) {
+        await member.timeout(10 * 60 * 1000, `Mass-Mention Spam (${totalMentions} Erwähnungen)`).catch(() => {});
+      }
+
+      const warnEmbed = new EmbedBuilder()
+        .setColor(0xed4245)
+        .setTitle("🛡️ Mass-Mention Schutz")
+        .setDescription(
+          `Die Nachricht von <@${message.author.id}> wurde gelöscht, da sie **${totalMentions} Erwähnungen** enthielt (Limit: max. 5). Der Nutzer wurde für 10 Minuten stummgeschaltet.`
+        )
+        .setTimestamp();
+
+      const warnMsg = await (message.channel as any).send({ embeds: [warnEmbed] }).catch(() => null);
+      if (warnMsg) {
+        setTimeout(() => warnMsg.delete().catch(() => {}), 10000);
+      }
+
+      await auditLogService.log(
+        {
+          guildId: message.guild.id,
+          category: "message",
+          action: "MASS_MENTION_BLOCKED",
+          executor: { id: client.user?.id || "bot", tag: client.user?.tag || "Bot" },
+          target: { id: message.author.id, tag: message.author.tag },
+          details: {
+            channelId: message.channel.id,
+            mentionsCount: totalMentions,
+            actionTaken: "Nachricht gelöscht + 10 Min. Timeout",
+          },
+        },
+        client
+      ).catch(() => null);
+
+      return true;
+    } catch (err) {
+      console.error("[SecurityService] Fehler beim Mass-Mention Schutz:", err);
+      return false;
+    }
+  }
+
   // --- ANTI-RAID PRÜFUNG ---
   public async trackMemberJoin(guild: Guild, member: GuildMember, client: Client) {
     if (!this.config.antiRaid.enabled) return;
 
     const now = Date.now();
     const tenSecAgo = now - 10000;
-    this.recentJoins.push(now);
-    this.recentJoins = this.recentJoins.filter((t) => t > tenSecAgo);
+    const recentJoins = [...(this.recentJoinsByGuild.get(guild.id) || []), now].filter((t) => t > tenSecAgo);
+    this.recentJoinsByGuild.set(guild.id, recentJoins);
 
-    if (this.recentJoins.length >= this.config.antiRaid.maxJoinsIn10s) {
-      console.warn(`🚨 [ANTI-RAID] Möglicher Raid erkannt! ${this.recentJoins.length} Joins in 10s.`);
+    if (recentJoins.length >= this.config.antiRaid.maxJoinsIn10s) {
+      console.warn(`🚨 [ANTI-RAID] Möglicher Raid erkannt! ${recentJoins.length} Joins in 10s.`);
 
       await auditLogService.log(
         {
@@ -311,7 +370,7 @@ class SecurityService {
             name: guild.name,
           },
           details: {
-            joinsCount: this.recentJoins.length,
+            joinsCount: recentJoins.length,
             timeframe: "10 Sekunden",
             warning: "Ungewöhnlich viele Server-Beitritte registriert.",
           },

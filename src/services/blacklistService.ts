@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { writeJsonAtomic } from "../utils/jsonFile";
 import { Message, Guild, GuildMember, User, Client } from "discord.js";
 import { moderationService } from "./moderationService";
 
@@ -66,7 +67,7 @@ class BlacklistService {
   private saveData() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(BLACKLIST_FILE, JSON.stringify(this.config, null, 2), "utf-8");
+      writeJsonAtomic(BLACKLIST_FILE, this.config);
     } catch (e) {
       console.error("[BlacklistService] Fehler beim Speichern der Blacklist:", e);
     }
@@ -85,6 +86,11 @@ class BlacklistService {
       this.saveData();
     }
     return this.config[guildId];
+  }
+
+  public getBackupConfig(guildId: string): BlacklistConfig | null {
+    const config = this.config[guildId];
+    return config ? { ...config, words: [...config.words] } : null;
   }
 
   public setConfig(guildId: string, patch: Partial<BlacklistConfig>): BlacklistConfig {

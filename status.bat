@@ -41,6 +41,20 @@ goto menu
 
 :start_bot
 cls
+echo [INFO] pruefe TypeScript-Fehler vor dem Start...
+call npx tsc --noEmit >nul 2>&1
+if %errorlevel% neq 0 (
+    echo.
+    echo [FEHLER] TypeScript-Fehler gefunden! Bot kann nicht starten.
+    echo [FIX] Bitte zuerst die Fehler beheben.
+    echo.
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "npx tsc --noEmit" 2>&1
+    echo.
+    pause
+    goto menu
+)
+echo [OK] Keine TypeScript-Fehler gefunden.
+echo.
 echo [INFO] Starte Discord-Bot in einem neuen Fenster...
 start "Discord Bot Runner" cmd /c "cd /d %~dp0 && npm run dev"
 timeout /t 2 > nul

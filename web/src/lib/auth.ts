@@ -18,6 +18,8 @@ export interface Session {
   avatar: string | null; // Avatar-Hash
   exp: number; // Ablauf (Unix-Sekunden)
   chk?: number; // Zeitpunkt der letzten Rechteprüfung bei Discord (Unix-Sekunden)
+  g?: string[]; // Server-IDs, die dieser Nutzer verwalten darf (Multi-Guild)
+  isAdmin?: boolean; // Ob der Nutzer Admin-Zugriff auf Dashboard-Einstellungen hat
 }
 
 /** Wie oft die Admin-Rechte erneut bei Discord geprüft werden (Rechte weg -> automatisch ausgeloggt). */

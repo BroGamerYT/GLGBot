@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { writeJsonAtomic } from "../utils/jsonFile";
 import {
   Client,
   Guild,
@@ -78,7 +79,7 @@ class AuditLogService {
   private saveConfig() {
     try {
       this.ensureDataDir();
-      fs.writeFileSync(CONFIG_FILE, JSON.stringify(this.config, null, 2), "utf-8");
+      writeJsonAtomic(CONFIG_FILE, this.config);
     } catch (e) {
       console.error("[AuditLogService] Fehler beim Speichern der Audit-Log-Config:", e);
     }
@@ -101,7 +102,7 @@ class AuditLogService {
       this.saveTimeout = null;
       try {
         this.ensureDataDir();
-        fs.writeFileSync(LOGS_FILE, JSON.stringify(this.logs, null, 2), "utf-8");
+        writeJsonAtomic(LOGS_FILE, this.logs);
       } catch (e) {
         console.error("[AuditLogService] Fehler beim Speichern der Audit-Logs:", e);
       }
@@ -128,6 +129,24 @@ class AuditLogService {
       this.saveConfig();
     }
     return this.config[guildId];
+  }
+
+  public getBackupConfig(guildId: string): AuditLogConfig | null {
+    const config = this.config[guildId];
+    if (!config) return null;
+    return {
+      ...config,
+      enabled: {
+        messages: config.enabled?.messages ?? true,
+        members: config.enabled?.members ?? true,
+        channels: config.enabled?.channels ?? true,
+        roles: config.enabled?.roles ?? true,
+        voice: config.enabled?.voice ?? true,
+        server: config.enabled?.server ?? true,
+      },
+      ignoredChannelIds: config.ignoredChannelIds ? [...config.ignoredChannelIds] : undefined,
+      ignoredUserIds: config.ignoredUserIds ? [...config.ignoredUserIds] : undefined,
+    };
   }
 
   public setConfig(guildId: string, patch: Partial<AuditLogConfig>): AuditLogConfig {
